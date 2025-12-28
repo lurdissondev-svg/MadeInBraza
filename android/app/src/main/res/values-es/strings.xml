@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Braza</string>
+
+    <!-- Profile Screen -->
+    <string name="my_profile">MI PERFIL</string>
+    <string name="back">Volver</string>
+    <string name="edit">Editar</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">CANCELAR</string>
+    <string name="nick">Nick</string>
+    <string name="class_label">Clase</string>
+    <string name="role">Cargo</string>
+    <string name="leader">Líder</string>
+    <string name="member">Miembro</string>
+    <string name="status">Estado</string>
+    <string name="member_since">Miembro desde</string>
+    <string name="statistics">ESTADÍSTICAS</string>
+    <string name="messages">Mensajes</string>
+    <string name="events">Eventos</string>
+    <string name="change_password">CAMBIAR CONTRASEÑA</string>
+    <string name="notifications_enabled">NOTIFICACIONES ACTIVADAS</string>
+    <string name="enable_notifications">ACTIVAR NOTIFICACIONES</string>
+    <string name="language">Idioma</string>
+    <string name="try_again">INTENTAR DE NUEVO</string>
+    <string name="unknown_error">Error desconocido</string>
+
+    <!-- Password Dialog -->
+    <string name="change_password_title">Cambiar Contraseña</string>
+    <string name="current_password">Contraseña Actual</string>
+    <string name="new_password">Nueva Contraseña</string>
+    <string name="confirm_password">Confirmar Nueva Contraseña</string>
+    <string name="change">CAMBIAR</string>
+    <string name="password_changed">¡Contraseña cambiada con éxito!</string>
+    <string name="enter_current_password">Ingrese la contraseña actual</string>
+    <string name="password_min_length">La nueva contraseña debe tener al menos 6 caracteres</string>
+    <string name="passwords_dont_match">Las contraseñas no coinciden</string>
+
+    <!-- Navigation -->
+    <string name="home">Inicio</string>
+    <string name="channels">Canales</string>
+    <string name="parties">Parties</string>
+    <string name="members">Miembros</string>
+    <string name="profile">Perfil</string>
+</resources>

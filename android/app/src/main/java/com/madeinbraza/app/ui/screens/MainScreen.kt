@@ -80,7 +80,8 @@ fun MainScreen(
     onNavigateToSiegeWar: () -> Unit,
     onNavigateToCreateEvent: () -> Unit,
     onNavigateToParties: (String, String) -> Unit,
-    onNavigateToMemberProfile: (String) -> Unit
+    onNavigateToMemberProfile: (String) -> Unit,
+    onLanguageChanged: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -170,7 +171,9 @@ fun MainScreen(
             }
 
             composable(BottomNavItem.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(
+                    onLanguageChanged = onLanguageChanged
+                )
             }
         }
     }

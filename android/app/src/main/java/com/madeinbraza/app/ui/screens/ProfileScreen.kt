@@ -30,6 +30,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.ui.viewmodel.ProfileViewModel
+import com.madeinbraza.app.util.LanguageManager
+import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -37,6 +39,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ProfileScreen(
     onNavigateBack: (() -> Unit)? = null,
+    onLanguageChanged: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -52,9 +55,16 @@ fun ProfileScreen(
     }
 
     // Language selection state
-    var selectedLanguage by remember { mutableStateOf("Português (BR)") }
+    val coroutineScope = rememberCoroutineScope()
+    val currentLanguageCode by LanguageManager.getLanguageFlow(context).collectAsState(initial = "pt")
+    var selectedLanguage by remember { mutableStateOf(LanguageManager.getDisplayNameFromCode(currentLanguageCode)) }
     var showLanguageDropdown by remember { mutableStateOf(false) }
-    val languages = listOf("Português (BR)", "English", "Español")
+    val languages = LanguageManager.languages.map { it.displayName }
+
+    // Update selectedLanguage when currentLanguageCode changes
+    LaunchedEffect(currentLanguageCode) {
+        selectedLanguage = LanguageManager.getDisplayNameFromCode(currentLanguageCode)
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -415,8 +425,17 @@ fun ProfileScreen(
                                     DropdownMenuItem(
                                         text = { Text(language) },
                                         onClick = {
-                                            selectedLanguage = language
-                                            showLanguageDropdown = false
+                                            if (language != selectedLanguage) {
+                                                selectedLanguage = language
+                                                showLanguageDropdown = false
+                                                val languageCode = LanguageManager.getLanguageCodeFromDisplayName(language)
+                                                coroutineScope.launch {
+                                                    LanguageManager.setLanguage(context, languageCode)
+                                                    onLanguageChanged()
+                                                }
+                                            } else {
+                                                showLanguageDropdown = false
+                                            }
                                         }
                                     )
                                 }

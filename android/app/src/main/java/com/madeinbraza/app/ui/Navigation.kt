@@ -38,7 +38,9 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun BrazaNavHost() {
+fun BrazaNavHost(
+    onLanguageChanged: () -> Unit = {}
+) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
@@ -128,7 +130,8 @@ fun BrazaNavHost() {
                 },
                 onNavigateToMemberProfile = { memberId ->
                     navController.navigate(Screen.MemberProfile.createRoute(memberId))
-                }
+                },
+                onLanguageChanged = onLanguageChanged
             )
         }
 
