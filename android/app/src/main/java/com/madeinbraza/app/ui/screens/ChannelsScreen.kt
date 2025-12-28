@@ -21,9 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.madeinbraza.app.R
 import coil.request.ImageRequest
 import com.madeinbraza.app.BuildConfig
 import com.madeinbraza.app.data.model.Channel
@@ -79,11 +81,11 @@ private fun ChannelsListContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Canais de Chat") },
+                title = { Text(stringResource(R.string.guild_chat_channels)) },
                 navigationIcon = {
                     if (onNavigateBack != null) {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 },
@@ -117,13 +119,13 @@ private fun ChannelsListContent(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Nenhum canal disponível",
+                                text = stringResource(R.string.no_channels),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(onClick = { viewModel.setupDefaultChannels() }) {
-                                Text("Criar canais padrão")
+                                Text(stringResource(R.string.create_default_channels))
                             }
                         }
                     }
@@ -152,7 +154,7 @@ private fun ChannelsListContent(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearChannelsError() }) {
-                        Text("OK")
+                        Text(stringResource(R.string.ok))
                     }
                 }
             ) {
@@ -226,7 +228,7 @@ private fun ChannelItem(
                 channel._count?.let { count ->
                     if (count.messages > 0) {
                         Text(
-                            text = "${count.messages} mensagens",
+                            text = stringResource(R.string.messages_count, count.messages),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -238,14 +240,14 @@ private fun ChannelItem(
             IconButton(onClick = onShowMembers) {
                 Icon(
                     imageVector = Icons.Filled.Person,
-                    contentDescription = "Ver membros",
+                    contentDescription = stringResource(R.string.members),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
 
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowRight,
-                contentDescription = "Abrir",
+                contentDescription = stringResource(R.string.channels),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -279,10 +281,10 @@ private fun ChannelChatContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.channel?.name ?: "Chat") },
+                title = { Text(uiState.channel?.name ?: stringResource(R.string.guild_chat)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -306,7 +308,7 @@ private fun ChannelChatContent(
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Anexar mídia",
+                        contentDescription = stringResource(R.string.add_media),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -315,7 +317,7 @@ private fun ChannelChatContent(
                     value = messageText,
                     onValueChange = { messageText = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Digite sua mensagem...") },
+                    placeholder = { Text(stringResource(R.string.type_message)) },
                     maxLines = 3,
                     enabled = !uiState.isSending && !uiState.isUploading,
                     shape = RoundedCornerShape(24.dp)
@@ -343,7 +345,7 @@ private fun ChannelChatContent(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Icon(Icons.Default.Send, contentDescription = "Enviar")
+                        Icon(Icons.Default.Send, contentDescription = stringResource(R.string.send))
                     }
                 }
             }
@@ -372,7 +374,7 @@ private fun ChannelChatContent(
                     uiState.messages.isEmpty() -> {
                         Box(modifier = Modifier.fillMaxSize()) {
                             Text(
-                                text = "Nenhuma mensagem ainda.\nSeja o primeiro a mandar!",
+                                text = stringResource(R.string.no_messages_yet),
                                 modifier = Modifier.align(Alignment.Center),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -402,7 +404,7 @@ private fun ChannelChatContent(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearChatError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -417,6 +419,7 @@ private fun ChannelChatContent(
 private fun ChannelMessageBubble(message: ChannelMessage) {
     val isLeader = message.user.role == Role.LEADER
     val context = LocalContext.current
+    val leaderTag = stringResource(R.string.leader_tag)
 
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -433,7 +436,7 @@ private fun ChannelMessageBubble(message: ChannelMessage) {
             if (isLeader) {
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "[Lider]",
+                    text = leaderTag,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -470,7 +473,7 @@ private fun ChannelMessageBubble(message: ChannelMessage) {
                                 .data(fullUrl)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = "Imagem",
+                            contentDescription = stringResource(R.string.image),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 300.dp)
@@ -492,7 +495,7 @@ private fun ChannelMessageBubble(message: ChannelMessage) {
                                     .data(fullUrl)
                                     .crossfade(true)
                                     .build(),
-                                contentDescription = "Vídeo",
+                                contentDescription = stringResource(R.string.video),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -504,7 +507,7 @@ private fun ChannelMessageBubble(message: ChannelMessage) {
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.PlayArrow,
-                                    contentDescription = "Reproduzir vídeo",
+                                    contentDescription = stringResource(R.string.play_video),
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(8.dp),
@@ -595,7 +598,7 @@ private fun ChannelMembersBottomSheet(
         ) {
             // Header
             Text(
-                text = "Membros - ${membersState.channelName ?: "Canal"}",
+                text = stringResource(R.string.channel_members, membersState.channelName ?: stringResource(R.string.channels)),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -634,7 +637,7 @@ private fun ChannelMembersBottomSheet(
                             .height(200.dp)
                     ) {
                         Text(
-                            text = "Nenhum membro encontrado",
+                            text = stringResource(R.string.no_member_found),
                             modifier = Modifier.align(Alignment.Center),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -642,7 +645,7 @@ private fun ChannelMembersBottomSheet(
                 }
                 else -> {
                     Text(
-                        text = "${membersState.members.size} membro(s)",
+                        text = stringResource(R.string.members_count, membersState.members.size),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -714,7 +717,7 @@ private fun MemberItem(member: ChannelMember) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.Filled.Star,
-                            contentDescription = "Líder",
+                            contentDescription = stringResource(R.string.leader),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )

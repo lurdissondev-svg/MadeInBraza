@@ -17,9 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.ui.viewmodel.CreateEventViewModel
 import java.time.LocalDateTime
@@ -59,10 +61,10 @@ fun CreateEventScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Criar Evento") },
+                title = { Text(stringResource(R.string.create_event)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -79,7 +81,7 @@ fun CreateEventScreen(
             OutlinedTextField(
                 value = uiState.title,
                 onValueChange = { viewModel.updateTitle(it) },
-                label = { Text("Titulo") },
+                label = { Text(stringResource(R.string.title)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = uiState.titleError != null,
@@ -89,7 +91,7 @@ fun CreateEventScreen(
             OutlinedTextField(
                 value = uiState.description,
                 onValueChange = { viewModel.updateDescription(it) },
-                label = { Text("Descricao (opcional)") },
+                label = { Text(stringResource(R.string.description_optional)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5
@@ -98,7 +100,7 @@ fun CreateEventScreen(
             OutlinedTextField(
                 value = uiState.formattedDateTime,
                 onValueChange = {},
-                label = { Text("Data e Hora") },
+                label = { Text(stringResource(R.string.date_time)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
@@ -131,7 +133,7 @@ fun CreateEventScreen(
                 trailingIcon = {
                     Icon(
                         Icons.Filled.DateRange,
-                        contentDescription = "Selecionar data",
+                        contentDescription = stringResource(R.string.select_date),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
@@ -148,8 +150,8 @@ fun CreateEventScreen(
             OutlinedTextField(
                 value = uiState.maxParticipants,
                 onValueChange = { viewModel.updateMaxParticipants(it) },
-                label = { Text("Vagas (opcional)") },
-                placeholder = { Text("Sem limite") },
+                label = { Text(stringResource(R.string.slots_optional)) },
+                placeholder = { Text(stringResource(R.string.no_limit)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -158,6 +160,9 @@ fun CreateEventScreen(
             )
 
             // Classes section
+            val allClassesText = stringResource(R.string.all_classes_allowed)
+            val classesSelectedText = stringResource(R.string.classes_selected, uiState.selectedClasses.size)
+
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -165,13 +170,13 @@ fun CreateEventScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Classes permitidas (opcional)",
+                        text = stringResource(R.string.allowed_classes_optional),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (uiState.selectedClasses.isNotEmpty()) {
                         TextButton(onClick = { viewModel.clearSelectedClasses() }) {
-                            Text("Limpar")
+                            Text(stringResource(R.string.clear))
                         }
                     }
                 }
@@ -180,9 +185,9 @@ fun CreateEventScreen(
 
                 Text(
                     text = if (uiState.selectedClasses.isEmpty()) {
-                        "Todas as classes podem participar"
+                        allClassesText
                     } else {
-                        "${uiState.selectedClasses.size} classe(s) selecionada(s)"
+                        classesSelectedText
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -226,7 +231,7 @@ fun CreateEventScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Criar Evento")
+                    Text(stringResource(R.string.create_event))
                 }
             }
         }

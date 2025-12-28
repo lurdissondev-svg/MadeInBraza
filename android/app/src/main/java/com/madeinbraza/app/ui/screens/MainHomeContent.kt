@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,8 @@ fun MainHomeContent(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isLeader = uiState.user?.role == Role.LEADER
+    val leaderText = stringResource(R.string.leader)
+    val memberText = stringResource(R.string.member)
 
     // Create announcement dialog
     if (uiState.showCreateDialog) {
@@ -68,7 +71,7 @@ fun MainHomeContent(
                         viewModel.logout()
                         onLogout()
                     }) {
-                        Text("SAIR", color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.logout), color = MaterialTheme.colorScheme.primary)
                     }
                 }
             )
@@ -79,7 +82,7 @@ fun MainHomeContent(
                     onClick = { viewModel.showCreateDialog() },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Criar Anuncio")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_announcement))
                 }
             }
         }
@@ -109,18 +112,18 @@ fun MainHomeContent(
                                 modifier = Modifier.padding(16.dp)
                             ) {
                                 Text(
-                                    text = "Bem-vindo, ${uiState.user!!.nick}!",
+                                    text = stringResource(R.string.welcome, uiState.user!!.nick),
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Classe: ${uiState.user!!.playerClass}",
+                                    text = stringResource(R.string.class_info, uiState.user!!.playerClass),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Cargo: ${if (isLeader) "Lider" else "Membro"}",
+                                    text = stringResource(R.string.role_info, if (isLeader) leaderText else memberText),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -157,7 +160,7 @@ fun MainHomeContent(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("SIEGE WAR")
+                            Text(stringResource(R.string.siege_war))
                         }
 
                         if (isLeader) {
@@ -174,7 +177,7 @@ fun MainHomeContent(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("APROVAR MEMBROS")
+                                Text(stringResource(R.string.approve_members))
                             }
 
                             OutlinedButton(
@@ -190,7 +193,7 @@ fun MainHomeContent(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("BANIDOS")
+                                Text(stringResource(R.string.banned_users))
                             }
                         }
                     }
@@ -199,7 +202,7 @@ fun MainHomeContent(
                 // Announcements section header
                 item {
                     Text(
-                        text = "MURAL DE AVISOS",
+                        text = stringResource(R.string.announcements),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
@@ -236,7 +239,7 @@ fun MainHomeContent(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Nenhum aviso no momento",
+                                    text = stringResource(R.string.no_announcements),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -263,7 +266,7 @@ fun MainHomeContent(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -326,7 +329,7 @@ fun AnnouncementCard(
                         } else {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Deletar",
+                                contentDescription = stringResource(R.string.delete),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -349,7 +352,7 @@ fun AnnouncementCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Por ${announcement.createdBy.nick}",
+                    text = stringResource(R.string.by_author, announcement.createdBy.nick),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -374,7 +377,7 @@ fun CreateAnnouncementDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isCreating) onDismiss() },
-        title = { Text("Novo Aviso") },
+        title = { Text(stringResource(R.string.new_announcement)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -382,7 +385,7 @@ fun CreateAnnouncementDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Titulo") },
+                    label = { Text(stringResource(R.string.title)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !isCreating
@@ -391,7 +394,7 @@ fun CreateAnnouncementDialog(
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("Conteudo") },
+                    label = { Text(stringResource(R.string.content)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 5,
@@ -411,7 +414,7 @@ fun CreateAnnouncementDialog(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("CRIAR")
+                    Text(stringResource(R.string.create))
                 }
             }
         },
@@ -420,7 +423,7 @@ fun CreateAnnouncementDialog(
                 onClick = onDismiss,
                 enabled = !isCreating
             ) {
-                Text("CANCELAR")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

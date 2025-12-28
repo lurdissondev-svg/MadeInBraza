@@ -12,9 +12,11 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.PendingUser
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.ui.viewmodel.PendingMembersViewModel
@@ -30,10 +32,10 @@ fun PendingMembersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Membros Pendentes") },
+                title = { Text(stringResource(R.string.pending_members)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -62,7 +64,7 @@ fun PendingMembersScreen(
                 uiState.users.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text(
-                            text = "Nenhum membro pendente",
+                            text = stringResource(R.string.no_pending_members),
                             modifier = Modifier.align(Alignment.Center),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -94,7 +96,7 @@ fun PendingMembersScreen(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -152,7 +154,7 @@ private fun PendingUserCard(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Rejeitar")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.reject))
                     }
                     IconButton(
                         onClick = onApprove,
@@ -160,7 +162,7 @@ private fun PendingUserCard(
                             contentColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = "Aprovar")
+                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.approve))
                     }
                 }
             }

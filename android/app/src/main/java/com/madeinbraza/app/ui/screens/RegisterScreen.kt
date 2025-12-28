@@ -8,10 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.ui.viewmodel.RegisterViewModel
 
@@ -40,7 +42,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(
-            text = "CADASTRO",
+            text = stringResource(R.string.register),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -50,7 +52,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = uiState.nick,
             onValueChange = { viewModel.updateNick(it) },
-            label = { Text("Nick") },
+            label = { Text(stringResource(R.string.nick)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -64,7 +66,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = uiState.password,
             onValueChange = { viewModel.updatePassword(it) },
-            label = { Text("Senha") },
+            label = { Text(stringResource(R.string.password)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -78,7 +80,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Selecione sua Classe",
+            text = stringResource(R.string.select_class),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.align(Alignment.Start)
@@ -136,14 +138,14 @@ fun RegisterScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("CRIAR CONTA")
+                Text(stringResource(R.string.create_account))
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(onClick = onNavigateToLogin) {
-            Text("Já tenho conta", color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.already_have_account), color = MaterialTheme.colorScheme.primary)
         }
     }
 }

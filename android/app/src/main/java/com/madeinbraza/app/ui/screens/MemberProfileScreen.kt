@@ -8,9 +8,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.ui.viewmodel.MemberProfileViewModel
 import java.time.ZonedDateTime
@@ -28,10 +30,10 @@ fun MemberProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Perfil do Membro") },
+                title = { Text(stringResource(R.string.member_profile)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -54,19 +56,21 @@ fun MemberProfileScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.error ?: "Erro desconhecido",
+                            text = uiState.error ?: stringResource(R.string.unknown_error),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { viewModel.loadProfile() }) {
-                            Text("TENTAR NOVAMENTE")
+                            Text(stringResource(R.string.try_again))
                         }
                     }
                 }
                 uiState.profile != null -> {
                     val profile = uiState.profile!!
                     val isLeader = profile.role == Role.LEADER
+                    val leaderText = stringResource(R.string.leader)
+                    val memberText = stringResource(R.string.member)
 
                     Column(
                         modifier = Modifier
@@ -103,7 +107,7 @@ fun MemberProfileScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Icon(
                                             Icons.Filled.Star,
-                                            contentDescription = "Lider",
+                                            contentDescription = leaderText,
                                             modifier = Modifier.size(24.dp),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
@@ -116,7 +120,7 @@ fun MemberProfileScreen(
                                     onClick = {},
                                     label = {
                                         Text(
-                                            text = if (isLeader) "Lider" else "Membro",
+                                            text = if (isLeader) leaderText else memberText,
                                             style = MaterialTheme.typography.labelLarge
                                         )
                                     }
@@ -129,24 +133,32 @@ fun MemberProfileScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth()
                         ) {
+                            val classLabel = stringResource(R.string.class_label)
+                            val statusLabel = stringResource(R.string.status)
+                            val approvedStatus = stringResource(R.string.approved)
+                            val pendingStatus = stringResource(R.string.pending)
+                            val bannedStatus = stringResource(R.string.banned)
+                            val memberSinceLabel = stringResource(R.string.member_since)
+                            val approvedOnLabel = stringResource(R.string.approved_on)
+
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp)
                             ) {
                                 ProfileInfoRow(
-                                    label = "Classe",
+                                    label = classLabel,
                                     value = profile.playerClass.name
                                 )
 
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                                 ProfileInfoRow(
-                                    label = "Status",
+                                    label = statusLabel,
                                     value = when (profile.status.name) {
-                                        "APPROVED" -> "Aprovado"
-                                        "PENDING" -> "Pendente"
-                                        "BANNED" -> "Banido"
+                                        "APPROVED" -> approvedStatus
+                                        "PENDING" -> pendingStatus
+                                        "BANNED" -> bannedStatus
                                         else -> profile.status.name
                                     }
                                 )
@@ -154,7 +166,7 @@ fun MemberProfileScreen(
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                                 ProfileInfoRow(
-                                    label = "Membro desde",
+                                    label = memberSinceLabel,
                                     value = formatDate(profile.createdAt)
                                 )
 
@@ -162,7 +174,7 @@ fun MemberProfileScreen(
                                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                                     ProfileInfoRow(
-                                        label = "Aprovado em",
+                                        label = approvedOnLabel,
                                         value = formatDate(approvedAt)
                                     )
                                 }
@@ -179,7 +191,7 @@ fun MemberProfileScreen(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {

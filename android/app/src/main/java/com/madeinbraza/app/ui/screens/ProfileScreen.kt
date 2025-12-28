@@ -24,7 +24,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.madeinbraza.app.R
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.data.model.PlayerClass
@@ -105,9 +107,11 @@ fun ProfileScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val passwordChangedMsg = stringResource(R.string.password_changed)
+
     LaunchedEffect(uiState.passwordChangeSuccess) {
         if (uiState.passwordChangeSuccess) {
-            snackbarHostState.showSnackbar("Senha alterada com sucesso!")
+            snackbarHostState.showSnackbar(passwordChangedMsg)
             viewModel.clearPasswordChangeSuccess()
         }
     }
@@ -116,11 +120,11 @@ fun ProfileScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("MEU PERFIL") },
+                title = { Text(stringResource(R.string.my_profile)) },
                 navigationIcon = {
                     if (onNavigateBack != null) {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 },
@@ -131,7 +135,7 @@ fun ProfileScreen(
                 actions = {
                     if (!isEditing && uiState.profile != null) {
                         IconButton(onClick = { isEditing = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar")
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit))
                         }
                     } else if (isEditing) {
                         IconButton(
@@ -149,7 +153,7 @@ fun ProfileScreen(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Icon(Icons.Default.Check, contentDescription = "Salvar")
+                                Icon(Icons.Default.Check, contentDescription = stringResource(R.string.save))
                             }
                         }
                     }
@@ -177,12 +181,12 @@ fun ProfileScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.error ?: "Erro desconhecido",
+                            text = uiState.error ?: stringResource(R.string.unknown_error),
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { viewModel.loadProfile() }) {
-                            Text("TENTAR NOVAMENTE")
+                            Text(stringResource(R.string.try_again))
                         }
                     }
                 }
@@ -209,7 +213,7 @@ fun ProfileScreen(
                                     OutlinedTextField(
                                         value = editNick,
                                         onValueChange = { editNick = it },
-                                        label = { Text("Nick") },
+                                        label = { Text(stringResource(R.string.nick)) },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
@@ -224,7 +228,7 @@ fun ProfileScreen(
                                             value = editPlayerClass?.name ?: "",
                                             onValueChange = {},
                                             readOnly = true,
-                                            label = { Text("Classe") },
+                                            label = { Text(stringResource(R.string.class_label)) },
                                             trailingIcon = {
                                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = showClassDropdown)
                                             },
@@ -258,10 +262,13 @@ fun ProfileScreen(
                                             editPlayerClass = profile.playerClass
                                         }
                                     ) {
-                                        Text("CANCELAR")
+                                        Text(stringResource(R.string.cancel))
                                     }
                                 } else {
                                     // View mode
+                                    val leaderText = stringResource(R.string.leader)
+                                    val memberText = stringResource(R.string.member)
+
                                     Text(
                                         text = profile.nick,
                                         style = MaterialTheme.typography.headlineMedium,
@@ -271,19 +278,19 @@ fun ProfileScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
 
                                     Text(
-                                        text = "Classe: ${profile.playerClass.name}",
+                                        text = stringResource(R.string.class_info, profile.playerClass.name),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
 
                                     Text(
-                                        text = "Cargo: ${if (profile.role == Role.LEADER) "Líder" else "Membro"}",
+                                        text = stringResource(R.string.role_info, if (profile.role == Role.LEADER) leaderText else memberText),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
 
                                     Text(
-                                        text = "Status: ${profile.status.name}",
+                                        text = "${stringResource(R.string.status)}: ${profile.status.name}",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -296,7 +303,7 @@ fun ProfileScreen(
                                     }
 
                                     Text(
-                                        text = "Membro desde: $formattedDate",
+                                        text = "${stringResource(R.string.member_since)}: $formattedDate",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -308,7 +315,7 @@ fun ProfileScreen(
 
                         // Stats Card
                         Text(
-                            text = "ESTATÍSTICAS",
+                            text = stringResource(R.string.statistics),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -320,13 +327,13 @@ fun ProfileScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             StatCard(
-                                title = "Mensagens",
+                                title = stringResource(R.string.messages),
                                 value = profile.stats.messagesCount.toString(),
                                 modifier = Modifier.weight(1f)
                             )
 
                             StatCard(
-                                title = "Eventos",
+                                title = stringResource(R.string.events),
                                 value = profile.stats.eventsParticipated.toString(),
                                 modifier = Modifier.weight(1f)
                             )
@@ -345,7 +352,7 @@ fun ProfileScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("ALTERAR SENHA")
+                            Text(stringResource(R.string.change_password))
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -390,7 +397,7 @@ fun ProfileScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (notificationsEnabled) "NOTIFICAÇÕES ATIVADAS" else "ATIVAR NOTIFICAÇÕES")
+                            Text(if (notificationsEnabled) stringResource(R.string.notifications_enabled) else stringResource(R.string.enable_notifications))
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -492,9 +499,13 @@ private fun ChangePasswordDialog(
     var confirmPassword by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
+    val enterCurrentPasswordError = stringResource(R.string.enter_current_password)
+    val passwordMinLengthError = stringResource(R.string.password_min_length)
+    val passwordsDontMatchError = stringResource(R.string.passwords_dont_match)
+
     AlertDialog(
         onDismissRequest = { if (!isChanging) onDismiss() },
-        title = { Text("Alterar Senha") },
+        title = { Text(stringResource(R.string.change_password_title)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -502,7 +513,7 @@ private fun ChangePasswordDialog(
                 OutlinedTextField(
                     value = currentPassword,
                     onValueChange = { currentPassword = it; localError = null },
-                    label = { Text("Senha Atual") },
+                    label = { Text(stringResource(R.string.current_password)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -512,7 +523,7 @@ private fun ChangePasswordDialog(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it; localError = null },
-                    label = { Text("Nova Senha") },
+                    label = { Text(stringResource(R.string.new_password)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -522,7 +533,7 @@ private fun ChangePasswordDialog(
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it; localError = null },
-                    label = { Text("Confirmar Nova Senha") },
+                    label = { Text(stringResource(R.string.confirm_password)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -542,9 +553,9 @@ private fun ChangePasswordDialog(
             Button(
                 onClick = {
                     when {
-                        currentPassword.isBlank() -> localError = "Digite a senha atual"
-                        newPassword.length < 6 -> localError = "A nova senha deve ter no mínimo 6 caracteres"
-                        newPassword != confirmPassword -> localError = "As senhas não conferem"
+                        currentPassword.isBlank() -> localError = enterCurrentPasswordError
+                        newPassword.length < 6 -> localError = passwordMinLengthError
+                        newPassword != confirmPassword -> localError = passwordsDontMatchError
                         else -> onChangePassword(currentPassword, newPassword)
                     }
                 },
@@ -557,7 +568,7 @@ private fun ChangePasswordDialog(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("ALTERAR")
+                    Text(stringResource(R.string.change))
                 }
             }
         },
@@ -566,7 +577,7 @@ private fun ChangePasswordDialog(
                 onClick = onDismiss,
                 enabled = !isChanging
             ) {
-                Text("CANCELAR")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

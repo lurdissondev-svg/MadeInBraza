@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -47,7 +48,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = uiState.nick,
             onValueChange = { viewModel.updateNick(it) },
-            label = { Text("Nick") },
+            label = { Text(stringResource(R.string.nick)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -61,7 +62,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = uiState.password,
             onValueChange = { viewModel.updatePassword(it) },
-            label = { Text("Senha") },
+            label = { Text(stringResource(R.string.password)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -95,7 +96,7 @@ fun LoginScreen(
                 )
             )
             Text(
-                text = "Continuar conectado",
+                text = stringResource(R.string.stay_connected),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -118,14 +119,14 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("ENTRAR")
+                Text(stringResource(R.string.login))
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(onClick = onNavigateToRegister) {
-            Text("Criar conta", color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.already_have_account), color = MaterialTheme.colorScheme.primary)
         }
     }
 }

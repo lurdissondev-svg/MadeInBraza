@@ -18,8 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.Event
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.ui.viewmodel.EventsViewModel
@@ -58,11 +60,11 @@ fun EventsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Eventos") },
+                title = { Text(stringResource(R.string.events_title)) },
                 navigationIcon = {
                     if (onNavigateBack != null) {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 }
@@ -71,7 +73,7 @@ fun EventsScreen(
         floatingActionButton = {
             if (uiState.isLeader) {
                 FloatingActionButton(onClick = onNavigateToCreateEvent) {
-                    Icon(Icons.Filled.Add, contentDescription = "Criar Evento")
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.create_event))
                 }
             }
         }
@@ -94,7 +96,7 @@ fun EventsScreen(
                 uiState.events.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text(
-                            text = "Nenhum evento",
+                            text = stringResource(R.string.no_events),
                             modifier = Modifier.align(Alignment.Center),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -132,7 +134,7 @@ fun EventsScreen(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -191,7 +193,7 @@ fun EventCard(
                     // Show if event is full
                     if (event.isFull) {
                         Text(
-                            text = "LOTADO",
+                            text = stringResource(R.string.full),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Bold
@@ -212,7 +214,7 @@ fun EventCard(
                         } else {
                             Icon(
                                 Icons.Filled.Delete,
-                                contentDescription = "Deletar",
+                                contentDescription = stringResource(R.string.delete),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -268,9 +270,13 @@ fun EventCard(
                 Spacer(modifier = Modifier.width(4.dp))
 
                 val participantsText = if (event.maxParticipants != null) {
-                    "${event.participants.size}/${event.maxParticipants} vagas"
+                    stringResource(R.string.slots_info, event.participants.size, event.maxParticipants)
                 } else {
-                    "${event.participants.size} participante${if (event.participants.size != 1) "s" else ""}"
+                    if (event.participants.size != 1) {
+                        stringResource(R.string.participants_plural, event.participants.size)
+                    } else {
+                        stringResource(R.string.participants_singular, event.participants.size)
+                    }
                 }
 
                 Text(
@@ -306,7 +312,7 @@ fun EventCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Classes:",
+                        text = stringResource(R.string.classes_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary
                     )
@@ -340,7 +346,7 @@ fun EventCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Criado por ${event.createdBy.nick}",
+                text = stringResource(R.string.created_by, event.createdBy.nick),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -348,6 +354,11 @@ fun EventCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Action buttons row
+            val leaveEventText = stringResource(R.string.leave_event)
+            val eventFullText = stringResource(R.string.event_full)
+            val classNotAllowedText = stringResource(R.string.class_not_allowed)
+            val joinEventText = stringResource(R.string.join_event)
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -355,10 +366,10 @@ fun EventCard(
                 // Join/Leave button
                 val buttonEnabled = !isActionInProgress && (isParticipant || (!event.isFull && canJoinByClass))
                 val buttonText = when {
-                    isParticipant -> "Sair"
-                    event.isFull -> "Lotado"
-                    !canJoinByClass -> "Classe nao permitida"
-                    else -> "Participar"
+                    isParticipant -> leaveEventText
+                    event.isFull -> eventFullText
+                    !canJoinByClass -> classNotAllowedText
+                    else -> joinEventText
                 }
 
                 Button(
@@ -395,7 +406,7 @@ fun EventCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Parties")
+                    Text(stringResource(R.string.parties))
                 }
             }
         }

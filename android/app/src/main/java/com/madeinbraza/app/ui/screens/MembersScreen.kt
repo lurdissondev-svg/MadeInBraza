@@ -15,9 +15,11 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.Member
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.ui.viewmodel.MembersViewModel
@@ -59,8 +61,8 @@ fun MembersScreen(
     memberToPromote?.let { member ->
         AlertDialog(
             onDismissRequest = { memberToPromote = null },
-            title = { Text("Promover a Líder") },
-            text = { Text("Tem certeza que deseja promover ${member.nick} a líder da guilda?") },
+            title = { Text(stringResource(R.string.promote_leader)) },
+            text = { Text(stringResource(R.string.promote_confirm, member.nick)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -68,12 +70,12 @@ fun MembersScreen(
                         memberToPromote = null
                     }
                 ) {
-                    Text("PROMOVER")
+                    Text(stringResource(R.string.promote))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { memberToPromote = null }) {
-                    Text("CANCELAR")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -83,8 +85,8 @@ fun MembersScreen(
     memberToBan?.let { member ->
         AlertDialog(
             onDismissRequest = { memberToBan = null },
-            title = { Text("Banir Membro") },
-            text = { Text("Tem certeza que deseja banir ${member.nick}? Esta ação não pode ser desfeita.") },
+            title = { Text(stringResource(R.string.ban_member)) },
+            text = { Text(stringResource(R.string.ban_confirm, member.nick)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -95,12 +97,12 @@ fun MembersScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("BANIR")
+                    Text(stringResource(R.string.ban))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { memberToBan = null }) {
-                    Text("CANCELAR")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -110,8 +112,8 @@ fun MembersScreen(
     memberToDemote?.let { member ->
         AlertDialog(
             onDismissRequest = { memberToDemote = null },
-            title = { Text("Rebaixar Líder") },
-            text = { Text("Tem certeza que deseja rebaixar ${member.nick} de líder para membro?") },
+            title = { Text(stringResource(R.string.demote_leader)) },
+            text = { Text(stringResource(R.string.demote_confirm, member.nick)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -122,12 +124,12 @@ fun MembersScreen(
                         containerColor = MaterialTheme.colorScheme.secondary
                     )
                 ) {
-                    Text("REBAIXAR")
+                    Text(stringResource(R.string.demote))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { memberToDemote = null }) {
-                    Text("CANCELAR")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -136,11 +138,11 @@ fun MembersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Membros da Guilda") },
+                title = { Text(stringResource(R.string.guild_members)) },
                 navigationIcon = {
                     if (onNavigateBack != null) {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 }
@@ -165,7 +167,7 @@ fun MembersScreen(
                 uiState.members.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text(
-                            text = "Nenhum membro",
+                            text = stringResource(R.string.no_members),
                             modifier = Modifier.align(Alignment.Center),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -204,7 +206,7 @@ fun MembersScreen(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -246,6 +248,9 @@ fun MemberCard(
             CardDefaults.cardColors()
         }
     ) {
+        val leaderText = stringResource(R.string.leader)
+        val youText = "(${stringResource(R.string.you)})"
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -263,7 +268,7 @@ fun MemberCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             Icons.Filled.Star,
-                            contentDescription = "Lider",
+                            contentDescription = leaderText,
                             modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -271,7 +276,7 @@ fun MemberCard(
                     if (isSelf) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "(você)",
+                            text = youText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -289,6 +294,10 @@ fun MemberCard(
 
             if (canPromote || canBan || canDemote) {
                 Row {
+                    val promoteText = stringResource(R.string.promote)
+                    val demoteText = stringResource(R.string.demote)
+                    val banText = stringResource(R.string.ban)
+
                     if (canPromote) {
                         IconButton(
                             onClick = onPromoteClick,
@@ -302,7 +311,7 @@ fun MemberCard(
                             } else {
                                 Icon(
                                     Icons.Filled.KeyboardArrowUp,
-                                    contentDescription = "Promover",
+                                    contentDescription = promoteText,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -321,7 +330,7 @@ fun MemberCard(
                             } else {
                                 Icon(
                                     Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = "Rebaixar",
+                                    contentDescription = demoteText,
                                     tint = MaterialTheme.colorScheme.secondary
                                 )
                             }
@@ -340,7 +349,7 @@ fun MemberCard(
                             } else {
                                 Icon(
                                     Icons.Default.Close,
-                                    contentDescription = "Banir",
+                                    contentDescription = banText,
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -352,7 +361,7 @@ fun MemberCard(
                     onClick = {},
                     label = {
                         Text(
-                            text = if (isLeader) "Líder" else "Membro",
+                            text = if (isLeader) leaderText else stringResource(R.string.member),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }

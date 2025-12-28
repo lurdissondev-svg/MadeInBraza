@@ -16,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.ChatMessage
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.ui.viewmodel.ChatViewModel
@@ -44,10 +46,10 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chat da Guilda") },
+                title = { Text(stringResource(R.string.guild_chat)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -82,7 +84,7 @@ fun ChatScreen(
                     uiState.messages.isEmpty() -> {
                         Box(modifier = Modifier.fillMaxSize()) {
                             Text(
-                                text = "Nenhuma mensagem ainda.\nSeja o primeiro a mandar!",
+                                text = stringResource(R.string.no_messages_yet),
                                 modifier = Modifier.align(Alignment.Center),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -115,7 +117,7 @@ fun ChatScreen(
                     value = messageText,
                     onValueChange = { messageText = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Digite sua mensagem...") },
+                    placeholder = { Text(stringResource(R.string.type_message)) },
                     maxLines = 3,
                     enabled = !uiState.isSending,
                     shape = RoundedCornerShape(24.dp)
@@ -143,7 +145,7 @@ fun ChatScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Icon(Icons.Default.Send, contentDescription = "Enviar")
+                        Icon(Icons.Default.Send, contentDescription = stringResource(R.string.send))
                     }
                 }
             }
@@ -154,7 +156,7 @@ fun ChatScreen(
                     modifier = Modifier.padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -168,6 +170,7 @@ fun ChatScreen(
 @Composable
 private fun MessageBubble(message: ChatMessage) {
     val isLeader = message.user.role == Role.LEADER
+    val leaderTag = stringResource(R.string.leader_tag)
 
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -184,7 +187,7 @@ private fun MessageBubble(message: ChatMessage) {
             if (isLeader) {
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "[Lider]",
+                    text = leaderTag,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )

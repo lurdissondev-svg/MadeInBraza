@@ -2,28 +2,65 @@
 <resources>
     <string name="app_name">Braza</string>
 
-    <!-- Profile Screen -->
-    <string name="my_profile">MI PERFIL</string>
+    <!-- Common -->
     <string name="back">Volver</string>
     <string name="edit">Editar</string>
     <string name="save">Guardar</string>
     <string name="cancel">CANCELAR</string>
+    <string name="ok">OK</string>
+    <string name="try_again">INTENTAR DE NUEVO</string>
+    <string name="unknown_error">Error desconocido</string>
+    <string name="loading">Cargando...</string>
+    <string name="error">Error</string>
+    <string name="success">Éxito</string>
+    <string name="confirm">Confirmar</string>
+    <string name="delete">Eliminar</string>
+    <string name="send">ENVIAR</string>
+    <string name="create">CREAR</string>
+    <string name="close">Cerrar</string>
+    <string name="clear">Limpiar</string>
+    <string name="you">tú</string>
+
+    <!-- Navigation -->
+    <string name="home">Inicio</string>
+    <string name="channels">Canales</string>
+    <string name="events">Eventos</string>
+    <string name="parties">Parties</string>
+    <string name="members">Miembros</string>
+    <string name="profile">Perfil</string>
+
+    <!-- Login Screen -->
+    <string name="login">ENTRAR</string>
+    <string name="password">Contraseña</string>
     <string name="nick">Nick</string>
+    <string name="stay_connected">Mantener conectado</string>
+    <string name="create_account">CREAR CUENTA</string>
+    <string name="already_have_account">Ya tengo cuenta</string>
+
+    <!-- Register Screen -->
+    <string name="register">REGISTRO</string>
+    <string name="select_class">Selecciona tu Clase</string>
     <string name="class_label">Clase</string>
+
+    <!-- Waiting Screen -->
+    <string name="waiting_approval">Esperando Aprobación</string>
+    <string name="account_pending">Tu cuenta está pendiente.\nUn líder del clan debe aprobar tu acceso.</string>
+    <string name="logout">SALIR</string>
+
+    <!-- Profile Screen -->
+    <string name="my_profile">MI PERFIL</string>
     <string name="role">Cargo</string>
     <string name="leader">Líder</string>
     <string name="member">Miembro</string>
     <string name="status">Estado</string>
     <string name="member_since">Miembro desde</string>
+    <string name="approved_on">Aprobado el</string>
     <string name="statistics">ESTADÍSTICAS</string>
     <string name="messages">Mensajes</string>
-    <string name="events">Eventos</string>
     <string name="change_password">CAMBIAR CONTRASEÑA</string>
     <string name="notifications_enabled">NOTIFICACIONES ACTIVADAS</string>
     <string name="enable_notifications">ACTIVAR NOTIFICACIONES</string>
     <string name="language">Idioma</string>
-    <string name="try_again">INTENTAR DE NUEVO</string>
-    <string name="unknown_error">Error desconocido</string>
 
     <!-- Password Dialog -->
     <string name="change_password_title">Cambiar Contraseña</string>
@@ -36,10 +73,160 @@
     <string name="password_min_length">La nueva contraseña debe tener al menos 6 caracteres</string>
     <string name="passwords_dont_match">Las contraseñas no coinciden</string>
 
-    <!-- Navigation -->
-    <string name="home">Inicio</string>
-    <string name="channels">Canales</string>
-    <string name="parties">Parties</string>
-    <string name="members">Miembros</string>
-    <string name="profile">Perfil</string>
+    <!-- Home Screen -->
+    <string name="welcome">¡Bienvenido, %1$s!</string>
+    <string name="class_info">Clase: %1$s</string>
+    <string name="role_info">Cargo: %1$s</string>
+    <string name="leader_panel">Panel del Líder</string>
+    <string name="approve_members">APROBAR MIEMBROS</string>
+    <string name="banned_users">BANEADOS</string>
+    <string name="siege_war">SIEGE WAR</string>
+    <string name="announcements">TABLÓN DE ANUNCIOS</string>
+    <string name="no_announcements">No hay anuncios por el momento</string>
+    <string name="by_author">Por %1$s</string>
+    <string name="new_announcement">Nuevo Anuncio</string>
+    <string name="content">Contenido</string>
+
+    <!-- Channels Screen -->
+    <string name="chat_channels">CANALES DE CHAT</string>
+    <string name="guild_chat_channels">Canales de Chat</string>
+    <string name="no_channels">No hay canales disponibles</string>
+    <string name="create_default_channels">Crear canales predeterminados</string>
+    <string name="messages_count">%1$d mensajes</string>
+
+    <!-- Chat Screen -->
+    <string name="guild_chat">Chat del Gremio</string>
+    <string name="channel_members">Miembros - %1$s</string>
+    <string name="no_member_found">Ningún miembro encontrado</string>
+    <string name="members_count">%1$d miembro(s)</string>
+    <string name="no_messages_yet">Aún no hay mensajes.\n¡Sé el primero en enviar uno!</string>
+    <string name="type_message">Escribe tu mensaje...</string>
+    <string name="leader_tag">[Líder]</string>
+    <string name="add_media">Adjuntar medios</string>
+    <string name="image">Imagen</string>
+    <string name="video">Vídeo</string>
+    <string name="play_video">Reproducir vídeo</string>
+
+    <!-- Events Screen -->
+    <string name="events_title">Eventos</string>
+    <string name="create_event">Crear Evento</string>
+    <string name="no_events">No hay eventos</string>
+    <string name="full">LLENO</string>
+    <string name="classes_label">Clases:</string>
+    <string name="created_by">Creado por %1$s</string>
+    <string name="leave_event">Salir</string>
+    <string name="join_event">Participar</string>
+    <string name="event_full">Lleno</string>
+    <string name="class_not_allowed">Clase no permitida</string>
+    <string name="slots_info">%1$d/%2$d plazas</string>
+    <string name="participants_singular">%1$d participante</string>
+    <string name="participants_plural">%1$d participantes</string>
+
+    <!-- Create Event Screen -->
+    <string name="title">Título</string>
+    <string name="description_optional">Descripción (opcional)</string>
+    <string name="date_time">Fecha y Hora</string>
+    <string name="select_date">Seleccionar fecha</string>
+    <string name="slots_optional">Plazas (opcional)</string>
+    <string name="no_limit">Sin límite</string>
+    <string name="allowed_classes_optional">Clases permitidas (opcional)</string>
+    <string name="all_classes_allowed">Todas las clases pueden participar</string>
+    <string name="classes_selected">%1$d clase(s) seleccionada(s)</string>
+
+    <!-- Parties Screen -->
+    <string name="create_party">Crear Party</string>
+    <string name="no_parties">No hay parties</string>
+    <string name="create_party_for_event">¡Crea una party para el evento!</string>
+    <string name="create_party_gather">¡Crea una party para reunir al grupo!</string>
+    <string name="created_by_party">Creada por %1$s</string>
+    <string name="party_name">Nombre de la Party</string>
+    <string name="max_members">Máximo de miembros</string>
+    <string name="party_closed">Cerrada</string>
+    <string name="party_full">Llena</string>
+    <string name="leave">Salir</string>
+    <string name="join">Entrar</string>
+    <string name="party_members_count">%1$d/%2$d miembros</string>
+
+    <!-- Actions -->
+    <string name="reject">Rechazar</string>
+    <string name="approve">Aprobar</string>
+
+    <!-- Status -->
+    <string name="approved">Aprobado</string>
+    <string name="pending">Pendiente</string>
+    <string name="banned">Baneado</string>
+
+    <!-- Members Screen -->
+    <string name="guild_members">Miembros del Gremio</string>
+    <string name="no_members">No hay miembros</string>
+    <string name="member_profile">Perfil del Miembro</string>
+
+    <!-- Pending Members Screen -->
+    <string name="pending_members">Miembros Pendientes</string>
+    <string name="no_pending_members">No hay miembros pendientes</string>
+
+    <!-- Banned Users Screen -->
+    <string name="banned_users_title">Usuarios Baneados</string>
+    <string name="no_banned_users">No hay usuarios baneados</string>
+    <string name="ban">BANEAR</string>
+    <string name="unban">DESBANEAR</string>
+    <string name="ban_member">Banear Miembro</string>
+    <string name="unban_member">Desbanear Miembro</string>
+    <string name="ban_confirm">¿Estás seguro de que quieres banear a %1$s? Esta acción no se puede deshacer.</string>
+    <string name="unban_confirm">¿Estás seguro de que quieres desbanear a %1$s? El usuario podrá acceder al gremio de nuevo.</string>
+
+    <!-- Promote/Demote -->
+    <string name="promote">PROMOVER</string>
+    <string name="demote">DEGRADAR</string>
+    <string name="promote_leader">Promover a Líder</string>
+    <string name="demote_leader">Degradar Líder</string>
+    <string name="promote_confirm">¿Estás seguro de que quieres promover a %1$s a líder del gremio?</string>
+    <string name="demote_confirm">¿Estás seguro de que quieres degradar a %1$s de líder a miembro?</string>
+
+    <!-- Siege War Screen -->
+    <string name="siege_war_title">Siege War</string>
+    <string name="no_siege_war">No hay Siege War activo</string>
+    <string name="create_siege_war">Crear Siege War</string>
+    <string name="close_siege_war">Cerrar SW</string>
+    <string name="my_response">Mi Respuesta</string>
+    <string name="responses">Respuestas (%1$d)</string>
+    <string name="your_current_response">Tu respuesta actual:</string>
+    <string name="not_responded">No han respondido (%1$d):</string>
+    <string name="will_participate">¡Estaré allí seguro!</string>
+    <string name="will_share">¡Voy a compartir mi cuenta!</string>
+    <string name="will_pilot">¡Voy de piloto!</string>
+    <string name="will_not_participate">No voy a participar</string>
+    <string name="participating_own_account">Participará con su propia cuenta</string>
+    <string name="not_participating_sw">No participará en esta SW</string>
+    <string name="will_pilot_account">Pilotará la cuenta de otro miembro:</string>
+    <string name="leaving_for_pilot">Dejando cuenta para pilotaje:</string>
+    <string name="account_class">Clase de la cuenta:</string>
+    <string name="no_account_for_pilot">No hay cuentas disponibles para pilotaje en este momento</string>
+    <string name="select_account_to_pilot">Seleccionar Cuenta para Pilotar</string>
+    <string name="game_id">ID del Juego *</string>
+    <string name="password_required">Contraseña *</string>
+    <string name="enter_game_id">Ingresa el ID de la cuenta</string>
+    <string name="enter_password">Ingresa la contraseña</string>
+    <string name="shared_data">Datos de la Cuenta Compartida</string>
+    <string name="id_label">ID:</string>
+    <string name="password_label">Contraseña:</string>
+    <string name="piloting_label">Pilotando:</string>
+    <string name="class_preferred">Clase preferida:</string>
+    <string name="confirmed_or_shared">¿Confirmado o Shared? *</string>
+    <string name="preferred_class">Clase Preferida *</string>
+    <string name="tag_selection">TAG *</string>
+    <string name="select_team">Selecciona tu equipo</string>
+    <string name="team_label">Equipo: %1$s</string>
+
+    <!-- Siege War Instructions -->
+    <string name="shared_model">Modelo de Shared</string>
+    <string name="basic_config">Configuración básica:</string>
+    <string name="duration_5_days">• Duration: 5 days</string>
+    <string name="share_password">• Share Password: contraseña temporal</string>
+    <string name="limitations_to_block">Limitaciones para BLOQUEAR:</string>
+    <string name="auto_blocked_note">Nota: Login User Panel y Create/Delete Characters ya están bloqueados automáticamente.</string>
+    <string name="how_to_configure">Cómo configurar tu cuenta para compartir</string>
+
+    <!-- Braza title -->
+    <string name="braza_title">BRAZA</string>
 </resources>

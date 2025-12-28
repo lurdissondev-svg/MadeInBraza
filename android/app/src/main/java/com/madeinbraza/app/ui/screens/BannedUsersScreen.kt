@@ -11,9 +11,11 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.BannedUser
 import com.madeinbraza.app.ui.viewmodel.BannedUsersViewModel
 
@@ -35,8 +37,8 @@ fun BannedUsersScreen(
     userToUnban?.let { user ->
         AlertDialog(
             onDismissRequest = { userToUnban = null },
-            title = { Text("Desbanir Membro") },
-            text = { Text("Tem certeza que deseja desbanir ${user.nick}? O usuário poderá acessar a guilda novamente.") },
+            title = { Text(stringResource(R.string.unban_member)) },
+            text = { Text(stringResource(R.string.unban_confirm, user.nick)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -47,12 +49,12 @@ fun BannedUsersScreen(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("DESBANIR")
+                    Text(stringResource(R.string.unban))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { userToUnban = null }) {
-                    Text("CANCELAR")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -61,10 +63,10 @@ fun BannedUsersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Usuários Banidos") },
+                title = { Text(stringResource(R.string.banned_users_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -88,7 +90,7 @@ fun BannedUsersScreen(
                 uiState.users.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text(
-                            text = "Nenhum usuário banido",
+                            text = stringResource(R.string.no_banned_users),
                             modifier = Modifier.align(Alignment.Center),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -119,7 +121,7 @@ fun BannedUsersScreen(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -184,7 +186,7 @@ fun BannedUserCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("DESBANIR")
+                    Text(stringResource(R.string.unban))
                 }
             }
         }

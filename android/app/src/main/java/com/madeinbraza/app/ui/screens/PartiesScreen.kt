@@ -16,10 +16,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.Party
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.ui.viewmodel.PartiesViewModel
@@ -60,7 +62,7 @@ fun PartiesScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Parties")
+                        Text(stringResource(R.string.parties))
                         if (uiState.eventTitle.isNotEmpty()) {
                             Text(
                                 text = uiState.eventTitle,
@@ -72,14 +74,14 @@ fun PartiesScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.showCreateDialog() }) {
-                Icon(Icons.Filled.Add, contentDescription = "Criar Party")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.create_party))
             }
         }
     ) { padding ->
@@ -105,13 +107,13 @@ fun PartiesScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Nenhuma party",
+                                text = stringResource(R.string.no_parties),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Crie uma party para o evento!",
+                                text = stringResource(R.string.create_party_for_event),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -147,7 +149,7 @@ fun PartiesScreen(
                         .padding(16.dp),
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 ) {
@@ -170,13 +172,13 @@ fun CreatePartyDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isCreating) onDismiss() },
-        title = { Text("Criar Party") },
+        title = { Text(stringResource(R.string.create_party)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nome da Party") },
+                    label = { Text(stringResource(R.string.party_name)) },
                     singleLine = true,
                     enabled = !isCreating,
                     modifier = Modifier.fillMaxWidth()
@@ -185,7 +187,7 @@ fun CreatePartyDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Descricao (opcional)") },
+                    label = { Text(stringResource(R.string.description_optional)) },
                     singleLine = false,
                     minLines = 2,
                     maxLines = 3,
@@ -196,7 +198,7 @@ fun CreatePartyDialog(
                 OutlinedTextField(
                     value = maxMembers,
                     onValueChange = { maxMembers = it.filter { c -> c.isDigit() } },
-                    label = { Text("Maximo de membros") },
+                    label = { Text(stringResource(R.string.max_members)) },
                     singleLine = true,
                     enabled = !isCreating,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -220,7 +222,7 @@ fun CreatePartyDialog(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("CRIAR")
+                    Text(stringResource(R.string.create))
                 }
             }
         },
@@ -229,7 +231,7 @@ fun CreatePartyDialog(
                 onClick = onDismiss,
                 enabled = !isCreating
             ) {
-                Text("CANCELAR")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -248,6 +250,14 @@ fun PartyCard(
     val isMember = party.members.any { it.id == currentUserId }
     val isCreator = party.createdBy.id == currentUserId
     val canDelete = isCreator || isLeader
+
+    val closedText = stringResource(R.string.party_closed)
+    val createdByText = stringResource(R.string.created_by_party, party.createdBy.nick)
+    val deleteText = stringResource(R.string.delete)
+    val membersCountText = stringResource(R.string.party_members_count, party.members.size, party.maxMembers)
+    val leaveText = stringResource(R.string.leave)
+    val joinText = stringResource(R.string.join)
+    val fullText = stringResource(R.string.party_full)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -280,14 +290,14 @@ fun PartyCard(
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
                                 Icons.Filled.Lock,
-                                contentDescription = "Fechada",
+                                contentDescription = closedText,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.tertiary
                             )
                         }
                     }
                     Text(
-                        text = "Criada por ${party.createdBy.nick}",
+                        text = createdByText,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -314,7 +324,7 @@ fun PartyCard(
                         } else {
                             Icon(
                                 Icons.Filled.Delete,
-                                contentDescription = "Deletar",
+                                contentDescription = deleteText,
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -337,9 +347,8 @@ fun PartyCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
 
-                val membersText = "${party.members.size}/${party.maxMembers} membros"
                 Text(
-                    text = membersText,
+                    text = membersCountText,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (party.isFull) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -379,10 +388,10 @@ fun PartyCard(
             // Action button
             val buttonEnabled = !isActionInProgress && (isMember || !party.isClosed)
             val buttonText = when {
-                isMember -> "Sair"
-                party.isClosed -> "Fechada"
-                party.isFull -> "Lotada"
-                else -> "Entrar"
+                isMember -> leaveText
+                party.isClosed -> closedText
+                party.isFull -> fullText
+                else -> joinText
             }
 
             Button(

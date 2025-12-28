@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,7 +59,7 @@ fun WaitingScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Aguardando Aprovação",
+            text = stringResource(R.string.waiting_approval),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary
         )
@@ -66,7 +67,7 @@ fun WaitingScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Sua conta está pendente.\nUm líder do clã precisa aprovar seu acesso.",
+            text = stringResource(R.string.account_pending),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.secondary,
             textAlign = TextAlign.Center
@@ -83,7 +84,7 @@ fun WaitingScreen(
                 contentColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text("SAIR")
+            Text(stringResource(R.string.logout))
         }
     }
 }
