@@ -17,7 +17,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:3000/api/\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://braza.lurdisson.com.br/api/\"")
     }
 
     buildTypes {

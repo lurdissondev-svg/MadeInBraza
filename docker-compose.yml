@@ -1,24 +1,4 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: braza-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-braza}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-braza_dev_password}
-      POSTGRES_DB: ${POSTGRES_DB:-braza}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U braza"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
@@ -26,20 +6,27 @@ services:
     container_name: braza-backend
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-braza}:${POSTGRES_PASSWORD:-braza_dev_password}@postgres:5432/${POSTGRES_DB:-braza}
-      JWT_SECRET: ${JWT_SECRET:-change_this_secret_in_production}
+      NODE_ENV: production
+      DATABASE_URL: postgresql://lurdisson:Pandorinha123%40%23@postgres:5432/braza
+      JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
-      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
-      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
-    ports:
-      - "3000:3000"
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      # Nginx Proxy
+      VIRTUAL_HOST: braza.lurdisson.com.br
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: braza.lurdisson.com.br
     volumes:
       - ./backend/uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
+    networks:
+      - n8nstack_proxy
+      - n8nstack_internal
+    expose:
+      - "3000"
 
-volumes:
-  postgres_data:
+networks:
+  n8nstack_proxy:
+    external: true
+  n8nstack_internal:
+    external: true
