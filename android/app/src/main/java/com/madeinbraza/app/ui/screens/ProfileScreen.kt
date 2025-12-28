@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.Notifications
@@ -49,6 +50,11 @@ fun ProfileScreen(
     var notificationsEnabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
+
+    // Language selection state
+    var selectedLanguage by remember { mutableStateOf("Português (BR)") }
+    var showLanguageDropdown by remember { mutableStateOf(false) }
+    val languages = listOf("Português (BR)", "English", "Español")
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -375,6 +381,46 @@ fun ProfileScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (notificationsEnabled) "NOTIFICAÇÕES ATIVADAS" else "ATIVAR NOTIFICAÇÕES")
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Language selection
+                        ExposedDropdownMenuBox(
+                            expanded = showLanguageDropdown,
+                            onExpandedChange = { showLanguageDropdown = it }
+                        ) {
+                            OutlinedButton(
+                                onClick = { showLanguageDropdown = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor()
+                            ) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(selectedLanguage)
+                                Spacer(modifier = Modifier.weight(1f))
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLanguageDropdown)
+                            }
+
+                            ExposedDropdownMenu(
+                                expanded = showLanguageDropdown,
+                                onDismissRequest = { showLanguageDropdown = false }
+                            ) {
+                                languages.forEach { language ->
+                                    DropdownMenuItem(
+                                        text = { Text(language) },
+                                        onClick = {
+                                            selectedLanguage = language
+                                            showLanguageDropdown = false
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
