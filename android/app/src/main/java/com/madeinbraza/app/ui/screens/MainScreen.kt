@@ -6,13 +6,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Face
-import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material3.*
@@ -55,8 +55,8 @@ sealed class BottomNavItem(
     object Parties : BottomNavItem(
         route = "main_parties",
         title = "Parties",
-        selectedIcon = Icons.Filled.Groups,
-        unselectedIcon = Icons.Outlined.Groups
+        selectedIcon = Icons.Filled.Star,
+        unselectedIcon = Icons.Outlined.Star
     )
     object Members : BottomNavItem(
         route = "main_members",
