@@ -1,0 +1,266 @@
+package com.madeinbraza.app.ui.viewmodel
+
+import android.net.Uri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.madeinbraza.app.data.model.Channel
+import com.madeinbraza.app.data.model.ChannelMember
+import com.madeinbraza.app.data.model.ChannelMessage
+import com.madeinbraza.app.data.repository.ChannelRepository
+import com.madeinbraza.app.data.repository.Result
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class ChannelsListUiState(
+    val channels: List<Channel> = emptyList(),
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val error: String? = null
+)
+
+data class ChannelChatUiState(
+    val channel: Channel? = null,
+    val messages: List<ChannelMessage> = emptyList(),
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isSending: Boolean = false,
+    val isUploading: Boolean = false,
+    val error: String? = null
+)
+
+data class ChannelMembersUiState(
+    val channelId: String? = null,
+    val channelName: String? = null,
+    val members: List<ChannelMember> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+@HiltViewModel
+class ChannelsViewModel @Inject constructor(
+    private val channelRepository: ChannelRepository
+) : ViewModel() {
+
+    private val _channelsState = MutableStateFlow(ChannelsListUiState())
+    val channelsState: StateFlow<ChannelsListUiState> = _channelsState.asStateFlow()
+
+    private val _chatState = MutableStateFlow(ChannelChatUiState())
+    val chatState: StateFlow<ChannelChatUiState> = _chatState.asStateFlow()
+
+    private val _membersState = MutableStateFlow(ChannelMembersUiState())
+    val membersState: StateFlow<ChannelMembersUiState> = _membersState.asStateFlow()
+
+    private var pollingJob: Job? = null
+    private var currentChannelId: String? = null
+
+    init {
+        loadChannels()
+    }
+
+    fun loadChannels() {
+        viewModelScope.launch {
+            _channelsState.update { it.copy(isLoading = true, error = null) }
+
+            when (val result = channelRepository.getChannels()) {
+                is Result.Success -> {
+                    _channelsState.update { it.copy(isLoading = false, channels = result.data) }
+                }
+                is Result.Error -> {
+                    _channelsState.update { it.copy(isLoading = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun refreshChannels() {
+        viewModelScope.launch {
+            _channelsState.update { it.copy(isRefreshing = true, error = null) }
+
+            when (val result = channelRepository.getChannels()) {
+                is Result.Success -> {
+                    _channelsState.update { it.copy(isRefreshing = false, channels = result.data) }
+                }
+                is Result.Error -> {
+                    _channelsState.update { it.copy(isRefreshing = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun setupDefaultChannels() {
+        viewModelScope.launch {
+            _channelsState.update { it.copy(isLoading = true, error = null) }
+
+            when (channelRepository.setupDefaultChannels()) {
+                is Result.Success -> {
+                    loadChannels()
+                }
+                is Result.Error -> {
+                    _channelsState.update { it.copy(isLoading = false, error = "Erro ao criar canais") }
+                }
+            }
+        }
+    }
+
+    fun openChannel(channel: Channel) {
+        currentChannelId = channel.id
+        _chatState.update { it.copy(channel = channel, messages = emptyList(), error = null) }
+        loadMessages(channel.id)
+        startPolling(channel.id)
+    }
+
+    fun closeChannel() {
+        pollingJob?.cancel()
+        currentChannelId = null
+        _chatState.update { ChannelChatUiState() }
+    }
+
+    private fun loadMessages(channelId: String) {
+        viewModelScope.launch {
+            _chatState.update { it.copy(isLoading = true, error = null) }
+
+            when (val result = channelRepository.getChannelMessages(channelId, limit = 50)) {
+                is Result.Success -> {
+                    _chatState.update { it.copy(isLoading = false, messages = result.data) }
+                }
+                is Result.Error -> {
+                    _chatState.update { it.copy(isLoading = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun refreshMessages() {
+        val channelId = currentChannelId ?: return
+        viewModelScope.launch {
+            _chatState.update { it.copy(isRefreshing = true, error = null) }
+
+            when (val result = channelRepository.getChannelMessages(channelId, limit = 50)) {
+                is Result.Success -> {
+                    _chatState.update { it.copy(isRefreshing = false, messages = result.data) }
+                }
+                is Result.Error -> {
+                    _chatState.update { it.copy(isRefreshing = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    private fun startPolling(channelId: String) {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            while (isActive && currentChannelId == channelId) {
+                delay(3000)
+                pollMessages(channelId)
+            }
+        }
+    }
+
+    private suspend fun pollMessages(channelId: String) {
+        when (val result = channelRepository.getChannelMessages(channelId, limit = 50)) {
+            is Result.Success -> {
+                _chatState.update { it.copy(messages = result.data) }
+            }
+            is Result.Error -> {
+                // Silently fail on polling errors
+            }
+        }
+    }
+
+    fun sendMessage(content: String) {
+        val channelId = currentChannelId ?: return
+        if (content.isBlank()) return
+
+        viewModelScope.launch {
+            _chatState.update { it.copy(isSending = true, error = null) }
+
+            when (val result = channelRepository.sendMessage(channelId, content.trim())) {
+                is Result.Success -> {
+                    _chatState.update { state ->
+                        state.copy(
+                            isSending = false,
+                            messages = state.messages + result.data
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _chatState.update { it.copy(isSending = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun sendMediaMessage(fileUri: Uri, content: String? = null) {
+        val channelId = currentChannelId ?: return
+
+        viewModelScope.launch {
+            _chatState.update { it.copy(isUploading = true, error = null) }
+
+            when (val result = channelRepository.sendMediaMessage(channelId, fileUri, content?.trim())) {
+                is Result.Success -> {
+                    _chatState.update { state ->
+                        state.copy(
+                            isUploading = false,
+                            messages = state.messages + result.data
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _chatState.update { it.copy(isUploading = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun loadChannelMembers(channel: Channel) {
+        viewModelScope.launch {
+            _membersState.update {
+                it.copy(
+                    channelId = channel.id,
+                    channelName = channel.name,
+                    isLoading = true,
+                    error = null,
+                    members = emptyList()
+                )
+            }
+
+            when (val result = channelRepository.getChannelMembers(channel.id)) {
+                is Result.Success -> {
+                    _membersState.update { it.copy(isLoading = false, members = result.data) }
+                }
+                is Result.Error -> {
+                    _membersState.update { it.copy(isLoading = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun closeMembersSheet() {
+        _membersState.update { ChannelMembersUiState() }
+    }
+
+    fun clearChannelsError() {
+        _channelsState.update { it.copy(error = null) }
+    }
+
+    fun clearChatError() {
+        _chatState.update { it.copy(error = null) }
+    }
+
+    fun clearMembersError() {
+        _membersState.update { it.copy(error = null) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        pollingJob?.cancel()
+    }
+}

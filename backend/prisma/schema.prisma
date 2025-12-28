@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  BANNED
+}
+
+enum Role {
+  LEADER
+  MEMBER
+}
+
+enum PlayerClass {
+  ASSASSIN
+  BRAWLER
+  ATALANTA
+  PIKEMAN
+  FIGHTER
+  MECHANIC
+  KNIGHT
+  PRIESTESS
+  SHAMAN
+  MAGE
+  ARCHER
+}
+
+model User {
+  id           String      @id @default(uuid())
+  nick         String      @unique
+  passwordHash String
+  playerClass  PlayerClass
+  role         Role        @default(MEMBER)
+  status       UserStatus  @default(PENDING)
+  fcmToken     String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  approvedBy   String?
+  approvedAt   DateTime?
+  messages     Message[]
+  createdEvents Event[]    @relation("EventCreator")
+  participations EventParticipant[]
+  createdParties Party[]   @relation("PartyCreator")
+  partyMemberships PartyMember[]
+  swResponses    SWResponse[]
+  pilotedBy      SWResponse[] @relation("PilotingFor")
+  announcements  Announcement[]
+
+  @@map("users")
+}
+
+enum ChannelType {
+  GENERAL    // Chat geral da guilda
+  LEADERS    // Chat privado de líderes
+  EVENT      // Chat temporário de evento
+  PARTY      // Chat temporário de party
+}
+
+model Channel {
+  id        String      @id @default(uuid())
+  type      ChannelType
+  name      String
+  eventId   String?     @unique // Para channels de evento (1:1)
+  event     Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  partyId   String?     @unique // Para channels de party (1:1)
+  party     Party?      @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  messages  Message[]
+
+  @@map("channels")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String?  // Opcional quando há mídia
+  mediaUrl  String?  // URL relativa do arquivo
+  mediaType String?  // "image" ou "video"
+  fileName  String?  // Nome original do arquivo
+  fileSize  Int?     // Tamanho em bytes
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Event {
+  id              String        @id @default(uuid())
+  title           String
+  description     String?
+  eventDate       DateTime
+  maxParticipants Int?
+  requiredClasses PlayerClass[]
+  createdById     String
+  createdBy       User          @relation("EventCreator", fields: [createdById], references: [id])
+  createdAt       DateTime      @default(now())
+  participants    EventParticipant[]
+  parties         Party[]
+  channel         Channel?
+
+  @@map("events")
+}
+
+model EventParticipant {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@map("event_participants")
+}
+
+model Party {
+  id          String        @id @default(uuid())
+  name        String
+  eventId     String
+  event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  maxMembers  Int           @default(5)
+  isClosed    Boolean       @default(false)
+  createdById String
+  createdBy   User          @relation("PartyCreator", fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+  members     PartyMember[]
+  channel     Channel?
+
+  @@map("parties")
+}
+
+model PartyMember {
+  id       String   @id @default(uuid())
+  partyId  String
+  party    Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  joinedAt DateTime @default(now())
+
+  @@unique([partyId, userId])
+  @@map("party_members")
+}
+
+// Siege War Response Types
+enum SWResponseType {
+  CONFIRMED    // Participará com conta própria
+  SHARED       // Disponibilizando conta para outro pilotar
+  PILOT        // Pilotando conta de outro membro
+  ABSENT       // Não vai participar
+}
+
+// Siege War Tags (times)
+enum SWTag {
+  ATTACK       // Ataque
+  DEFENSE      // Defesa
+  ACADEMY      // Academy
+}
+
+// Siege War - Evento semanal recorrente (quinta a domingo)
+model SiegeWar {
+  id         String       @id @default(uuid())
+  weekStart  DateTime     // Quinta-feira
+  weekEnd    DateTime     // Domingo
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  responses  SWResponse[]
+
+  @@map("siege_wars")
+}
+
+// Respostas dos membros para o Siege War
+model SWResponse {
+  id                String         @id @default(uuid())
+  siegeWarId        String
+  siegeWar          SiegeWar       @relation(fields: [siegeWarId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User           @relation(fields: [userId], references: [id])
+  responseType      SWResponseType
+  tag               SWTag?         // Time: ATTACK, DEFENSE, ACADEMY
+  // Para SHARED - dados da conta compartilhada
+  gameId            String?
+  encryptedPassword String?        // Senha criptografada
+  sharedClass       PlayerClass?   // Classe da conta compartilhada
+  // Para PILOT - referência de quem está pilotando
+  pilotingForId     String?
+  pilotingFor       User?          @relation("PilotingFor", fields: [pilotingForId], references: [id])
+  preferredClass    PlayerClass?   // Classe preferida para pilotar
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([siegeWarId, userId])
+  @@map("sw_responses")
+}
+
+// Anúncios do mural da guilda
+model Announcement {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("announcements")
+}

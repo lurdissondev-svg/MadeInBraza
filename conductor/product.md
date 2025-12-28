@@ -74,5 +74,7 @@ O Braza é um aplicativo Android (APK) exclusivo para a coordenação e gestão 
 ## 5. Design e Experiência do Usuário (UX)
 *   **Estética:** Minimalista, em Preto e Branco.
 *   **Navegação:** Intuitiva, focada em ações rápidas (ingressar em eventos/ler chat).
+    - **Estrutura:** Barra de navegação inferior (Bottom Bar) com ícones das abas.
+    - **Tela Inicial:** Mural de Anúncios (Feed de notícias/avisos).
 *   **Ícone:** Fornecido pelo usuário em formato PNG.
 

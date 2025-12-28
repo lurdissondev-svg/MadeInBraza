@@ -1,0 +1,735 @@
+package com.madeinbraza.app.ui.screens
+
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.madeinbraza.app.BuildConfig
+import com.madeinbraza.app.data.model.Channel
+import com.madeinbraza.app.data.model.ChannelMember
+import com.madeinbraza.app.data.model.ChannelMessage
+import com.madeinbraza.app.data.model.ChannelType
+import com.madeinbraza.app.data.model.Role
+import com.madeinbraza.app.ui.viewmodel.ChannelMembersUiState
+import com.madeinbraza.app.ui.viewmodel.ChannelsViewModel
+import java.text.SimpleDateFormat
+import java.util.*
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChannelsScreen(
+    onNavigateBack: (() -> Unit)? = null,
+    viewModel: ChannelsViewModel = hiltViewModel()
+) {
+    val channelsState by viewModel.channelsState.collectAsState()
+    val chatState by viewModel.chatState.collectAsState()
+    val membersState by viewModel.membersState.collectAsState()
+
+    // Members bottom sheet
+    if (membersState.channelId != null) {
+        ChannelMembersBottomSheet(
+            membersState = membersState,
+            onDismiss = { viewModel.closeMembersSheet() }
+        )
+    }
+
+    // Show chat if a channel is open, otherwise show list
+    if (chatState.channel != null) {
+        ChannelChatContent(
+            viewModel = viewModel,
+            onNavigateBack = { viewModel.closeChannel() }
+        )
+    } else {
+        ChannelsListContent(
+            viewModel = viewModel,
+            onNavigateBack = onNavigateBack
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChannelsListContent(
+    viewModel: ChannelsViewModel,
+    onNavigateBack: (() -> Unit)?
+) {
+    val uiState by viewModel.channelsState.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Canais de Chat") },
+                navigationIcon = {
+                    if (onNavigateBack != null) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
+    ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.refreshChannels() },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when {
+                uiState.isLoading && uiState.channels.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                uiState.channels.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Nenhum canal disponível",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { viewModel.setupDefaultChannels() }) {
+                                Text("Criar canais padrão")
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.channels, key = { it.id }) { channel ->
+                            ChannelItem(
+                                channel = channel,
+                                onClick = { viewModel.openChannel(channel) },
+                                onShowMembers = { viewModel.loadChannelMembers(channel) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Error snackbar
+        if (uiState.error != null) {
+            Snackbar(
+                modifier = Modifier.padding(16.dp),
+                action = {
+                    TextButton(onClick = { viewModel.clearChannelsError() }) {
+                        Text("OK")
+                    }
+                }
+            ) {
+                Text(uiState.error!!)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChannelItem(
+    channel: Channel,
+    onClick: () -> Unit,
+    onShowMembers: () -> Unit
+) {
+    val icon = when (channel.type) {
+        ChannelType.GENERAL -> Icons.Filled.Person
+        ChannelType.LEADERS -> Icons.Filled.Star
+        ChannelType.EVENT -> Icons.Filled.DateRange
+        ChannelType.PARTY -> Icons.Filled.Lock
+    }
+
+    val typeLabel = when (channel.type) {
+        ChannelType.GENERAL -> "Geral"
+        ChannelType.LEADERS -> "Líderes"
+        ChannelType.EVENT -> "Evento"
+        ChannelType.PARTY -> "Party"
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = when (channel.type) {
+                ChannelType.LEADERS -> MaterialTheme.colorScheme.primaryContainer
+                ChannelType.EVENT -> MaterialTheme.colorScheme.secondaryContainer
+                ChannelType.PARTY -> MaterialTheme.colorScheme.tertiaryContainer
+                else -> MaterialTheme.colorScheme.surfaceVariant
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = typeLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                channel._count?.let { count ->
+                    if (count.messages > 0) {
+                        Text(
+                            text = "${count.messages} mensagens",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Members button
+            IconButton(onClick = onShowMembers) {
+                Icon(
+                    imageVector = Icons.Filled.Person,
+                    contentDescription = "Ver membros",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Filled.KeyboardArrowRight,
+                contentDescription = "Abrir",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChannelChatContent(
+    viewModel: ChannelsViewModel,
+    onNavigateBack: () -> Unit
+) {
+    val uiState by viewModel.chatState.collectAsState()
+    var messageText by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+
+    // Media picker launcher
+    val mediaPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.sendMediaMessage(it) }
+    }
+
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.size - 1)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(uiState.channel?.name ?: "Chat") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        },
+        bottomBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Attach media button
+                IconButton(
+                    onClick = { mediaPickerLauncher.launch("image/*,video/*") },
+                    enabled = !uiState.isSending && !uiState.isUploading
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Anexar mídia",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                OutlinedTextField(
+                    value = messageText,
+                    onValueChange = { messageText = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Digite sua mensagem...") },
+                    maxLines = 3,
+                    enabled = !uiState.isSending && !uiState.isUploading,
+                    shape = RoundedCornerShape(24.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = {
+                        if (messageText.isNotBlank()) {
+                            viewModel.sendMessage(messageText)
+                            messageText = ""
+                        }
+                    },
+                    enabled = messageText.isNotBlank() && !uiState.isSending && !uiState.isUploading,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    if (uiState.isSending || uiState.isUploading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(Icons.Default.Send, contentDescription = "Enviar")
+                    }
+                }
+            }
+        },
+        modifier = Modifier.imePadding()
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = { viewModel.refreshMessages() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when {
+                    uiState.isLoading && uiState.messages.isEmpty() -> {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    uiState.messages.isEmpty() -> {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Text(
+                                text = "Nenhuma mensagem ainda.\nSeja o primeiro a mandar!",
+                                modifier = Modifier.align(Alignment.Center),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    else -> {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.messages, key = { it.id }) { message ->
+                                ChannelMessageBubble(message = message)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Error snackbar
+            if (uiState.error != null) {
+                Snackbar(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    action = {
+                        TextButton(onClick = { viewModel.clearChatError() }) {
+                            Text("OK")
+                        }
+                    }
+                ) {
+                    Text(uiState.error!!)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChannelMessageBubble(message: ChannelMessage) {
+    val isLeader = message.user.role == Role.LEADER
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = message.user.nick,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isLeader) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+            )
+            if (isLeader) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "[Lider]",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = formatMessageTime(message.createdAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (isLeader)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+                .padding(if (message.mediaUrl != null) 4.dp else 12.dp)
+        ) {
+            Column {
+                // Media content
+                message.mediaUrl?.let { mediaUrl ->
+                    val fullUrl = getFullMediaUrl(mediaUrl)
+
+                    if (message.mediaType == "image") {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(fullUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Imagem",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 300.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else if (message.mediaType == "video") {
+                        // Video thumbnail with play icon
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(fullUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Vídeo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            // Play icon overlay
+                            Surface(
+                                modifier = Modifier.size(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.PlayArrow,
+                                    contentDescription = "Reproduzir vídeo",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(8.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+
+                    // Show file name for media
+                    message.fileName?.let { fileName ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = fileName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isLeader)
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                    }
+                }
+
+                // Text content (if any)
+                message.content?.let { content ->
+                    if (content.isNotBlank()) {
+                        if (message.mediaUrl != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        Text(
+                            text = content,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isLeader)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = if (message.mediaUrl != null)
+                                Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            else
+                                Modifier
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun getFullMediaUrl(mediaUrl: String): String {
+    // API base URL is like "http://127.0.0.1:3000/api/"
+    // Media URL is like "/uploads/channels/{channelId}/{filename}"
+    // We need to build "http://127.0.0.1:3000/uploads/..."
+    val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/api/").removeSuffix("/api")
+    return "$baseUrl$mediaUrl"
+}
+
+private fun formatMessageTime(isoDate: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+        val date = inputFormat.parse(isoDate)
+        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        outputFormat.format(date!!)
+    } catch (e: Exception) {
+        ""
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChannelMembersBottomSheet(
+    membersState: ChannelMembersUiState,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            // Header
+            Text(
+                text = "Membros - ${membersState.channelName ?: "Canal"}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            when {
+                membersState.isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                membersState.error != null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    ) {
+                        Text(
+                            text = membersState.error,
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                membersState.members.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    ) {
+                        Text(
+                            text = "Nenhum membro encontrado",
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                else -> {
+                    Text(
+                        text = "${membersState.members.size} membro(s)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 400.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(membersState.members, key = { it.id }) { member ->
+                            MemberItem(member = member)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MemberItem(member: ChannelMember) {
+    val isLeader = member.role == "LEADER"
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isLeader)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Class icon placeholder
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = member.nick.firstOrNull()?.uppercase() ?: "?",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = member.nick,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLeader)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (isLeader) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = "Líder",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Text(
+                    text = member.playerClass,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isLeader)
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}

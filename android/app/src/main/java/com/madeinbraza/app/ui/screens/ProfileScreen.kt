@@ -1,0 +1,435 @@
+package com.madeinbraza.app.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.madeinbraza.app.data.model.PlayerClass
+import com.madeinbraza.app.data.model.Role
+import com.madeinbraza.app.ui.viewmodel.ProfileViewModel
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileScreen(
+    onNavigateBack: (() -> Unit)? = null,
+    viewModel: ProfileViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    var isEditing by remember { mutableStateOf(false) }
+    var editNick by remember { mutableStateOf("") }
+    var editPlayerClass by remember { mutableStateOf<PlayerClass?>(null) }
+    var showClassDropdown by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.profile) {
+        uiState.profile?.let {
+            editNick = it.nick
+            editPlayerClass = it.playerClass
+        }
+    }
+
+    LaunchedEffect(uiState.updateSuccess) {
+        if (uiState.updateSuccess) {
+            isEditing = false
+            viewModel.clearUpdateSuccess()
+        }
+    }
+
+    // Password change dialog
+    if (uiState.showPasswordDialog) {
+        ChangePasswordDialog(
+            onDismiss = { viewModel.hidePasswordDialog() },
+            onChangePassword = { currentPassword, newPassword ->
+                viewModel.changePassword(currentPassword, newPassword)
+            },
+            isChanging = uiState.isChangingPassword,
+            error = if (uiState.showPasswordDialog) uiState.error else null
+        )
+    }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.passwordChangeSuccess) {
+        if (uiState.passwordChangeSuccess) {
+            snackbarHostState.showSnackbar("Senha alterada com sucesso!")
+            viewModel.clearPasswordChangeSuccess()
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("MEU PERFIL") },
+                navigationIcon = {
+                    if (onNavigateBack != null) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                ),
+                actions = {
+                    if (!isEditing && uiState.profile != null) {
+                        IconButton(onClick = { isEditing = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar")
+                        }
+                    } else if (isEditing) {
+                        IconButton(
+                            onClick = {
+                                viewModel.updateProfile(
+                                    nick = if (editNick != uiState.profile?.nick) editNick else null,
+                                    playerClass = if (editPlayerClass != uiState.profile?.playerClass) editPlayerClass else null
+                                )
+                            },
+                            enabled = !uiState.isUpdating
+                        ) {
+                            if (uiState.isUpdating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.Check, contentDescription = "Salvar")
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                uiState.error != null -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = uiState.error ?: "Erro desconhecido",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadProfile() }) {
+                            Text("TENTAR NOVAMENTE")
+                        }
+                    }
+                }
+                uiState.profile != null -> {
+                    val profile = uiState.profile!!
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(24.dp)
+                    ) {
+                        // Profile Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                if (isEditing) {
+                                    // Edit mode
+                                    OutlinedTextField(
+                                        value = editNick,
+                                        onValueChange = { editNick = it },
+                                        label = { Text("Nick") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    ExposedDropdownMenuBox(
+                                        expanded = showClassDropdown,
+                                        onExpandedChange = { showClassDropdown = it }
+                                    ) {
+                                        OutlinedTextField(
+                                            value = editPlayerClass?.name ?: "",
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("Classe") },
+                                            trailingIcon = {
+                                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showClassDropdown)
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .menuAnchor()
+                                        )
+
+                                        ExposedDropdownMenu(
+                                            expanded = showClassDropdown,
+                                            onDismissRequest = { showClassDropdown = false }
+                                        ) {
+                                            PlayerClass.entries.forEach { playerClass ->
+                                                DropdownMenuItem(
+                                                    text = { Text(playerClass.name) },
+                                                    onClick = {
+                                                        editPlayerClass = playerClass
+                                                        showClassDropdown = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    TextButton(
+                                        onClick = {
+                                            isEditing = false
+                                            editNick = profile.nick
+                                            editPlayerClass = profile.playerClass
+                                        }
+                                    ) {
+                                        Text("CANCELAR")
+                                    }
+                                } else {
+                                    // View mode
+                                    Text(
+                                        text = profile.nick,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Text(
+                                        text = "Classe: ${profile.playerClass.name}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+
+                                    Text(
+                                        text = "Cargo: ${if (profile.role == Role.LEADER) "Líder" else "Membro"}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+
+                                    Text(
+                                        text = "Status: ${profile.status.name}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    val formattedDate = try {
+                                        val zonedDateTime = ZonedDateTime.parse(profile.createdAt)
+                                        zonedDateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                    } catch (e: Exception) {
+                                        profile.createdAt
+                                    }
+
+                                    Text(
+                                        text = "Membro desde: $formattedDate",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Stats Card
+                        Text(
+                            text = "ESTATÍSTICAS",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            StatCard(
+                                title = "Mensagens",
+                                value = profile.stats.messagesCount.toString(),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            StatCard(
+                                title = "Eventos",
+                                value = profile.stats.eventsParticipated.toString(),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Change password button
+                        OutlinedButton(
+                            onClick = { viewModel.showPasswordDialog() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("ALTERAR SENHA")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatCard(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChangePasswordDialog(
+    onDismiss: () -> Unit,
+    onChangePassword: (String, String) -> Unit,
+    isChanging: Boolean,
+    error: String?
+) {
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = { if (!isChanging) onDismiss() },
+        title = { Text("Alterar Senha") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = currentPassword,
+                    onValueChange = { currentPassword = it; localError = null },
+                    label = { Text("Senha Atual") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !isChanging
+                )
+
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it; localError = null },
+                    label = { Text("Nova Senha") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !isChanging
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it; localError = null },
+                    label = { Text("Confirmar Nova Senha") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !isChanging
+                )
+
+                if (error != null || localError != null) {
+                    Text(
+                        text = localError ?: error ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    when {
+                        currentPassword.isBlank() -> localError = "Digite a senha atual"
+                        newPassword.length < 6 -> localError = "A nova senha deve ter no mínimo 6 caracteres"
+                        newPassword != confirmPassword -> localError = "As senhas não conferem"
+                        else -> onChangePassword(currentPassword, newPassword)
+                    }
+                },
+                enabled = !isChanging
+            ) {
+                if (isChanging) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("ALTERAR")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isChanging
+            ) {
+                Text("CANCELAR")
+            }
+        }
+    )
+}
