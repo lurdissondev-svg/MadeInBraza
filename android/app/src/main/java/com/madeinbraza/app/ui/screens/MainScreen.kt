@@ -6,11 +6,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material3.*
@@ -50,6 +52,12 @@ sealed class BottomNavItem(
         selectedIcon = Icons.Filled.DateRange,
         unselectedIcon = Icons.Outlined.DateRange
     )
+    object Parties : BottomNavItem(
+        route = "main_parties",
+        title = "Parties",
+        selectedIcon = Icons.Filled.Groups,
+        unselectedIcon = Icons.Outlined.Groups
+    )
     object Members : BottomNavItem(
         route = "main_members",
         title = "Membros",
@@ -82,6 +90,7 @@ fun MainScreen(
         BottomNavItem.Home,
         BottomNavItem.Channels,
         BottomNavItem.Events,
+        BottomNavItem.Parties,
         BottomNavItem.Members,
         BottomNavItem.Profile
     )
@@ -148,6 +157,10 @@ fun MainScreen(
                     onNavigateToCreateEvent = onNavigateToCreateEvent,
                     onNavigateToParties = onNavigateToParties
                 )
+            }
+
+            composable(BottomNavItem.Parties.route) {
+                GlobalPartiesScreen()
             }
 
             composable(BottomNavItem.Members.route) {

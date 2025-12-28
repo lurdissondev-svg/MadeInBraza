@@ -4,6 +4,136 @@ import { AppError } from '../middleware/errorHandler.js';
 import { notifyPartyMembers } from '../services/notification.js';
 import { createPartyChannel } from './channel.js';
 
+// Get all global parties (without event)
+export async function getGlobalParties(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const parties = await prisma.party.findMany({
+      where: { eventId: null },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        maxMembers: true,
+        isClosed: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            nick: true,
+          },
+        },
+        members: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                nick: true,
+                playerClass: true,
+              },
+            },
+            joinedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Transform to flatten members
+    const transformedParties = parties.map(party => ({
+      ...party,
+      members: party.members.map(m => ({
+        ...m.user,
+        joinedAt: m.joinedAt,
+      })),
+    }));
+
+    res.json({ parties: transformedParties });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Create a new global party (without event)
+export async function createGlobalParty(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { name, description, maxMembers } = req.body;
+    const userId = req.user!.userId;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      throw new AppError(400, 'Party name is required');
+    }
+
+    // Validate maxMembers
+    let validatedMaxMembers = 5; // Default
+    if (maxMembers !== undefined && maxMembers !== null) {
+      const parsed = parseInt(maxMembers, 10);
+      if (isNaN(parsed) || parsed < 2 || parsed > 50) {
+        throw new AppError(400, 'maxMembers must be between 2 and 50');
+      }
+      validatedMaxMembers = parsed;
+    }
+
+    const party = await prisma.party.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+        eventId: null,
+        maxMembers: validatedMaxMembers,
+        createdById: userId,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        maxMembers: true,
+        isClosed: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            nick: true,
+            playerClass: true,
+          },
+        },
+      },
+    });
+
+    // Creator automatically joins the party
+    await prisma.partyMember.create({
+      data: {
+        partyId: party.id,
+        userId,
+      },
+    });
+
+    // Create party channel for chat
+    createPartyChannel(party.id, party.name)
+      .catch(err => console.error('Failed to create party channel:', err));
+
+    res.status(201).json({
+      party: {
+        ...party,
+        members: [{
+          id: userId,
+          nick: party.createdBy.nick,
+          playerClass: party.createdBy.playerClass,
+          joinedAt: new Date().toISOString(),
+        }],
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Get all parties for an event
 export async function getPartiesByEvent(
   req: Request,
@@ -237,10 +367,11 @@ export async function joinParty(
       });
 
       // Notify all party members
+      const partyContext = party.event ? `${party.name} (${party.event.title})` : party.name;
       notifyPartyMembers(
         partyId,
         'Party Completa!',
-        `${party.name} (${party.event.title}) - Todas as vagas preenchidas!`,
+        `${partyContext} - Todas as vagas preenchidas!`,
         { partyId, eventId: party.eventId }
       ).catch(err => console.error('Failed to send party full notification:', err));
     }

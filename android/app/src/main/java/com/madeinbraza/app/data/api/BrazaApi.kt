@@ -182,6 +182,17 @@ interface BrazaApi {
     ): Response<UpdateProfileResponse>
 
     // Party endpoints
+    @GET("parties")
+    suspend fun getGlobalParties(
+        @Header("Authorization") token: String
+    ): Response<PartiesResponse>
+
+    @POST("parties")
+    suspend fun createGlobalParty(
+        @Header("Authorization") token: String,
+        @Body request: CreatePartyRequest
+    ): Response<CreatePartyResponse>
+
     @GET("parties/event/{eventId}")
     suspend fun getPartiesByEvent(
         @Header("Authorization") token: String,

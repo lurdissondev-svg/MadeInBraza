@@ -20,6 +20,37 @@ class PartiesRepository @Inject constructor(
         return dataStore.data.map { it[tokenKey] }.first()
     }
 
+    suspend fun getGlobalParties(): Result<List<Party>> {
+        val token = getToken() ?: return Result.Error("Not authenticated")
+        return try {
+            val response = api.getGlobalParties("Bearer $token")
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!.parties)
+            } else {
+                Result.Error(response.errorBody()?.string() ?: "Failed to get parties")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Network error")
+        }
+    }
+
+    suspend fun createGlobalParty(name: String, description: String?, maxMembers: Int?): Result<Party> {
+        val token = getToken() ?: return Result.Error("Not authenticated")
+        return try {
+            val response = api.createGlobalParty(
+                "Bearer $token",
+                CreatePartyRequest(name = name, description = description, maxMembers = maxMembers)
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!.party)
+            } else {
+                Result.Error(response.errorBody()?.string() ?: "Failed to create party")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Network error")
+        }
+    }
+
     suspend fun getPartiesByEvent(eventId: String): Result<List<Party>> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {

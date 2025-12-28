@@ -126,8 +126,8 @@ model Party {
   id          String        @id @default(uuid())
   name        String
   description String?
-  eventId     String
-  event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String?
+  event       Event?        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   maxMembers  Int           @default(5)
   isClosed    Boolean       @default(false)
   createdById String

@@ -1,11 +1,17 @@
 import { Router } from 'express';
-import { getPartiesByEvent, createParty, deleteParty, joinParty, leaveParty } from '../controllers/parties.js';
+import { getPartiesByEvent, createParty, deleteParty, joinParty, leaveParty, getGlobalParties, createGlobalParty } from '../controllers/parties.js';
 import { authenticate, requireApproved } from '../middleware/auth.js';
 
 export const partiesRouter = Router();
 
 partiesRouter.use(authenticate);
 partiesRouter.use(requireApproved);
+
+// Get all global parties (without event)
+partiesRouter.get('/', getGlobalParties);
+
+// Create a new global party (without event)
+partiesRouter.post('/', createGlobalParty);
 
 // Get all parties for an event
 partiesRouter.get('/event/:eventId', getPartiesByEvent);
