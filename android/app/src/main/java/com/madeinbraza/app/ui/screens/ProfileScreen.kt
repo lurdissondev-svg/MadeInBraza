@@ -16,7 +16,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -369,7 +369,7 @@ fun ProfileScreen(
                             }
                         ) {
                             Icon(
-                                if (notificationsEnabled) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                                if (notificationsEnabled) Icons.Default.Notifications else Icons.Outlined.Notifications,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp)
                             )
