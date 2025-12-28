@@ -1,5 +1,12 @@
 package com.madeinbraza.app.ui.screens
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -8,12 +15,16 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.Role
@@ -32,6 +43,23 @@ fun ProfileScreen(
     var editNick by remember { mutableStateOf("") }
     var editPlayerClass by remember { mutableStateOf<PlayerClass?>(null) }
     var showClassDropdown by remember { mutableStateOf(false) }
+
+    // Notification permission state
+    val context = LocalContext.current
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        notificationsEnabled = isGranted
+    }
+
+    // Refresh notification state when screen resumes
+    LaunchedEffect(Unit) {
+        notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
 
     LaunchedEffect(uiState.profile) {
         uiState.profile?.let {
@@ -302,6 +330,51 @@ fun ProfileScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("ALTERAR SENHA")
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Notification settings button
+                        OutlinedButton(
+                            onClick = {
+                                if (!notificationsEnabled) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        // Open app notification settings for older Android versions
+                                        val intent = Intent().apply {
+                                            action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                        }
+                                        context.startActivity(intent)
+                                    }
+                                } else {
+                                    // Open notification settings to let user disable if wanted
+                                    val intent = Intent().apply {
+                                        action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    }
+                                    context.startActivity(intent)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = if (notificationsEnabled) {
+                                ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        ) {
+                            Icon(
+                                if (notificationsEnabled) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (notificationsEnabled) "NOTIFICAÇÕES ATIVADAS" else "ATIVAR NOTIFICAÇÕES")
                         }
                     }
                 }
