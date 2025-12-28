@@ -25,3 +25,6 @@ Thumbs.db
 # Firebase credentials (NEVER commit)
 firebase-service-account.json
 *-firebase-adminsdk-*.json
+
+# Google Service credentials
+google service/
