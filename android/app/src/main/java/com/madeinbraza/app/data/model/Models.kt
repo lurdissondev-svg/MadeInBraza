@@ -226,6 +226,7 @@ data class PartyMember(
 data class Party(
     val id: String,
     val name: String,
+    val description: String? = null,
     val maxMembers: Int,
     val isClosed: Boolean,
     val createdAt: String,
@@ -245,6 +246,7 @@ data class PartiesResponse(
 
 data class CreatePartyRequest(
     val name: String,
+    val description: String? = null,
     val maxMembers: Int?
 )
 

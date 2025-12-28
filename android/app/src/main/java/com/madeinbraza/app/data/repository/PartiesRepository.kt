@@ -34,13 +34,13 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun createParty(eventId: String, name: String, maxMembers: Int?): Result<Party> {
+    suspend fun createParty(eventId: String, name: String, description: String?, maxMembers: Int?): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.createParty(
                 "Bearer $token",
                 eventId,
-                CreatePartyRequest(name = name, maxMembers = maxMembers)
+                CreatePartyRequest(name = name, description = description, maxMembers = maxMembers)
             )
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!.party)

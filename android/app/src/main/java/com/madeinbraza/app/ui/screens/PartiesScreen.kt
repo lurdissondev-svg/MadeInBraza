@@ -51,7 +51,7 @@ fun PartiesScreen(
         CreatePartyDialog(
             isCreating = uiState.isCreating,
             onDismiss = { viewModel.hideCreateDialog() },
-            onCreate = { name, maxMembers -> viewModel.createParty(name, maxMembers) }
+            onCreate = { name, description, maxMembers -> viewModel.createParty(name, description, maxMembers) }
         )
     }
 
@@ -162,9 +162,10 @@ fun PartiesScreen(
 fun CreatePartyDialog(
     isCreating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (String, Int?) -> Unit
+    onCreate: (String, String?, Int?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
     var maxMembers by remember { mutableStateOf("5") }
 
     AlertDialog(
@@ -180,11 +181,22 @@ fun CreatePartyDialog(
                     enabled = !isCreating,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Descricao (opcional)") },
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 3,
+                    enabled = !isCreating,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = maxMembers,
                     onValueChange = { maxMembers = it.filter { c -> c.isDigit() } },
-                    label = { Text("Máximo de membros") },
+                    label = { Text("Maximo de membros") },
                     singleLine = true,
                     enabled = !isCreating,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -196,7 +208,8 @@ fun CreatePartyDialog(
             Button(
                 onClick = {
                     val max = maxMembers.toIntOrNull()
-                    onCreate(name, max)
+                    val desc = description.trim().ifEmpty { null }
+                    onCreate(name, desc, max)
                 },
                 enabled = name.isNotBlank() && !isCreating
             ) {
@@ -278,6 +291,14 @@ fun PartyCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    party.description?.let { desc ->
+                        Text(
+                            text = desc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
 
                 if (canDelete) {

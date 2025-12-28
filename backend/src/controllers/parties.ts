@@ -23,6 +23,7 @@ export async function getPartiesByEvent(
       select: {
         id: true,
         name: true,
+        description: true,
         maxMembers: true,
         isClosed: true,
         createdAt: true,
@@ -71,7 +72,7 @@ export async function createParty(
 ): Promise<void> {
   try {
     const { eventId } = req.params;
-    const { name, maxMembers } = req.body;
+    const { name, description, maxMembers } = req.body;
     const userId = req.user!.userId;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -96,6 +97,7 @@ export async function createParty(
     const party = await prisma.party.create({
       data: {
         name: name.trim(),
+        description: description?.trim() || null,
         eventId,
         maxMembers: validatedMaxMembers,
         createdById: userId,
@@ -103,6 +105,7 @@ export async function createParty(
       select: {
         id: true,
         name: true,
+        description: true,
         maxMembers: true,
         isClosed: true,
         createdAt: true,

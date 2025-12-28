@@ -103,11 +103,11 @@ class PartiesViewModel @Inject constructor(
         _uiState.update { it.copy(showCreateDialog = false) }
     }
 
-    fun createParty(name: String, maxMembers: Int?) {
+    fun createParty(name: String, description: String?, maxMembers: Int?) {
         viewModelScope.launch {
             _uiState.update { it.copy(isCreating = true) }
 
-            when (val result = partiesRepository.createParty(eventId, name, maxMembers)) {
+            when (val result = partiesRepository.createParty(eventId, name, description, maxMembers)) {
                 is Result.Success -> {
                     _uiState.update { state ->
                         state.copy(
