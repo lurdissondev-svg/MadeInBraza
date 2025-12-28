@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.data.model.AvailableShare
@@ -271,7 +270,6 @@ fun SiegeWarScreen(
                                                         label = { Text("Senha *") },
                                                         placeholder = { Text("Digite a senha") },
                                                         singleLine = true,
-                                                        visualTransformation = PasswordVisualTransformation(),
                                                         modifier = Modifier.fillMaxWidth()
                                                     )
 

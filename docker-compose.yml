@@ -7,12 +7,13 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://lurdisson:Pandorinha123%40%23@postgres:5432/braza
+      DATABASE_URL: postgresql://lurdisson:Pandorinha123%40%23@postgres:5432/braza?connection_limit=5
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
       FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
       FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       # Nginx Proxy
       VIRTUAL_HOST: braza.lurdisson.com.br
       VIRTUAL_PORT: 3000
