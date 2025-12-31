@@ -13,8 +13,8 @@ RUN npx prisma generate
 # Copy source code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p /app/uploads/channels
+# Create required directories
+RUN mkdir -p /app/uploads/channels /app/public
 
 EXPOSE 3000
 

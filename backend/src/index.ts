@@ -23,6 +23,9 @@ app.use(express.json());
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// Serve public files (privacy policy, etc.)
+app.use(express.static(path.join(process.cwd(), 'public')));
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
