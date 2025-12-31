@@ -237,4 +237,19 @@
 
     <!-- Braza title -->
     <string name="braza_title">BRAZA</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_messages">Mensagens</string>
+    <string name="notification_channel_messages_desc">Notificações de mensagens nos canais</string>
+    <string name="notification_channel_events">Eventos e Siege War</string>
+    <string name="notification_channel_events_desc">Notificações de eventos e Siege War</string>
+    <string name="notification_channel_general">Geral</string>
+    <string name="notification_channel_general_desc">Notificações gerais do Braza</string>
+    <string name="notification_new_message">Nova mensagem</string>
+    <string name="notification_sent_media">enviou uma mídia</string>
+    <string name="notification_new_event">Novo evento criado</string>
+    <string name="notification_event_reminder">Lembrete de evento</string>
+    <string name="notification_new_party">Nova party criada</string>
+    <string name="notification_siege_war_open">Siege War aberta!</string>
+    <string name="notification_siege_war_closed">Siege War encerrada</string>
 </resources>

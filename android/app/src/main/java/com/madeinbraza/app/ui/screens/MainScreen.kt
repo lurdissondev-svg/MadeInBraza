@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.madeinbraza.app.ui.NotificationNavigation
 
 sealed class BottomNavItem(
     val route: String,
@@ -74,6 +75,8 @@ sealed class BottomNavItem(
 
 @Composable
 fun MainScreen(
+    notificationNavigation: NotificationNavigation? = null,
+    onNotificationHandled: () -> Unit = {},
     onLogout: () -> Unit,
     onNavigateToPendingMembers: () -> Unit,
     onNavigateToBannedUsers: () -> Unit,
@@ -94,6 +97,34 @@ fun MainScreen(
         BottomNavItem.Members,
         BottomNavItem.Profile
     )
+
+    // Handle notification navigation
+    LaunchedEffect(notificationNavigation) {
+        notificationNavigation?.let { nav ->
+            val targetRoute = when (nav.target) {
+                "channel", "channels" -> BottomNavItem.Channels.route
+                "events" -> BottomNavItem.Events.route
+                "parties" -> BottomNavItem.Parties.route
+                "home" -> BottomNavItem.Home.route
+                "siege_war" -> {
+                    // Navigate to Siege War screen (external navigation)
+                    onNavigateToSiegeWar()
+                    onNotificationHandled()
+                    return@LaunchedEffect
+                }
+                else -> BottomNavItem.Home.route
+            }
+
+            navController.navigate(targetRoute) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+            onNotificationHandled()
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),

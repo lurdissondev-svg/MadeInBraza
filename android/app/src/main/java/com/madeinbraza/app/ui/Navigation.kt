@@ -1,6 +1,11 @@
 package com.madeinbraza.app.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,6 +22,14 @@ import com.madeinbraza.app.ui.screens.RegisterScreen
 import com.madeinbraza.app.ui.screens.SiegeWarScreen
 import com.madeinbraza.app.ui.screens.SplashScreen
 import com.madeinbraza.app.ui.screens.WaitingScreen
+
+// Data class for notification navigation
+data class NotificationNavigation(
+    val target: String,
+    val channelId: String? = null,
+    val channelName: String? = null,
+    val eventId: String? = null
+)
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
@@ -39,9 +52,21 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun BrazaNavHost(
+    notificationNavigation: NotificationNavigation? = null,
+    onNotificationHandled: () -> Unit = {},
     onLanguageChanged: () -> Unit = {}
 ) {
     val navController = rememberNavController()
+
+    // Track pending notification navigation to pass to MainScreen
+    var pendingNotification by remember { mutableStateOf(notificationNavigation) }
+
+    // Update pending notification when new one arrives
+    LaunchedEffect(notificationNavigation) {
+        if (notificationNavigation != null) {
+            pendingNotification = notificationNavigation
+        }
+    }
 
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
@@ -108,6 +133,11 @@ fun BrazaNavHost(
 
         composable(Screen.Main.route) {
             MainScreen(
+                notificationNavigation = pendingNotification,
+                onNotificationHandled = {
+                    pendingNotification = null
+                    onNotificationHandled()
+                },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
