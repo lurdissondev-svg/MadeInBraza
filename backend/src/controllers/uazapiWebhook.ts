@@ -16,6 +16,8 @@ interface UazapiWebhookPayload {
     id?: string;
     text?: string;
     senderName?: string;
+    pushName?: string;
+    name?: string;
     sender?: string;
     fromMe?: boolean;
     messageTimestamp?: number;
@@ -93,7 +95,12 @@ export async function handleUazapiWebhook(
     // Nota: Removido filtro fromMe pois o dono da instância também envia avisos
 
     const messageId = msg.messageid || msg.id || '';
-    const authorName = msg.senderName || msg.sender?.split('@')[0] || 'WhatsApp';
+
+    // Prioriza nome visível (pushName/senderName/name) ao invés do número
+    const authorName = msg.pushName || msg.senderName || msg.name || 'WhatsApp';
+    console.log('[UAZAPI Webhook] Author fields - pushName:', msg.pushName, '| senderName:', msg.senderName, '| name:', msg.name, '| sender:', msg.sender);
+    console.log('[UAZAPI Webhook] Using author name:', authorName);
+
     const text = msg.text || msg.content?.caption || '';
     const mediaUrl = msg.content?.URL;
 
