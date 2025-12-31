@@ -85,6 +85,7 @@
     <string name="class_info">Classe: %1$s</string>
     <string name="role_info">Cargo: %1$s</string>
     <string name="leader_panel">Painel do Líder</string>
+    <string name="leader_actions">AÇÕES DO LÍDER</string>
     <string name="approve_members">APROVAR MEMBROS</string>
     <string name="banned_users">BANIDOS</string>
     <string name="siege_war">SIEGE WAR</string>

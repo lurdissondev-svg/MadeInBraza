@@ -172,10 +172,7 @@ fun MainScreen(
         ) {
             composable(BottomNavItem.Home.route) {
                 MainHomeContent(
-                    onLogout = onLogout,
-                    onNavigateToPendingMembers = onNavigateToPendingMembers,
-                    onNavigateToBannedUsers = onNavigateToBannedUsers,
-                    onNavigateToSiegeWar = onNavigateToSiegeWar
+                    onLogout = onLogout
                 )
             }
 
@@ -185,7 +182,8 @@ fun MainScreen(
 
             composable(BottomNavItem.Events.route) {
                 EventsScreen(
-                    onNavigateToCreateEvent = onNavigateToCreateEvent
+                    onNavigateToCreateEvent = onNavigateToCreateEvent,
+                    onNavigateToSiegeWar = onNavigateToSiegeWar
                 )
             }
 
@@ -201,6 +199,8 @@ fun MainScreen(
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
+                    onNavigateToPendingMembers = onNavigateToPendingMembers,
+                    onNavigateToBannedUsers = onNavigateToBannedUsers,
                     onLanguageChanged = onLanguageChanged
                 )
             }

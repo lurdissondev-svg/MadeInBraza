@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
+import { downloadAndSaveMedia } from '../services/uazapiMedia.js';
 
 // Configuração do grupo AVISOS (será preenchido após listar grupos)
 const AVISOS_GROUP_ID = process.env.UAZAPI_AVISOS_GROUP_ID || '';
@@ -195,6 +196,19 @@ export async function handleUazapiWebhook(
         whatsappTimestamp = new Date(ts * 1000);
       }
 
+      // Se tem mídia, baixa e salva localmente
+      let finalMediaUrl = mediaUrl;
+      if (mediaUrl && mediaType) {
+        console.log('[UAZAPI Webhook] Downloading media for message:', messageId);
+        const downloaded = await downloadAndSaveMedia(messageId, chatId);
+        if (downloaded) {
+          finalMediaUrl = downloaded.url;
+          console.log('[UAZAPI Webhook] Media saved to:', finalMediaUrl);
+        } else {
+          console.warn('[UAZAPI Webhook] Failed to download media, keeping original URL');
+        }
+      }
+
       // Cria o anúncio
       const title = generateTitle(text || `Mídia de ${authorName}`, authorName);
 
@@ -205,7 +219,7 @@ export async function handleUazapiWebhook(
           whatsappMessageId: messageId,
           whatsappAuthor: authorName,
           whatsappTimestamp,
-          mediaUrl,
+          mediaUrl: finalMediaUrl,
           mediaType,
         },
       });

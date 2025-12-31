@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -15,11 +16,14 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.madeinbraza.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.data.model.Announcement
@@ -33,9 +37,6 @@ import java.util.Locale
 @Composable
 fun MainHomeContent(
     onLogout: () -> Unit,
-    onNavigateToPendingMembers: () -> Unit,
-    onNavigateToBannedUsers: () -> Unit,
-    onNavigateToSiegeWar: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -137,64 +138,6 @@ fun MainHomeContent(
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-
-                // Quick action buttons
-                item {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Siege War button
-                        Button(
-                            onClick = onNavigateToSiegeWar,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.siege_war))
-                        }
-
-                        if (isLeader) {
-                            Button(
-                                onClick = onNavigateToPendingMembers,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.approve_members))
-                            }
-
-                            OutlinedButton(
-                                onClick = onNavigateToBannedUsers,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.banned_users))
-                            }
                         }
                     }
                 }
@@ -373,30 +316,46 @@ fun AnnouncementCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            // Mostra indicador de mídia se houver
+            // Mostra mídia se houver
             if (announcement.mediaUrl != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        val mediaLabel = when (announcement.mediaType) {
-                            "image" -> "📷 Imagem"
-                            "video" -> "🎥 Vídeo"
-                            "audio" -> "🎵 Áudio"
-                            "document" -> "📄 Documento"
-                            else -> "📎 Anexo"
-                        }
-                        Text(
-                            text = mediaLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                Spacer(modifier = Modifier.height(12.dp))
+
+                when (announcement.mediaType) {
+                    "image" -> {
+                        // Exibe a imagem diretamente
+                        AsyncImage(
+                            model = announcement.mediaUrl,
+                            contentDescription = "Imagem do anúncio",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.FillWidth
                         )
+                    }
+                    else -> {
+                        // Para outros tipos de mídia, mostra o indicador
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val mediaLabel = when (announcement.mediaType) {
+                                    "video" -> "🎥 Vídeo"
+                                    "audio" -> "🎵 Áudio"
+                                    "document" -> "📄 Documento"
+                                    else -> "📎 Anexo"
+                                }
+                                Text(
+                                    text = mediaLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
                     }
                 }
             }

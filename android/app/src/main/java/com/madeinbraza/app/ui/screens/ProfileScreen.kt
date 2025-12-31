@@ -15,8 +15,10 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.*
@@ -41,6 +43,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ProfileScreen(
     onNavigateBack: (() -> Unit)? = null,
+    onNavigateToPendingMembers: () -> Unit = {},
+    onNavigateToBannedUsers: () -> Unit = {},
     onLanguageChanged: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -446,6 +450,53 @@ fun ProfileScreen(
                                         }
                                     )
                                 }
+                            }
+                        }
+
+                        // Leader-only actions
+                        if (profile.role == Role.LEADER) {
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text(
+                                text = stringResource(R.string.leader_actions),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Button(
+                                onClick = onNavigateToPendingMembers,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.approve_members))
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedButton(
+                                onClick = onNavigateToBannedUsers,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.banned_users))
                             }
                         }
                     }

@@ -85,6 +85,7 @@
     <string name="class_info">Class: %1$s</string>
     <string name="role_info">Role: %1$s</string>
     <string name="leader_panel">Leader Panel</string>
+    <string name="leader_actions">LEADER ACTIONS</string>
     <string name="approve_members">APPROVE MEMBERS</string>
     <string name="banned_users">BANNED</string>
     <string name="siege_war">SIEGE WAR</string>
