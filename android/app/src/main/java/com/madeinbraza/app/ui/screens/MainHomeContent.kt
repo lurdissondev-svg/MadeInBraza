@@ -37,12 +37,18 @@ import java.util.Locale
 @Composable
 fun MainHomeContent(
     onLogout: () -> Unit,
+    onFabStateChanged: (visible: Boolean, onClick: (() -> Unit)?) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isLeader = uiState.user?.role == Role.LEADER
     val leaderText = stringResource(R.string.leader)
     val memberText = stringResource(R.string.member)
+
+    // Report FAB state to parent (MainScreen)
+    LaunchedEffect(isLeader, uiState.user) {
+        onFabStateChanged(isLeader, if (isLeader) { { viewModel.showCreateDialog() } } else null)
+    }
 
     // Create announcement dialog
     if (uiState.showCreateDialog) {
@@ -76,16 +82,6 @@ fun MainHomeContent(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            if (isLeader) {
-                FloatingActionButton(
-                    onClick = { viewModel.showCreateDialog() },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_announcement))
-                }
-            }
         }
     ) { padding ->
         PullToRefreshBox(
@@ -231,8 +227,10 @@ fun AnnouncementCard(
     val dateToFormat = announcement.whatsappTimestamp ?: announcement.createdAt
     val formattedDate = try {
         val zonedDateTime = ZonedDateTime.parse(dateToFormat)
+        // Converte para o fuso horário local
+        val localDateTime = zonedDateTime.withZoneSameInstant(java.time.ZoneId.systemDefault())
         val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale("pt", "BR"))
-        zonedDateTime.format(formatter)
+        localDateTime.format(formatter)
     } catch (e: Exception) {
         dateToFormat
     }

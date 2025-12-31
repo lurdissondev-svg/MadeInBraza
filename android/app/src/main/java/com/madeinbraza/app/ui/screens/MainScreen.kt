@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Star
@@ -98,6 +99,10 @@ fun MainScreen(
         BottomNavItem.Profile
     )
 
+    // FAB state for Home screen
+    var homeFabVisible by remember { mutableStateOf(false) }
+    var homeFabOnClick by remember { mutableStateOf<(() -> Unit)?>(null) }
+
     // Handle notification navigation
     LaunchedEffect(notificationNavigation) {
         notificationNavigation?.let { nav ->
@@ -128,6 +133,17 @@ fun MainScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        floatingActionButton = {
+            val isHomeRoute = currentDestination?.route == BottomNavItem.Home.route
+            if (isHomeRoute && homeFabVisible && homeFabOnClick != null) {
+                FloatingActionButton(
+                    onClick = { homeFabOnClick?.invoke() },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Novo anúncio")
+                }
+            }
+        },
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -172,7 +188,11 @@ fun MainScreen(
         ) {
             composable(BottomNavItem.Home.route) {
                 MainHomeContent(
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onFabStateChanged = { visible, onClick ->
+                        homeFabVisible = visible
+                        homeFabOnClick = onClick
+                    }
                 )
             }
 
