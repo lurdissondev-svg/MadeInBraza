@@ -36,6 +36,13 @@
     <string name="stay_connected">Mantener conectado</string>
     <string name="create_account">CREAR CUENTA</string>
     <string name="already_have_account">Ya tengo cuenta</string>
+    <string name="forgot_password">Olvidé mi contraseña</string>
+
+    <!-- Forgot Password Dialog -->
+    <string name="forgot_password_title">Recuperar Contraseña</string>
+    <string name="forgot_password_description">Ingresa tu nick para recibir una nueva contraseña.</string>
+    <string name="new_password_generated">Tu nueva contraseña es:</string>
+    <string name="copy_password_hint">Mantén presionado para copiar</string>
 
     <!-- Register Screen -->
     <string name="register">REGISTRO</string>
@@ -135,6 +142,7 @@
 
     <!-- Parties Screen -->
     <string name="create_party">Crear Party</string>
+    <string name="edit_party">Editar Party</string>
     <string name="no_parties">No hay parties</string>
     <string name="create_party_for_event">¡Crea una party para el evento!</string>
     <string name="create_party_gather">¡Crea una party para reunir al grupo!</string>

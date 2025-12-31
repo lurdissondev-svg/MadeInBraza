@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -18,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.Member
@@ -309,10 +309,10 @@ fun MemberCard(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Icon(
-                                    Icons.Filled.KeyboardArrowUp,
-                                    contentDescription = promoteText,
-                                    tint = MaterialTheme.colorScheme.primary
+                                Text(
+                                    text = "👑",
+                                    fontSize = 20.sp,
+                                    modifier = Modifier.padding(2.dp)
                                 )
                             }
                         }

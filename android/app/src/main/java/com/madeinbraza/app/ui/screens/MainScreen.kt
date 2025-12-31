@@ -42,7 +42,7 @@ sealed class BottomNavItem(
     )
     object Channels : BottomNavItem(
         route = "main_channels",
-        title = "Canais",
+        title = "Chat",
         selectedIcon = Icons.Filled.List,
         unselectedIcon = Icons.Outlined.List
     )
@@ -79,7 +79,6 @@ fun MainScreen(
     onNavigateToBannedUsers: () -> Unit,
     onNavigateToSiegeWar: () -> Unit,
     onNavigateToCreateEvent: () -> Unit,
-    onNavigateToParties: (String, String) -> Unit,
     onNavigateToMemberProfile: (String) -> Unit,
     onLanguageChanged: () -> Unit = {}
 ) {
@@ -155,8 +154,7 @@ fun MainScreen(
 
             composable(BottomNavItem.Events.route) {
                 EventsScreen(
-                    onNavigateToCreateEvent = onNavigateToCreateEvent,
-                    onNavigateToParties = onNavigateToParties
+                    onNavigateToCreateEvent = onNavigateToCreateEvent
                 )
             }
 

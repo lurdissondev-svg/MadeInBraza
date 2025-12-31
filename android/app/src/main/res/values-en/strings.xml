@@ -36,6 +36,13 @@
     <string name="stay_connected">Stay connected</string>
     <string name="create_account">CREATE ACCOUNT</string>
     <string name="already_have_account">Already have an account</string>
+    <string name="forgot_password">Forgot my password</string>
+
+    <!-- Forgot Password Dialog -->
+    <string name="forgot_password_title">Reset Password</string>
+    <string name="forgot_password_description">Enter your nick to receive a new password.</string>
+    <string name="new_password_generated">Your new password is:</string>
+    <string name="copy_password_hint">Tap and hold to copy</string>
 
     <!-- Register Screen -->
     <string name="register">REGISTER</string>
@@ -135,6 +142,7 @@
 
     <!-- Parties Screen -->
     <string name="create_party">Create Party</string>
+    <string name="edit_party">Edit Party</string>
     <string name="no_parties">No parties</string>
     <string name="create_party_for_event">Create a party for the event!</string>
     <string name="create_party_gather">Create a party to gather the crew!</string>

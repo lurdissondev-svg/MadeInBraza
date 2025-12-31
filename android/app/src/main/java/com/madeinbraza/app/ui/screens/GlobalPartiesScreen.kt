@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -52,6 +53,18 @@ fun GlobalPartiesScreen(
             isCreating = uiState.isCreating,
             onDismiss = { viewModel.hideCreateDialog() },
             onCreate = { name, description, maxMembers -> viewModel.createParty(name, description, maxMembers) }
+        )
+    }
+
+    // Edit party dialog
+    uiState.partyToEdit?.let { party ->
+        EditGlobalPartyDialog(
+            party = party,
+            isEditing = uiState.isEditing,
+            onDismiss = { viewModel.hideEditDialog() },
+            onSave = { name, description, maxMembers ->
+                viewModel.updateParty(party.id, name, description, maxMembers)
+            }
         )
     }
 
@@ -111,6 +124,7 @@ fun GlobalPartiesScreen(
                                 isActionInProgress = uiState.actionInProgress == party.id,
                                 onJoin = { viewModel.joinParty(party.id) },
                                 onLeave = { viewModel.leaveParty(party.id) },
+                                onEdit = { viewModel.showEditDialog(party) },
                                 onDelete = { viewModel.deleteParty(party.id) }
                             )
                         }
@@ -215,6 +229,84 @@ fun CreateGlobalPartyDialog(
 }
 
 @Composable
+fun EditGlobalPartyDialog(
+    party: Party,
+    isEditing: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String, String?, Int?) -> Unit
+) {
+    var name by remember { mutableStateOf(party.name) }
+    var description by remember { mutableStateOf(party.description ?: "") }
+    var maxMembers by remember { mutableStateOf(party.maxMembers.toString()) }
+
+    AlertDialog(
+        onDismissRequest = { if (!isEditing) onDismiss() },
+        title = { Text(stringResource(R.string.edit_party)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.party_name)) },
+                    singleLine = true,
+                    enabled = !isEditing,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text(stringResource(R.string.description_optional)) },
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 3,
+                    enabled = !isEditing,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = maxMembers,
+                    onValueChange = { maxMembers = it.filter { c -> c.isDigit() } },
+                    label = { Text(stringResource(R.string.max_members)) },
+                    singleLine = true,
+                    enabled = !isEditing,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val max = maxMembers.toIntOrNull()
+                    val desc = description.trim().ifEmpty { null }
+                    onSave(name, desc, max)
+                },
+                enabled = name.isNotBlank() && !isEditing
+            ) {
+                if (isEditing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(stringResource(R.string.save))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isEditing
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+@Composable
 fun GlobalPartyCard(
     party: Party,
     currentUserId: String?,
@@ -222,10 +314,12 @@ fun GlobalPartyCard(
     isActionInProgress: Boolean,
     onJoin: () -> Unit,
     onLeave: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val isMember = party.members.any { it.id == currentUserId }
     val isCreator = party.createdBy.id == currentUserId
+    val canEdit = isCreator || isLeader
     val canDelete = isCreator || isLeader
 
     val closedText = stringResource(R.string.party_closed)
@@ -288,22 +382,38 @@ fun GlobalPartyCard(
                     }
                 }
 
-                if (canDelete) {
-                    IconButton(
-                        onClick = onDelete,
-                        enabled = !isActionInProgress
-                    ) {
-                        if (isActionInProgress) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.Delete,
-                                contentDescription = deleteText,
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                if (canEdit || canDelete) {
+                    Row {
+                        if (canEdit) {
+                            IconButton(
+                                onClick = onEdit,
+                                enabled = !isActionInProgress
+                            ) {
+                                Icon(
+                                    Icons.Filled.Edit,
+                                    contentDescription = stringResource(R.string.edit),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        if (canDelete) {
+                            IconButton(
+                                onClick = onDelete,
+                                enabled = !isActionInProgress
+                            ) {
+                                if (isActionInProgress) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = deleteText,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         }
                     }
                 }

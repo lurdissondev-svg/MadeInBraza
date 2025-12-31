@@ -188,19 +188,11 @@ fun SiegeWarScreen(
                                         .fillMaxSize()
                                         .verticalScroll(rememberScrollState())
                                 ) {
-                                    // Shared Configuration Info Card
-                                    SharedConfigInfoCard()
-
                                     // Form Content
                                     Column(
                                         modifier = Modifier.padding(16.dp),
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        // Current Response Display (if exists)
-                                        uiState.userResponse?.let { response ->
-                                            CurrentResponseCard(response)
-                                        }
-
                                         // TAG Selection
                                         FormSection(title = "TAG *", description = "Selecione seu time") {
                                             Column(modifier = Modifier.selectableGroup()) {
@@ -237,13 +229,6 @@ fun SiegeWarScreen(
                                                     description = "Vou pilotar a conta de outro membro",
                                                     selected = selectedResponseType == SWResponseType.PILOT,
                                                     onClick = { selectedResponseType = SWResponseType.PILOT }
-                                                )
-                                                RadioOption(
-                                                    text = "Não vou participar",
-                                                    description = "Estarei ausente",
-                                                    selected = selectedResponseType == SWResponseType.ABSENT,
-                                                    onClick = { selectedResponseType = SWResponseType.ABSENT },
-                                                    isError = true
                                                 )
                                             }
                                         }
@@ -321,6 +306,11 @@ fun SiegeWarScreen(
                                                     onClassSelected = { selectedPreferredClass = it }
                                                 )
                                             }
+                                        }
+
+                                        // Current Response Card (show if user already responded)
+                                        uiState.userResponse?.let { response ->
+                                            CurrentResponseCard(response = response)
                                         }
 
                                         // Submit Button

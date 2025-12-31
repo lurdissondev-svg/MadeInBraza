@@ -19,7 +19,14 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val loginSuccess: Boolean = false,
-    val userStatus: String = ""
+    val userStatus: String = "",
+    // Forgot password states
+    val showForgotPasswordDialog: Boolean = false,
+    val forgotPasswordNick: String = "",
+    val forgotPasswordLoading: Boolean = false,
+    val forgotPasswordError: String? = null,
+    val forgotPasswordSuccess: String? = null,
+    val newPassword: String? = null
 )
 
 @HiltViewModel
@@ -66,6 +73,65 @@ class LoginViewModel @Inject constructor(
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(isLoading = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun showForgotPasswordDialog() {
+        _uiState.update {
+            it.copy(
+                showForgotPasswordDialog = true,
+                forgotPasswordNick = it.nick,
+                forgotPasswordError = null,
+                forgotPasswordSuccess = null,
+                newPassword = null
+            )
+        }
+    }
+
+    fun hideForgotPasswordDialog() {
+        _uiState.update {
+            it.copy(
+                showForgotPasswordDialog = false,
+                forgotPasswordNick = "",
+                forgotPasswordError = null,
+                forgotPasswordSuccess = null,
+                newPassword = null
+            )
+        }
+    }
+
+    fun updateForgotPasswordNick(nick: String) {
+        _uiState.update { it.copy(forgotPasswordNick = nick, forgotPasswordError = null) }
+    }
+
+    fun requestPasswordReset() {
+        if (_uiState.value.forgotPasswordNick.isBlank()) {
+            _uiState.update { it.copy(forgotPasswordError = "Digite seu nick") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(forgotPasswordLoading = true, forgotPasswordError = null) }
+
+            when (val result = authRepository.forgotPassword(_uiState.value.forgotPasswordNick)) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            forgotPasswordLoading = false,
+                            forgotPasswordSuccess = result.data.message,
+                            newPassword = result.data.newPassword
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            forgotPasswordLoading = false,
+                            forgotPasswordError = result.message
+                        )
+                    }
                 }
             }
         }

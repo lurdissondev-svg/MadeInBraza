@@ -139,6 +139,7 @@ private fun ChannelsListContent(
                         items(uiState.channels, key = { it.id }) { channel ->
                             ChannelItem(
                                 channel = channel,
+                                unreadCount = uiState.unreadCounts[channel.id] ?: 0,
                                 onClick = { viewModel.openChannel(channel) },
                                 onShowMembers = { viewModel.loadChannelMembers(channel) }
                             )
@@ -167,6 +168,7 @@ private fun ChannelsListContent(
 @Composable
 private fun ChannelItem(
     channel: Channel,
+    unreadCount: Int = 0,
     onClick: () -> Unit,
     onShowMembers: () -> Unit
 ) {
@@ -203,21 +205,38 @@ private fun ChannelItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
+            // Channel icon with unread badge
+            Box {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                if (unreadCount > 0) {
+                    Badge(
+                        modifier = Modifier.align(Alignment.TopEnd),
+                        containerColor = MaterialTheme.colorScheme.error
+                    ) {
+                        Text(
+                            text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = channel.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (unreadCount > 0) FontWeight.ExtraBold else FontWeight.Bold,
+                        color = if (unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
                 Text(
                     text = typeLabel,
@@ -389,7 +408,11 @@ private fun ChannelChatContent(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(uiState.messages, key = { it.id }) { message ->
-                                ChannelMessageBubble(message = message)
+                                val isCurrentUser = message.user.id == uiState.currentUserId
+                                ChannelMessageBubble(
+                                    message = message,
+                                    isCurrentUser = isCurrentUser
+                                )
                             }
                         }
                     }
@@ -416,32 +439,52 @@ private fun ChannelChatContent(
 }
 
 @Composable
-private fun ChannelMessageBubble(message: ChannelMessage) {
+private fun ChannelMessageBubble(
+    message: ChannelMessage,
+    isCurrentUser: Boolean = false
+) {
     val isLeader = message.user.role == Role.LEADER
     val context = LocalContext.current
     val leaderTag = stringResource(R.string.leader_tag)
 
+    // Bubble colors based on message sender
+    val bubbleColor = when {
+        isCurrentUser -> MaterialTheme.colorScheme.primary
+        isLeader -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val textColor = when {
+        isCurrentUser -> MaterialTheme.colorScheme.onPrimary
+        isLeader -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
     ) {
+        // Header row (nick, leader tag, time)
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 4.dp)
         ) {
-            Text(
-                text = message.user.nick,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (isLeader) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-            )
-            if (isLeader) {
-                Spacer(modifier = Modifier.width(4.dp))
+            if (!isCurrentUser) {
                 Text(
-                    text = leaderTag,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    text = message.user.nick,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isLeader) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                 )
+                if (isLeader) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = leaderTag,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
             }
-            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = formatMessageTime(message.createdAt),
                 style = MaterialTheme.typography.labelSmall,
@@ -453,13 +496,16 @@ private fun ChannelMessageBubble(message: ChannelMessage) {
 
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    if (isLeader)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
+                .widthIn(max = 280.dp)
+                .clip(
+                    RoundedCornerShape(
+                        topStart = if (isCurrentUser) 16.dp else 4.dp,
+                        topEnd = if (isCurrentUser) 4.dp else 16.dp,
+                        bottomStart = 16.dp,
+                        bottomEnd = 16.dp
+                    )
                 )
+                .background(bubbleColor)
                 .padding(if (message.mediaUrl != null) 4.dp else 12.dp)
         ) {
             Column {
@@ -523,10 +569,7 @@ private fun ChannelMessageBubble(message: ChannelMessage) {
                         Text(
                             text = fileName,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isLeader)
-                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            color = textColor.copy(alpha = 0.7f),
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
                     }
@@ -541,10 +584,7 @@ private fun ChannelMessageBubble(message: ChannelMessage) {
                         Text(
                             text = content,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (isLeader)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = textColor,
                             modifier = if (message.mediaUrl != null)
                                 Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             else

@@ -83,6 +83,24 @@ class PartiesRepository @Inject constructor(
         }
     }
 
+    suspend fun updateParty(partyId: String, name: String, description: String?, maxMembers: Int?): Result<Party> {
+        val token = getToken() ?: return Result.Error("Not authenticated")
+        return try {
+            val response = api.updateParty(
+                "Bearer $token",
+                partyId,
+                CreatePartyRequest(name = name, description = description, maxMembers = maxMembers)
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!.party)
+            } else {
+                Result.Error(response.errorBody()?.string() ?: "Failed to update party")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Network error")
+        }
+    }
+
     suspend fun deleteParty(partyId: String): Result<Unit> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {

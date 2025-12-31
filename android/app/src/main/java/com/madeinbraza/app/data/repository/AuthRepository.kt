@@ -13,6 +13,8 @@ import com.madeinbraza.app.data.model.RegisterRequest
 import com.madeinbraza.app.data.model.StatusResponse
 import com.madeinbraza.app.data.model.User
 import com.madeinbraza.app.data.model.ChangePasswordRequest
+import com.madeinbraza.app.data.model.ForgotPasswordRequest
+import com.madeinbraza.app.data.model.ForgotPasswordResponse
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.first
@@ -161,6 +163,21 @@ class AuthRepository @Inject constructor(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = parseErrorMessage(errorBody) ?: "Falha ao alterar senha"
+                Result.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Result.Error("Erro de conexão. Verifique sua internet.")
+        }
+    }
+
+    suspend fun forgotPassword(nick: String): Result<ForgotPasswordResponse> {
+        return try {
+            val response = api.forgotPassword(ForgotPasswordRequest(nick))
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBody) ?: "Falha ao recuperar senha"
                 Result.Error(errorMessage)
             }
         } catch (e: Exception) {

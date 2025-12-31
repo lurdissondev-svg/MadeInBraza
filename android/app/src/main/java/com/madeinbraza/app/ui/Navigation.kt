@@ -125,9 +125,6 @@ fun BrazaNavHost(
                 onNavigateToCreateEvent = {
                     navController.navigate(Screen.CreateEvent.route)
                 },
-                onNavigateToParties = { eventId, eventTitle ->
-                    navController.navigate(Screen.Parties.createRoute(eventId, eventTitle))
-                },
                 onNavigateToMemberProfile = { memberId ->
                     navController.navigate(Screen.MemberProfile.createRoute(memberId))
                 },

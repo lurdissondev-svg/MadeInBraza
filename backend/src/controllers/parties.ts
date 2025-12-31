@@ -372,7 +372,7 @@ export async function joinParty(
         partyId,
         'Party Completa!',
         `${partyContext} - Todas as vagas preenchidas!`,
-        { partyId, eventId: party.eventId }
+        party.eventId ? { partyId, eventId: party.eventId } : { partyId }
       ).catch(err => console.error('Failed to send party full notification:', err));
     }
 

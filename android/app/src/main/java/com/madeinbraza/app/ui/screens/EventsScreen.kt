@@ -48,10 +48,10 @@ private val CLASS_DISPLAY_NAMES = mapOf(
 fun EventsScreen(
     onNavigateBack: (() -> Unit)? = null,
     onNavigateToCreateEvent: () -> Unit,
-    onNavigateToParties: (String, String) -> Unit,
     viewModel: EventsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var selectedEventForMembers by remember { mutableStateOf<Event?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadEvents()
@@ -119,7 +119,7 @@ fun EventsScreen(
                                 onJoin = { viewModel.joinEvent(event.id) },
                                 onLeave = { viewModel.leaveEvent(event.id) },
                                 onDelete = { viewModel.deleteEvent(event.id) },
-                                onViewParties = { onNavigateToParties(event.id, event.title) }
+                                onViewMembers = { selectedEventForMembers = event }
                             )
                         }
                     }
@@ -143,6 +143,93 @@ fun EventsScreen(
             }
         }
     }
+
+    // Members Dialog
+    selectedEventForMembers?.let { event ->
+        EventMembersDialog(
+            event = event,
+            onDismiss = { selectedEventForMembers = null }
+        )
+    }
+}
+
+@Composable
+fun EventMembersDialog(
+    event: Event,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = event.title,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column {
+                val participantsText = if (event.maxParticipants != null) {
+                    "${event.participants.size}/${event.maxParticipants} membros"
+                } else {
+                    "${event.participants.size} membro(s)"
+                }
+
+                Text(
+                    text = participantsText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (event.participants.isEmpty()) {
+                    Text(
+                        text = "Nenhum participante ainda",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.heightIn(max = 300.dp)
+                    ) {
+                        items(event.participants) { participant ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = participant.nick,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = CLASS_DISPLAY_NAMES[participant.playerClass] ?: participant.playerClass.name,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.close))
+            }
+        }
+    )
 }
 
 @Composable
@@ -155,7 +242,7 @@ fun EventCard(
     onJoin: () -> Unit,
     onLeave: () -> Unit,
     onDelete: () -> Unit,
-    onViewParties: () -> Unit
+    onViewMembers: () -> Unit
 ) {
     val isParticipant = event.participants.any { it.id == currentUserId }
     val formattedDate = try {
@@ -395,9 +482,9 @@ fun EventCard(
                     }
                 }
 
-                // Parties button
+                // Members button
                 OutlinedButton(
-                    onClick = onViewParties,
+                    onClick = onViewMembers,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -406,7 +493,7 @@ fun EventCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.parties))
+                    Text(stringResource(R.string.members))
                 }
             }
         }

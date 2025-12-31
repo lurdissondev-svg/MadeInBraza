@@ -3,14 +3,17 @@ package com.madeinbraza.app.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.R
@@ -84,6 +87,18 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Forgot password link
+        TextButton(
+            onClick = { viewModel.showForgotPasswordDialog() },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(
+                text = stringResource(R.string.forgot_password),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -126,7 +141,142 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(onClick = onNavigateToRegister) {
-            Text(stringResource(R.string.already_have_account), color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.create_account), color = MaterialTheme.colorScheme.primary)
         }
     }
+
+    // Forgot Password Dialog
+    if (uiState.showForgotPasswordDialog) {
+        ForgotPasswordDialog(
+            nick = uiState.forgotPasswordNick,
+            onNickChange = { viewModel.updateForgotPasswordNick(it) },
+            isLoading = uiState.forgotPasswordLoading,
+            error = uiState.forgotPasswordError,
+            successMessage = uiState.forgotPasswordSuccess,
+            newPassword = uiState.newPassword,
+            onDismiss = { viewModel.hideForgotPasswordDialog() },
+            onConfirm = { viewModel.requestPasswordReset() }
+        )
+    }
+}
+
+@Composable
+private fun ForgotPasswordDialog(
+    nick: String,
+    onNickChange: (String) -> Unit,
+    isLoading: Boolean,
+    error: String?,
+    successMessage: String?,
+    newPassword: String?,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        title = {
+            Text(
+                text = stringResource(R.string.forgot_password_title),
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column {
+                if (successMessage != null) {
+                    // Success state
+                    Text(
+                        text = successMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (newPassword != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.new_password_generated),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SelectionContainer {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Text(
+                                    text = newPassword,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(16.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.copy_password_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    // Input state
+                    Text(
+                        text = stringResource(R.string.forgot_password_description),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = nick,
+                        onValueChange = onNickChange,
+                        label = { Text(stringResource(R.string.nick)) },
+                        singleLine = true,
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.secondary
+                        )
+                    )
+                    if (error != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (successMessage != null) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.ok))
+                }
+            } else {
+                TextButton(
+                    onClick = onConfirm,
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(stringResource(R.string.send))
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (successMessage == null) {
+                TextButton(
+                    onClick = onDismiss,
+                    enabled = !isLoading
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        }
+    )
 }

@@ -450,3 +450,13 @@ data class ChangePasswordRequest(
     val currentPassword: String,
     val newPassword: String
 )
+
+// Forgot password models
+data class ForgotPasswordRequest(
+    val nick: String
+)
+
+data class ForgotPasswordResponse(
+    val message: String,
+    val newPassword: String? = null
+)

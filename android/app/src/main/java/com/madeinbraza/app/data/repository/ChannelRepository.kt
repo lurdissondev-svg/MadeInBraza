@@ -5,6 +5,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.madeinbraza.app.data.api.BrazaApi
 import com.madeinbraza.app.data.model.Channel
@@ -178,5 +180,45 @@ class ChannelRepository @Inject constructor(
             }
         }
         return result
+    }
+
+    // Unread messages tracking
+    private fun lastReadKey(channelId: String) = longPreferencesKey("last_read_$channelId")
+
+    suspend fun getLastReadTimestamp(channelId: String): Long {
+        return dataStore.data.map { it[lastReadKey(channelId)] ?: 0L }.first()
+    }
+
+    suspend fun setLastReadTimestamp(channelId: String, timestamp: Long) {
+        dataStore.edit { prefs ->
+            prefs[lastReadKey(channelId)] = timestamp
+        }
+    }
+
+    suspend fun getUnreadCount(channelId: String): Int {
+        val token = getToken() ?: return 0
+        val lastRead = getLastReadTimestamp(channelId)
+
+        return try {
+            val response = api.getChannelMessages("Bearer $token", channelId, limit = 100, before = null)
+            if (response.isSuccessful && response.body() != null) {
+                val messages = response.body()!!
+                messages.count { parseTimestamp(it.createdAt) > lastRead }
+            } else {
+                0
+            }
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+    private fun parseTimestamp(isoDate: String): Long {
+        return try {
+            val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+            format.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            format.parse(isoDate)?.time ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
     }
 }

@@ -38,6 +38,8 @@ import com.madeinbraza.app.data.model.AnnouncementsResponse
 import com.madeinbraza.app.data.model.CreateAnnouncementRequest
 import com.madeinbraza.app.data.model.CreateAnnouncementResponse
 import com.madeinbraza.app.data.model.ChangePasswordRequest
+import com.madeinbraza.app.data.model.ForgotPasswordRequest
+import com.madeinbraza.app.data.model.ForgotPasswordResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -45,6 +47,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -73,6 +76,11 @@ interface BrazaApi {
         @Header("Authorization") token: String,
         @Body request: ChangePasswordRequest
     ): Response<SuccessResponse>
+
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(
+        @Body request: ForgotPasswordRequest
+    ): Response<ForgotPasswordResponse>
 
     @GET("users/members")
     suspend fun getMembers(@Header("Authorization") token: String): Response<MembersResponse>
@@ -203,6 +211,13 @@ interface BrazaApi {
     suspend fun createParty(
         @Header("Authorization") token: String,
         @Path("eventId") eventId: String,
+        @Body request: CreatePartyRequest
+    ): Response<CreatePartyResponse>
+
+    @PATCH("parties/{partyId}")
+    suspend fun updateParty(
+        @Header("Authorization") token: String,
+        @Path("partyId") partyId: String,
         @Body request: CreatePartyRequest
     ): Response<CreatePartyResponse>
 

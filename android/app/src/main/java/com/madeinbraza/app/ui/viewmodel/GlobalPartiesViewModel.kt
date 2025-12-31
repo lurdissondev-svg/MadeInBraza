@@ -23,7 +23,9 @@ data class GlobalPartiesUiState(
     val currentUserId: String? = null,
     val isLeader: Boolean = false,
     val showCreateDialog: Boolean = false,
-    val isCreating: Boolean = false
+    val isCreating: Boolean = false,
+    val partyToEdit: Party? = null,
+    val isEditing: Boolean = false
 )
 
 @HiltViewModel
@@ -171,5 +173,34 @@ class GlobalPartiesViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun showEditDialog(party: Party) {
+        _uiState.update { it.copy(partyToEdit = party) }
+    }
+
+    fun hideEditDialog() {
+        _uiState.update { it.copy(partyToEdit = null) }
+    }
+
+    fun updateParty(partyId: String, name: String, description: String?, maxMembers: Int?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isEditing = true) }
+
+            when (val result = partiesRepository.updateParty(partyId, name, description, maxMembers)) {
+                is Result.Success -> {
+                    _uiState.update { state ->
+                        state.copy(
+                            isEditing = false,
+                            partyToEdit = null,
+                            parties = state.parties.map { if (it.id == partyId) result.data else it }
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(isEditing = false, error = result.message) }
+                }
+            }
+        }
     }
 }

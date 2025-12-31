@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.Channel
 import com.madeinbraza.app.data.model.ChannelMember
 import com.madeinbraza.app.data.model.ChannelMessage
+import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.ChannelRepository
 import com.madeinbraza.app.data.repository.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,12 +24,14 @@ data class ChannelsListUiState(
     val channels: List<Channel> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val unreadCounts: Map<String, Int> = emptyMap()
 )
 
 data class ChannelChatUiState(
     val channel: Channel? = null,
     val messages: List<ChannelMessage> = emptyList(),
+    val currentUserId: String? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isSending: Boolean = false,
@@ -46,7 +49,8 @@ data class ChannelMembersUiState(
 
 @HiltViewModel
 class ChannelsViewModel @Inject constructor(
-    private val channelRepository: ChannelRepository
+    private val channelRepository: ChannelRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _channelsState = MutableStateFlow(ChannelsListUiState())
@@ -62,7 +66,22 @@ class ChannelsViewModel @Inject constructor(
     private var currentChannelId: String? = null
 
     init {
+        loadUserInfo()
         loadChannels()
+        loadUnreadCounts()
+    }
+
+    private fun loadUserInfo() {
+        viewModelScope.launch {
+            when (val result = authRepository.checkStatus()) {
+                is Result.Success -> {
+                    _chatState.update { it.copy(currentUserId = result.data.id) }
+                }
+                is Result.Error -> {
+                    // Silently fail
+                }
+            }
+        }
     }
 
     fun loadChannels() {
@@ -72,11 +91,23 @@ class ChannelsViewModel @Inject constructor(
             when (val result = channelRepository.getChannels()) {
                 is Result.Success -> {
                     _channelsState.update { it.copy(isLoading = false, channels = result.data) }
+                    loadUnreadCounts()
                 }
                 is Result.Error -> {
                     _channelsState.update { it.copy(isLoading = false, error = result.message) }
                 }
             }
+        }
+    }
+
+    private fun loadUnreadCounts() {
+        viewModelScope.launch {
+            val channels = _channelsState.value.channels
+            val counts = mutableMapOf<String, Int>()
+            channels.forEach { channel ->
+                counts[channel.id] = channelRepository.getUnreadCount(channel.id)
+            }
+            _channelsState.update { it.copy(unreadCounts = counts) }
         }
     }
 
@@ -115,12 +146,25 @@ class ChannelsViewModel @Inject constructor(
         _chatState.update { it.copy(channel = channel, messages = emptyList(), error = null) }
         loadMessages(channel.id)
         startPolling(channel.id)
+        markChannelAsRead(channel.id)
+    }
+
+    private fun markChannelAsRead(channelId: String) {
+        viewModelScope.launch {
+            channelRepository.setLastReadTimestamp(channelId, System.currentTimeMillis())
+            // Update the unread count to 0 for this channel
+            _channelsState.update { state ->
+                state.copy(unreadCounts = state.unreadCounts + (channelId to 0))
+            }
+        }
     }
 
     fun closeChannel() {
         pollingJob?.cancel()
         currentChannelId = null
         _chatState.update { ChannelChatUiState() }
+        // Reload unread counts when returning to channel list
+        loadUnreadCounts()
     }
 
     private fun loadMessages(channelId: String) {

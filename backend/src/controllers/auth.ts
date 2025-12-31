@@ -141,6 +141,10 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(6),
 });
 
+const forgotPasswordSchema = z.object({
+  nick: z.string().min(1),
+});
+
 export async function registerFcmToken(
   req: Request,
   res: Response,
@@ -189,6 +193,54 @@ export async function changePassword(
     });
 
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function generateRandomPassword(length: number = 8): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { nick } = forgotPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { nick },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'Usuário não encontrado');
+    }
+
+    if (user.status === 'BANNED') {
+      throw new AppError(403, 'Esta conta foi banida');
+    }
+
+    // Generate a new random password
+    const newPassword = generateRandomPassword(8);
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update the password in the database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    res.json({
+      message: 'Senha resetada com sucesso!',
+      newPassword,
+    });
   } catch (err) {
     next(err);
   }
