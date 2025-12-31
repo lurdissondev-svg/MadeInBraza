@@ -3,9 +3,11 @@ package com.madeinbraza.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.Party
+import com.madeinbraza.app.data.model.PartyMember
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.PartiesRepository
 import com.madeinbraza.app.data.repository.Result
+import com.madeinbraza.app.util.Debouncer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,12 +39,26 @@ class GlobalPartiesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(GlobalPartiesUiState())
     val uiState: StateFlow<GlobalPartiesUiState> = _uiState.asStateFlow()
 
+    private val debouncer = Debouncer()
+
     init {
         loadUserInfo()
         loadParties()
     }
 
     private fun loadUserInfo() {
+        // First try cached user to avoid API call
+        authRepository.getCachedUser()?.let { user ->
+            _uiState.update {
+                it.copy(
+                    currentUserId = user.id,
+                    isLeader = user.role.name == "LEADER"
+                )
+            }
+            return
+        }
+
+        // Fall back to API call if no cache
         viewModelScope.launch {
             when (val result = authRepository.checkStatus()) {
                 is Result.Success -> {
@@ -76,7 +92,13 @@ class GlobalPartiesViewModel @Inject constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        // Debounce refresh to prevent spam
+        if (!debouncer.canExecute("parties_refresh", Debouncer.REFRESH_DEBOUNCE_MS)) {
+            _uiState.update { it.copy(isRefreshing = false) }
+            return
+        }
+
+        debouncer.throttle(viewModelScope, "parties_refresh", Debouncer.REFRESH_DEBOUNCE_MS) {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
 
             when (val result = partiesRepository.getGlobalParties()) {
@@ -120,32 +142,87 @@ class GlobalPartiesViewModel @Inject constructor(
     }
 
     fun joinParty(partyId: String) {
+        val currentUserId = _uiState.value.currentUserId ?: return
+
         viewModelScope.launch {
             _uiState.update { it.copy(actionInProgress = partyId) }
+
+            // Optimistic update: add user to party members
+            val optimisticMember = PartyMember(
+                id = currentUserId,
+                nick = "", // Will be filled on refresh
+                playerClass = null,
+                joinedAt = java.time.Instant.now().toString()
+            )
+            _uiState.update { state ->
+                state.copy(
+                    parties = state.parties.map { party ->
+                        if (party.id == partyId) {
+                            party.copy(members = party.members + optimisticMember)
+                        } else party
+                    }
+                )
+            }
 
             when (val result = partiesRepository.joinParty(partyId)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(actionInProgress = null) }
-                    loadParties()
+                    // No need to reload - optimistic update already applied
                 }
                 is Result.Error -> {
-                    _uiState.update { it.copy(actionInProgress = null, error = result.message) }
+                    // Rollback optimistic update
+                    _uiState.update { state ->
+                        state.copy(
+                            actionInProgress = null,
+                            error = result.message,
+                            parties = state.parties.map { party ->
+                                if (party.id == partyId) {
+                                    party.copy(members = party.members.filter { it.id != currentUserId })
+                                } else party
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 
     fun leaveParty(partyId: String) {
+        val currentUserId = _uiState.value.currentUserId ?: return
+
         viewModelScope.launch {
             _uiState.update { it.copy(actionInProgress = partyId) }
+
+            // Optimistic update: remove user from party members
+            val previousMembers = _uiState.value.parties.find { it.id == partyId }?.members
+            _uiState.update { state ->
+                state.copy(
+                    parties = state.parties.map { party ->
+                        if (party.id == partyId) {
+                            party.copy(members = party.members.filter { it.id != currentUserId })
+                        } else party
+                    }
+                )
+            }
 
             when (val result = partiesRepository.leaveParty(partyId)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(actionInProgress = null) }
-                    loadParties()
+                    // No need to reload - optimistic update already applied
                 }
                 is Result.Error -> {
-                    _uiState.update { it.copy(actionInProgress = null, error = result.message) }
+                    // Rollback optimistic update
+                    _uiState.update { state ->
+                        state.copy(
+                            actionInProgress = null,
+                            error = result.message,
+                            parties = state.parties.map { party ->
+                                if (party.id == partyId && previousMembers != null) {
+                                    party.copy(members = previousMembers)
+                                } else party
+                            }
+                        )
+                    }
                 }
             }
         }

@@ -8,6 +8,7 @@ import com.madeinbraza.app.data.model.User
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.MembersRepository
 import com.madeinbraza.app.data.repository.Result
+import com.madeinbraza.app.util.Debouncer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,12 +42,21 @@ class MembersViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MembersUiState())
     val uiState: StateFlow<MembersUiState> = _uiState.asStateFlow()
 
+    private val debouncer = Debouncer()
+
     init {
         loadCurrentUser()
         loadMembers()
     }
 
     private fun loadCurrentUser() {
+        // First try cached user to avoid API call
+        authRepository.getCachedUser()?.let { user ->
+            _uiState.update { it.copy(currentUser = user) }
+            return
+        }
+
+        // Fall back to API call if no cache
         viewModelScope.launch {
             when (val result = authRepository.checkStatus()) {
                 is Result.Success -> {
@@ -73,7 +83,13 @@ class MembersViewModel @Inject constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        // Debounce refresh to prevent spam
+        if (!debouncer.canExecute("members_refresh", Debouncer.REFRESH_DEBOUNCE_MS)) {
+            _uiState.update { it.copy(isRefreshing = false) }
+            return
+        }
+
+        debouncer.throttle(viewModelScope, "members_refresh", Debouncer.REFRESH_DEBOUNCE_MS) {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
 
             when (val result = membersRepository.getMembers()) {
@@ -91,13 +107,22 @@ class MembersViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isBanning = memberId, error = null) }
 
+            // Optimistic update: remove member immediately
+            val previousMembers = _uiState.value.members
+            _uiState.update { state ->
+                state.copy(members = state.members.filter { it.id != memberId })
+            }
+
             when (val result = membersRepository.banMember(memberId)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isBanning = null, banSuccess = true) }
-                    loadMembers() // Reload list after ban
+                    // No need to reload - optimistic update already applied
                 }
                 is Result.Error -> {
-                    _uiState.update { it.copy(isBanning = null, error = result.message) }
+                    // Rollback optimistic update
+                    _uiState.update {
+                        it.copy(isBanning = null, error = result.message, members = previousMembers)
+                    }
                 }
             }
         }
@@ -110,7 +135,8 @@ class MembersViewModel @Inject constructor(
             when (val result = membersRepository.promoteMember(memberId)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isPromoting = null, promoteSuccess = true) }
-                    loadMembers() // Reload list after promotion
+                    // Need to reload to get updated role
+                    loadMembers()
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(isPromoting = null, error = result.message) }

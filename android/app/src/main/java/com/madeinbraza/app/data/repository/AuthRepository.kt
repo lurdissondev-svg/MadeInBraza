@@ -20,18 +20,25 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import javax.inject.Singleton
 
 sealed class Result<out T> {
     data class Success<T>(val data: T) : Result<T>()
     data class Error(val message: String) : Result<Nothing>()
 }
 
+@Singleton
 class AuthRepository @Inject constructor(
     private val api: BrazaApi,
     private val dataStore: DataStore<Preferences>
 ) {
     private val tokenKey = stringPreferencesKey("auth_token")
     private val stayLoggedInKey = stringPreferencesKey("stay_logged_in")
+
+    // Cached user status to prevent redundant API calls
+    private var cachedUser: User? = null
+    private var cacheTimestamp: Long = 0
+    private val cacheTtlMs = 120_000L // 2 minutes cache TTL
 
     suspend fun getToken(): String? {
         return dataStore.data.map { it[tokenKey] }.first()
@@ -46,6 +53,7 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun logout() {
+        invalidateCache()
         dataStore.edit {
             it.remove(tokenKey)
             it.remove(stayLoggedInKey)
@@ -95,20 +103,54 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun checkStatus(): Result<User> {
+    /**
+     * Check user status with caching to reduce server load.
+     * Uses cached data if available and not expired.
+     * @param forceRefresh If true, bypasses cache and fetches fresh data
+     */
+    suspend fun checkStatus(forceRefresh: Boolean = false): Result<User> {
+        // Return cached user if valid and not forcing refresh
+        if (!forceRefresh && isCacheValid()) {
+            cachedUser?.let { return Result.Success(it) }
+        }
+
         val token = getToken() ?: return Result.Error("Não autenticado")
         return try {
             val response = api.checkStatus("Bearer $token")
             if (response.isSuccessful && response.body() != null) {
-                Result.Success(response.body()!!.user)
+                val user = response.body()!!.user
+                // Update cache
+                cachedUser = user
+                cacheTimestamp = System.currentTimeMillis()
+                Result.Success(user)
             } else {
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = parseErrorMessage(errorBody) ?: "Falha ao verificar status"
                 Result.Error(errorMessage)
             }
         } catch (e: Exception) {
+            // On network error, return cached data if available
+            cachedUser?.let { return Result.Success(it) }
             Result.Error("Erro de conexão. Verifique sua internet.")
         }
+    }
+
+    private fun isCacheValid(): Boolean {
+        return cachedUser != null &&
+               System.currentTimeMillis() - cacheTimestamp < cacheTtlMs
+    }
+
+    /**
+     * Get cached user without making API call
+     */
+    fun getCachedUser(): User? = if (isCacheValid()) cachedUser else null
+
+    /**
+     * Invalidate cached user data
+     */
+    fun invalidateCache() {
+        cachedUser = null
+        cacheTimestamp = 0
     }
 
     private fun parseErrorMessage(errorBody: String?): String? {

@@ -284,18 +284,24 @@ fun AnnouncementCard(
     isDeleting: Boolean,
     onDelete: () -> Unit
 ) {
+    // Usa timestamp do WhatsApp se disponível, senão usa createdAt
+    val dateToFormat = announcement.whatsappTimestamp ?: announcement.createdAt
     val formattedDate = try {
-        val zonedDateTime = ZonedDateTime.parse(announcement.createdAt)
+        val zonedDateTime = ZonedDateTime.parse(dateToFormat)
         val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale("pt", "BR"))
         zonedDateTime.format(formatter)
     } catch (e: Exception) {
-        announcement.createdAt
+        dateToFormat
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (announcement.isFromWhatsApp) {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
         )
     ) {
         Column(
@@ -308,13 +314,35 @@ fun AnnouncementCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = announcement.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Badge do WhatsApp
+                    if (announcement.isFromWhatsApp) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "WhatsApp",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = announcement.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 if (isLeader) {
                     IconButton(
@@ -345,6 +373,34 @@ fun AnnouncementCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
+            // Mostra indicador de mídia se houver
+            if (announcement.mediaUrl != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val mediaLabel = when (announcement.mediaType) {
+                            "image" -> "📷 Imagem"
+                            "video" -> "🎥 Vídeo"
+                            "audio" -> "🎵 Áudio"
+                            "document" -> "📄 Documento"
+                            else -> "📎 Anexo"
+                        }
+                        Text(
+                            text = mediaLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
@@ -352,7 +408,7 @@ fun AnnouncementCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = stringResource(R.string.by_author, announcement.createdBy.nick),
+                    text = stringResource(R.string.by_author, announcement.authorName),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

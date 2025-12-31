@@ -21,6 +21,11 @@ export async function getAnnouncements(
             nick: true,
           },
         },
+        whatsappMessageId: true,
+        whatsappAuthor: true,
+        whatsappTimestamp: true,
+        mediaUrl: true,
+        mediaType: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -65,6 +70,11 @@ export async function createAnnouncement(
             nick: true,
           },
         },
+        whatsappMessageId: true,
+        whatsappAuthor: true,
+        whatsappTimestamp: true,
+        mediaUrl: true,
+        mediaType: true,
       },
     });
 
@@ -119,6 +129,11 @@ export async function updateAnnouncement(
             nick: true,
           },
         },
+        whatsappMessageId: true,
+        whatsappAuthor: true,
+        whatsappTimestamp: true,
+        mediaUrl: true,
+        mediaType: true,
       },
     });
 

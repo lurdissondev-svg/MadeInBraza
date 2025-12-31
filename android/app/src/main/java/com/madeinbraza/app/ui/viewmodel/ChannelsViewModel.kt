@@ -9,14 +9,14 @@ import com.madeinbraza.app.data.model.ChannelMessage
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.ChannelRepository
 import com.madeinbraza.app.data.repository.Result
+import com.madeinbraza.app.util.Debouncer
+import com.madeinbraza.app.util.SmartPoller
+import com.madeinbraza.app.util.SmartPollerFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -62,7 +62,9 @@ class ChannelsViewModel @Inject constructor(
     private val _membersState = MutableStateFlow(ChannelMembersUiState())
     val membersState: StateFlow<ChannelMembersUiState> = _membersState.asStateFlow()
 
-    private var pollingJob: Job? = null
+    // Smart polling with exponential backoff for chat messages
+    private val messagePoller: SmartPoller = SmartPollerFactory.forChat(viewModelScope)
+    private val debouncer = Debouncer()
     private var currentChannelId: String? = null
 
     init {
@@ -72,6 +74,13 @@ class ChannelsViewModel @Inject constructor(
     }
 
     private fun loadUserInfo() {
+        // First try cached user to avoid API call
+        authRepository.getCachedUser()?.let { user ->
+            _chatState.update { it.copy(currentUserId = user.id) }
+            return
+        }
+
+        // Fall back to API call if no cache
         viewModelScope.launch {
             when (val result = authRepository.checkStatus()) {
                 is Result.Success -> {
@@ -112,12 +121,19 @@ class ChannelsViewModel @Inject constructor(
     }
 
     fun refreshChannels() {
-        viewModelScope.launch {
+        // Debounce refresh to prevent spam
+        if (!debouncer.canExecute("channels_refresh", Debouncer.REFRESH_DEBOUNCE_MS)) {
+            _channelsState.update { it.copy(isRefreshing = false) }
+            return
+        }
+
+        debouncer.throttle(viewModelScope, "channels_refresh", Debouncer.REFRESH_DEBOUNCE_MS) {
             _channelsState.update { it.copy(isRefreshing = true, error = null) }
 
             when (val result = channelRepository.getChannels()) {
                 is Result.Success -> {
                     _channelsState.update { it.copy(isRefreshing = false, channels = result.data) }
+                    loadUnreadCounts()
                 }
                 is Result.Error -> {
                     _channelsState.update { it.copy(isRefreshing = false, error = result.message) }
@@ -160,7 +176,7 @@ class ChannelsViewModel @Inject constructor(
     }
 
     fun closeChannel() {
-        pollingJob?.cancel()
+        messagePoller.stop()
         currentChannelId = null
         _chatState.update { ChannelChatUiState() }
         // Reload unread counts when returning to channel list
@@ -184,12 +200,20 @@ class ChannelsViewModel @Inject constructor(
 
     fun refreshMessages() {
         val channelId = currentChannelId ?: return
-        viewModelScope.launch {
+
+        // Debounce refresh to prevent spam
+        if (!debouncer.canExecute("messages_refresh_$channelId", Debouncer.REFRESH_DEBOUNCE_MS)) {
+            _chatState.update { it.copy(isRefreshing = false) }
+            return
+        }
+
+        debouncer.throttle(viewModelScope, "messages_refresh_$channelId", Debouncer.REFRESH_DEBOUNCE_MS) {
             _chatState.update { it.copy(isRefreshing = true, error = null) }
 
             when (val result = channelRepository.getChannelMessages(channelId, limit = 50)) {
                 is Result.Success -> {
                     _chatState.update { it.copy(isRefreshing = false, messages = result.data) }
+                    messagePoller.forceRefresh() // Reset polling interval after manual refresh
                 }
                 is Result.Error -> {
                     _chatState.update { it.copy(isRefreshing = false, error = result.message) }
@@ -199,24 +223,19 @@ class ChannelsViewModel @Inject constructor(
     }
 
     private fun startPolling(channelId: String) {
-        pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
-            while (isActive && currentChannelId == channelId) {
-                delay(3000)
-                pollMessages(channelId)
+        messagePoller.stop()
+        messagePoller.start(
+            fetcher = {
+                if (currentChannelId != channelId) return@start null
+                when (val result = channelRepository.getChannelMessages(channelId, limit = 50)) {
+                    is Result.Success -> result.data
+                    is Result.Error -> null
+                }
+            },
+            onData = { messages ->
+                _chatState.update { it.copy(messages = messages) }
             }
-        }
-    }
-
-    private suspend fun pollMessages(channelId: String) {
-        when (val result = channelRepository.getChannelMessages(channelId, limit = 50)) {
-            is Result.Success -> {
-                _chatState.update { it.copy(messages = result.data) }
-            }
-            is Result.Error -> {
-                // Silently fail on polling errors
-            }
-        }
+        )
     }
 
     fun sendMessage(content: String) {
@@ -305,6 +324,7 @@ class ChannelsViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        pollingJob?.cancel()
+        messagePoller.stop()
+        debouncer.cancelAll()
     }
 }

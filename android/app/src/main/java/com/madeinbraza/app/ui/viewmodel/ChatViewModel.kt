@@ -5,14 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.ChatMessage
 import com.madeinbraza.app.data.repository.ChatRepository
 import com.madeinbraza.app.data.repository.Result
+import com.madeinbraza.app.util.Debouncer
+import com.madeinbraza.app.util.SmartPoller
+import com.madeinbraza.app.util.SmartPollerFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,7 +32,9 @@ class ChatViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    private var pollingJob: Job? = null
+    // Smart polling with exponential backoff to reduce server load
+    private val smartPoller: SmartPoller = SmartPollerFactory.forChat(viewModelScope)
+    private val debouncer = Debouncer()
 
     init {
         loadMessages()
@@ -55,12 +57,19 @@ class ChatViewModel @Inject constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        // Debounce refresh to prevent spam
+        if (!debouncer.canExecute("chat_refresh", Debouncer.REFRESH_DEBOUNCE_MS)) {
+            _uiState.update { it.copy(isRefreshing = false) }
+            return
+        }
+
+        debouncer.throttle(viewModelScope, "chat_refresh", Debouncer.REFRESH_DEBOUNCE_MS) {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
 
             when (val result = chatRepository.getMessages(limit = 50)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isRefreshing = false, messages = result.data) }
+                    smartPoller.forceRefresh() // Reset polling interval after manual refresh
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(isRefreshing = false, error = result.message) }
@@ -70,24 +79,17 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun startPolling() {
-        pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
-            while (isActive) {
-                delay(3000) // Poll every 3 seconds
-                refreshMessages()
+        smartPoller.start(
+            fetcher = {
+                when (val result = chatRepository.getMessages(limit = 50)) {
+                    is Result.Success -> result.data
+                    is Result.Error -> null
+                }
+            },
+            onData = { messages ->
+                _uiState.update { it.copy(messages = messages) }
             }
-        }
-    }
-
-    private suspend fun refreshMessages() {
-        when (val result = chatRepository.getMessages(limit = 50)) {
-            is Result.Success -> {
-                _uiState.update { it.copy(messages = result.data) }
-            }
-            is Result.Error -> {
-                // Silently fail on polling errors
-            }
-        }
+        )
     }
 
     fun sendMessage(content: String) {
@@ -118,6 +120,7 @@ class ChatViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        pollingJob?.cancel()
+        smartPoller.stop()
+        debouncer.cancelAll()
     }
 }

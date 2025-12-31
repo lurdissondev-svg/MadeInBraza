@@ -25,13 +25,22 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class ChannelRepository @Inject constructor(
     private val api: BrazaApi,
     private val dataStore: DataStore<Preferences>,
     @ApplicationContext private val context: Context
 ) {
     private val tokenKey = stringPreferencesKey("auth_token")
+
+    companion object {
+        // File size limits for uploads
+        const val MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024L  // 10 MB
+        const val MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024L  // 50 MB
+        const val MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024L   // 25 MB generic limit
+    }
 
     private suspend fun getToken(): String? {
         return dataStore.data.map { it[tokenKey] }.first()
@@ -127,6 +136,19 @@ class ChannelRepository @Inject constructor(
                 val fileName = getFileName(fileUri) ?: "media_${System.currentTimeMillis()}"
                 val mimeType = context.contentResolver.getType(fileUri) ?: "application/octet-stream"
 
+                // Check file size before processing
+                val fileSize = getFileSize(fileUri)
+                val maxSize = when {
+                    mimeType.startsWith("image/") -> MAX_IMAGE_SIZE_BYTES
+                    mimeType.startsWith("video/") -> MAX_VIDEO_SIZE_BYTES
+                    else -> MAX_FILE_SIZE_BYTES
+                }
+
+                if (fileSize > maxSize) {
+                    val maxSizeMB = maxSize / (1024 * 1024)
+                    return@withContext Result.Error("Arquivo muito grande. Máximo: ${maxSizeMB}MB")
+                }
+
                 // Copy Uri content to temp file
                 val tempFile = File(context.cacheDir, fileName)
                 context.contentResolver.openInputStream(fileUri)?.use { input ->
@@ -182,6 +204,22 @@ class ChannelRepository @Inject constructor(
         return result
     }
 
+    private fun getFileSize(uri: Uri): Long {
+        return try {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) {
+                        return cursor.getLong(sizeIndex)
+                    }
+                }
+                0L
+            } ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
     // Unread messages tracking
     private fun lastReadKey(channelId: String) = longPreferencesKey("last_read_$channelId")
 
@@ -195,15 +233,25 @@ class ChannelRepository @Inject constructor(
         }
     }
 
+    /**
+     * Get unread count with optimized fetching.
+     * Only fetches recent messages to reduce server load.
+     */
     suspend fun getUnreadCount(channelId: String): Int {
         val token = getToken() ?: return 0
         val lastRead = getLastReadTimestamp(channelId)
 
+        // If never read, don't fetch - assume 0 or indicate "new"
+        if (lastRead == 0L) return 0
+
         return try {
-            val response = api.getChannelMessages("Bearer $token", channelId, limit = 100, before = null)
+            // Only fetch 20 recent messages instead of 100
+            val response = api.getChannelMessages("Bearer $token", channelId, limit = 20, before = null)
             if (response.isSuccessful && response.body() != null) {
                 val messages = response.body()!!
-                messages.count { parseTimestamp(it.createdAt) > lastRead }
+                val unread = messages.count { parseTimestamp(it.createdAt) > lastRead }
+                // Cap at 20+ to indicate "many unread" without fetching more
+                if (unread >= 20) 20 else unread
             } else {
                 0
             }

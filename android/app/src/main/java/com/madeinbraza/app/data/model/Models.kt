@@ -429,8 +429,21 @@ data class Announcement(
     val content: String,
     val createdAt: String,
     val updatedAt: String,
-    val createdBy: AnnouncementCreator
-)
+    val createdBy: AnnouncementCreator? = null,  // Nullable para mensagens do WhatsApp
+    val whatsappMessageId: String? = null,
+    val whatsappAuthor: String? = null,
+    val whatsappTimestamp: String? = null,
+    val mediaUrl: String? = null,
+    val mediaType: String? = null
+) {
+    // Retorna o autor (seja do app ou do WhatsApp)
+    val authorName: String
+        get() = createdBy?.nick ?: whatsappAuthor ?: "Desconhecido"
+
+    // Indica se é uma mensagem do WhatsApp
+    val isFromWhatsApp: Boolean
+        get() = whatsappMessageId != null
+}
 
 data class AnnouncementsResponse(
     val announcements: List<Announcement>

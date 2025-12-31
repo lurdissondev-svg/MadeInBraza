@@ -10,6 +10,7 @@ import { partiesRouter } from './routes/parties.js';
 import siegeWarRouter from './routes/siegeWar.js';
 import channelRouter from './routes/channel.js';
 import { announcementsRouter } from './routes/announcements.js';
+import { webhookRouter } from './routes/webhook.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { startSiegeWarCron } from './services/siegeWarCron.js';
 
@@ -35,6 +36,7 @@ app.use('/api/parties', partiesRouter);
 app.use('/api/siege-war', siegeWarRouter);
 app.use('/api/channels', channelRouter);
 app.use('/api/announcements', announcementsRouter);
+app.use('/api/webhook', webhookRouter);
 
 app.use(errorHandler);
 
