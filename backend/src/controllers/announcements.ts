@@ -27,7 +27,13 @@ export async function getAnnouncements(
         mediaUrl: true,
         mediaType: true,
       },
-      orderBy: { createdAt: 'desc' },
+    });
+
+    // Ordenar por whatsappTimestamp (se existir) ou createdAt - mais recente primeiro
+    announcements.sort((a, b) => {
+      const dateA = a.whatsappTimestamp || a.createdAt;
+      const dateB = b.whatsappTimestamp || b.createdAt;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
 
     res.json({ announcements });
