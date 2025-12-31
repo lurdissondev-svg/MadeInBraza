@@ -9,6 +9,7 @@ const UAZAPI_URL = process.env.UAZAPI_URL || '';
 const UAZAPI_TOKEN = process.env.UAZAPI_TOKEN || '';
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'media');
 const BASE_URL = process.env.BASE_URL || 'https://braza.lurdisson.com.br';
+const AVISOS_GROUP_ID = process.env.UAZAPI_AVISOS_GROUP_ID || '';
 
 // Ensure uploads/media directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -16,10 +17,19 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 interface DownloadMediaResponse {
+  fileURL?: string;
   mimetype?: string;
-  base64?: string;
-  data?: string;
+  transcription?: string;
   error?: string;
+}
+
+interface UazapiMessage {
+  id: string;
+  messageid: string;
+  messageType?: string;
+  content?: {
+    URL?: string;
+  };
 }
 
 function getExtensionFromMimetype(mimetype: string): string {
@@ -39,9 +49,42 @@ function getExtensionFromMimetype(mimetype: string): string {
   return mimeMap[mimetype] || 'bin';
 }
 
+async function findFullMessageId(shortMessageId: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${UAZAPI_URL}/message/find`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': UAZAPI_TOKEN,
+      },
+      body: JSON.stringify({
+        chatid: AVISOS_GROUP_ID,
+        limit: 100,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[Fix Media] Failed to fetch messages:', response.status);
+      return null;
+    }
+
+    const data = await response.json() as { messages?: UazapiMessage[] };
+    const messages = data.messages || [];
+
+    const found = messages.find(m => m.messageid === shortMessageId);
+    if (found) {
+      return found.id;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[Fix Media] Error finding message:', error);
+    return null;
+  }
+}
+
 async function downloadAndSaveMedia(
-  messageId: string,
-  remoteJid: string
+  fullMessageId: string
 ): Promise<{ url: string; mimetype: string } | null> {
   if (!UAZAPI_URL || !UAZAPI_TOKEN) {
     console.error('[Fix Media] UAZAPI_URL or UAZAPI_TOKEN not configured');
@@ -49,17 +92,16 @@ async function downloadAndSaveMedia(
   }
 
   try {
-    console.log('[Fix Media] Downloading media for message:', messageId);
+    console.log('[Fix Media] Downloading media for message:', fullMessageId);
 
-    const response = await fetch(`${UAZAPI_URL}/message/downloadMediaMessage`, {
+    const response = await fetch(`${UAZAPI_URL}/message/download`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${UAZAPI_TOKEN}`,
+        'token': UAZAPI_TOKEN,
       },
       body: JSON.stringify({
-        messageId,
-        remoteJid,
+        id: fullMessageId,
       }),
     });
 
@@ -75,9 +117,15 @@ async function downloadAndSaveMedia(
       return null;
     }
 
-    const base64Data = data.base64 || data.data;
-    if (!base64Data) {
-      console.error('[Fix Media] No base64 data in response');
+    if (!data.fileURL) {
+      console.error('[Fix Media] No fileURL in response');
+      return null;
+    }
+
+    // Download the file from fileURL
+    const fileResponse = await fetch(data.fileURL);
+    if (!fileResponse.ok) {
+      console.error('[Fix Media] Failed to download file from URL');
       return null;
     }
 
@@ -86,8 +134,7 @@ async function downloadAndSaveMedia(
     const filename = `${randomUUID()}.${extension}`;
     const filepath = path.join(UPLOADS_DIR, filename);
 
-    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, '');
-    const buffer = Buffer.from(cleanBase64, 'base64');
+    const buffer = Buffer.from(await fileResponse.arrayBuffer());
     fs.writeFileSync(filepath, buffer);
 
     const publicUrl = `${BASE_URL}/uploads/media/${filename}`;
@@ -101,8 +148,6 @@ async function downloadAndSaveMedia(
 }
 
 async function main() {
-  const AVISOS_GROUP_ID = process.env.UAZAPI_AVISOS_GROUP_ID || '';
-
   if (!AVISOS_GROUP_ID) {
     console.error('UAZAPI_AVISOS_GROUP_ID not set');
     process.exit(1);
@@ -129,10 +174,17 @@ async function main() {
 
     console.log(`Processing announcement ${ann.id}...`);
 
-    const result = await downloadAndSaveMedia(
-      ann.whatsappMessageId!,
-      AVISOS_GROUP_ID
-    );
+    // First, find the full message ID (with owner prefix)
+    const fullMessageId = await findFullMessageId(ann.whatsappMessageId!);
+
+    if (!fullMessageId) {
+      console.error(`Could not find full message ID for ${ann.whatsappMessageId}`);
+      continue;
+    }
+
+    console.log(`Found full message ID: ${fullMessageId}`);
+
+    const result = await downloadAndSaveMedia(fullMessageId);
 
     if (result) {
       await prisma.announcement.update({

@@ -13,9 +13,9 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 interface DownloadMediaResponse {
+  fileURL?: string;
   mimetype?: string;
-  base64?: string;
-  data?: string;
+  transcription?: string;
   error?: string;
 }
 
@@ -38,7 +38,7 @@ function getExtensionFromMimetype(mimetype: string): string {
 
 export async function downloadAndSaveMedia(
   messageId: string,
-  remoteJid: string
+  _remoteJid?: string
 ): Promise<{ url: string; mimetype: string } | null> {
   if (!UAZAPI_URL || !UAZAPI_TOKEN) {
     console.error('[UAZAPI Media] UAZAPI_URL or UAZAPI_TOKEN not configured');
@@ -49,15 +49,14 @@ export async function downloadAndSaveMedia(
     console.log('[UAZAPI Media] Downloading media for message:', messageId);
 
     // Call UAZAPI download endpoint
-    const response = await fetch(`${UAZAPI_URL}/message/downloadMediaMessage`, {
+    const response = await fetch(`${UAZAPI_URL}/message/download`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${UAZAPI_TOKEN}`,
+        'token': UAZAPI_TOKEN,
       },
       body: JSON.stringify({
-        messageId,
-        remoteJid,
+        id: messageId,
       }),
     });
 
@@ -73,9 +72,15 @@ export async function downloadAndSaveMedia(
       return null;
     }
 
-    const base64Data = data.base64 || data.data;
-    if (!base64Data) {
-      console.error('[UAZAPI Media] No base64 data in response');
+    if (!data.fileURL) {
+      console.error('[UAZAPI Media] No fileURL in response');
+      return null;
+    }
+
+    // Download the file from fileURL
+    const fileResponse = await fetch(data.fileURL);
+    if (!fileResponse.ok) {
+      console.error('[UAZAPI Media] Failed to download file from URL:', data.fileURL);
       return null;
     }
 
@@ -84,11 +89,8 @@ export async function downloadAndSaveMedia(
     const filename = `${randomUUID()}.${extension}`;
     const filepath = path.join(UPLOADS_DIR, filename);
 
-    // Remove data URL prefix if present
-    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, '');
-
     // Save to file
-    const buffer = Buffer.from(cleanBase64, 'base64');
+    const buffer = Buffer.from(await fileResponse.arrayBuffer());
     fs.writeFileSync(filepath, buffer);
 
     const publicUrl = `${BASE_URL}/uploads/media/${filename}`;

@@ -18,46 +18,28 @@ const UAZAPI_TOKEN = process.env.UAZAPI_TOKEN || '';
 const AVISOS_GROUP_ID = process.env.UAZAPI_AVISOS_GROUP_ID || '';
 
 interface UazapiGroup {
-  id: string;
-  name?: string;
-  subject?: string;
+  JID: string;
+  Name?: string;
+  Topic?: string;
 }
 
 interface UazapiMessage {
-  key: {
-    remoteJid: string;
-    fromMe: boolean;
-    id: string;
-    participant?: string;
+  messageid: string;
+  text?: string;
+  senderName?: string;
+  sender?: string;
+  messageTimestamp?: number;
+  messageType?: string;
+  content?: {
+    caption?: string;
+    URL?: string;
+    mimetype?: string;
   };
-  pushName?: string;
-  message?: {
-    conversation?: string;
-    extendedTextMessage?: {
-      text: string;
-    };
-    imageMessage?: {
-      caption?: string;
-      mimetype?: string;
-      url?: string;
-    };
-    videoMessage?: {
-      caption?: string;
-      mimetype?: string;
-      url?: string;
-    };
-    documentMessage?: {
-      caption?: string;
-      mimetype?: string;
-      fileName?: string;
-      url?: string;
-    };
-    audioMessage?: {
-      mimetype?: string;
-      url?: string;
-    };
-  };
-  messageTimestamp?: number | string;
+}
+
+interface UazapiMessagesResponse {
+  messages?: UazapiMessage[];
+  hasMore?: boolean;
 }
 
 async function uazapiFetch(endpoint: string, options?: RequestInit) {
@@ -65,7 +47,7 @@ async function uazapiFetch(endpoint: string, options?: RequestInit) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${UAZAPI_TOKEN}`,
+      'token': UAZAPI_TOKEN,
       ...options?.headers,
     },
   });
@@ -80,7 +62,7 @@ async function uazapiFetch(endpoint: string, options?: RequestInit) {
 async function listGroups(): Promise<UazapiGroup[]> {
   console.log('📋 Listando grupos...');
   const data = await uazapiFetch('/group/list') as { groups?: UazapiGroup[] };
-  return data.groups || (data as unknown as UazapiGroup[]) || [];
+  return data.groups || [];
 }
 
 async function findAvisosGroup(): Promise<string | null> {
@@ -88,80 +70,49 @@ async function findAvisosGroup(): Promise<string | null> {
 
   console.log('\n📋 Grupos encontrados:');
   groups.forEach((g, i) => {
-    const name = g.name || g.subject || 'Sem nome';
-    console.log(`  ${i + 1}. ${name} (${g.id})`);
+    const name = g.Name || g.Topic || 'Sem nome';
+    console.log(`  ${i + 1}. ${name} (${g.JID})`);
   });
 
-  // Procura por grupo com nome contendo "avisos" (case insensitive)
   const avisosGroup = groups.find((g) => {
-    const name = (g.name || g.subject || '').toLowerCase();
+    const name = (g.Name || g.Topic || '').toLowerCase();
     return name.includes('avisos') || name.includes('aviso');
   });
 
   if (avisosGroup) {
-    console.log(`\n✅ Grupo AVISOS encontrado: ${avisosGroup.name || avisosGroup.subject} (${avisosGroup.id})`);
-    return avisosGroup.id;
+    console.log(`\n✅ Grupo AVISOS encontrado: ${avisosGroup.Name || avisosGroup.Topic} (${avisosGroup.JID})`);
+    return avisosGroup.JID;
   }
 
   console.log('\n❌ Grupo AVISOS não encontrado automaticamente.');
-  console.log('   Configure UAZAPI_AVISOS_GROUP_ID manualmente com um dos IDs acima.');
   return null;
 }
 
-function extractMessageContent(message: UazapiMessage['message']): { text: string; mediaType?: string; mediaUrl?: string } {
-  if (!message) return { text: '' };
+function extractMessageContent(msg: UazapiMessage): { text: string; mediaType?: string; mediaUrl?: string } {
+  const text = msg.text || msg.content?.caption || '';
+  const mediaUrl = msg.content?.URL;
 
-  if (message.conversation) {
-    return { text: message.conversation };
+  let mediaType: string | undefined;
+  if (msg.messageType) {
+    const type = msg.messageType.toLowerCase();
+    if (type.includes('image')) mediaType = 'image';
+    else if (type.includes('video')) mediaType = 'video';
+    else if (type.includes('audio')) mediaType = 'audio';
+    else if (type.includes('document')) mediaType = 'document';
   }
 
-  if (message.extendedTextMessage?.text) {
-    return { text: message.extendedTextMessage.text };
-  }
-
-  if (message.imageMessage) {
-    return {
-      text: message.imageMessage.caption || '',
-      mediaType: 'image',
-      mediaUrl: message.imageMessage.url,
-    };
-  }
-
-  if (message.videoMessage) {
-    return {
-      text: message.videoMessage.caption || '',
-      mediaType: 'video',
-      mediaUrl: message.videoMessage.url,
-    };
-  }
-
-  if (message.documentMessage) {
-    return {
-      text: message.documentMessage.caption || message.documentMessage.fileName || '',
-      mediaType: 'document',
-      mediaUrl: message.documentMessage.url,
-    };
-  }
-
-  if (message.audioMessage) {
-    return {
-      text: '[Áudio]',
-      mediaType: 'audio',
-      mediaUrl: message.audioMessage.url,
-    };
-  }
-
-  return { text: '' };
+  return { text, mediaType, mediaUrl };
 }
 
 function generateTitle(content: string): string {
   const maxLength = 100;
+  const cleanContent = content.replace(/\n/g, ' ').trim();
 
-  if (content.length <= maxLength) {
-    return content;
+  if (cleanContent.length <= maxLength) {
+    return cleanContent;
   }
 
-  const truncated = content.substring(0, maxLength);
+  const truncated = cleanContent.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(' ');
 
   if (lastSpace > 50) {
@@ -181,9 +132,9 @@ async function fetchMessages(groupId: string, limit: number = 100): Promise<Uaza
       limit,
       offset: 0,
     }),
-  }) as { messages?: UazapiMessage[] };
+  }) as UazapiMessagesResponse;
 
-  return data.messages || (data as unknown as UazapiMessage[]) || [];
+  return data.messages || [];
 }
 
 async function importMessages(messages: UazapiMessage[]): Promise<{ imported: number; skipped: number }> {
@@ -191,9 +142,15 @@ async function importMessages(messages: UazapiMessage[]): Promise<{ imported: nu
   let skipped = 0;
 
   for (const msg of messages) {
-    const messageId = msg.key.id;
-    const authorName = msg.pushName || 'WhatsApp';
-    const { text, mediaType, mediaUrl } = extractMessageContent(msg.message);
+    const messageId = msg.messageid;
+
+    if (!messageId) {
+      skipped++;
+      continue;
+    }
+
+    const authorName = msg.senderName || msg.sender?.split('@')[0] || 'WhatsApp';
+    const { text, mediaType, mediaUrl } = extractMessageContent(msg);
 
     // Ignora mensagens sem conteúdo
     if (!text && !mediaUrl) {
@@ -211,13 +168,10 @@ async function importMessages(messages: UazapiMessage[]): Promise<{ imported: nu
       continue;
     }
 
-    // Converte timestamp
+    // Converte timestamp (já vem em milliseconds)
     let whatsappTimestamp: Date | undefined;
     if (msg.messageTimestamp) {
-      const ts = typeof msg.messageTimestamp === 'string'
-        ? parseInt(msg.messageTimestamp)
-        : msg.messageTimestamp;
-      whatsappTimestamp = new Date(ts * 1000);
+      whatsappTimestamp = new Date(msg.messageTimestamp);
     }
 
     const title = generateTitle(text || `Mídia de ${authorName}`);
@@ -238,7 +192,7 @@ async function importMessages(messages: UazapiMessage[]): Promise<{ imported: nu
     process.stdout.write(`\r  Importando: ${imported} mensagens...`);
   }
 
-  console.log(''); // Nova linha após o progresso
+  console.log('');
 
   return { imported, skipped };
 }
@@ -248,15 +202,10 @@ async function main() {
 
   if (!UAZAPI_TOKEN) {
     console.error('❌ UAZAPI_TOKEN não configurado!');
-    console.log('\nConfigurações necessárias:');
-    console.log('  UAZAPI_URL: URL da instância UAZAPI (padrão: https://lucas.uazapi.com)');
-    console.log('  UAZAPI_TOKEN: Token de autenticação da UAZAPI');
-    console.log('  UAZAPI_AVISOS_GROUP_ID: ID do grupo AVISOS (opcional, será detectado automaticamente)');
     process.exit(1);
   }
 
   try {
-    // Encontra o grupo AVISOS
     let groupId = AVISOS_GROUP_ID;
 
     if (!groupId) {
@@ -266,7 +215,6 @@ async function main() {
       }
     }
 
-    // Busca mensagens
     const messages = await fetchMessages(groupId, 100);
     console.log(`  Encontradas: ${messages.length} mensagens`);
 
@@ -275,7 +223,6 @@ async function main() {
       process.exit(0);
     }
 
-    // Importa mensagens
     console.log('\n📝 Importando para o banco de dados...');
     const { imported, skipped } = await importMessages(messages);
 
@@ -283,11 +230,8 @@ async function main() {
     console.log(`   Importadas: ${imported}`);
     console.log(`   Ignoradas (duplicadas ou vazias): ${skipped}`);
 
-    // Mostra instrução para configurar o webhook
     console.log('\n📌 Próximo passo: Configure o webhook na UAZAPI');
-    console.log(`   URL do webhook: http://braza.lurdisson.com.br/api/webhook/uazapi`);
-    console.log(`   Eventos: messages`);
-    console.log(`   Filtros: isGroupYes (opcional)`);
+    console.log(`   URL do webhook: https://braza.lurdisson.com.br/api/webhook/uazapi`);
 
   } catch (error) {
     console.error('\n❌ Erro:', error);
