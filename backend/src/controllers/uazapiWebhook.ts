@@ -130,11 +130,14 @@ export async function handleUazapiWebhook(
   try {
     const payload = req.body as UazapiWebhookPayload;
 
-    // Log para debug
-    console.log('[UAZAPI Webhook] Received event:', payload.event);
+    // Log detalhado para debug
+    console.log('[UAZAPI Webhook] ========== INCOMING WEBHOOK ==========');
+    console.log('[UAZAPI Webhook] Event:', payload.event);
+    console.log('[UAZAPI Webhook] Full payload:', JSON.stringify(payload, null, 2));
 
     // Só processa eventos de mensagens
     if (payload.event !== 'messages' && payload.event !== 'messages.upsert') {
+      console.log('[UAZAPI Webhook] Ignoring non-message event:', payload.event);
       res.status(200).json({ received: true, processed: false });
       return;
     }
@@ -142,7 +145,10 @@ export async function handleUazapiWebhook(
     // Extrai a mensagem do payload
     const messages = payload.data?.messages || (payload.data?.message ? [payload.data.message] : []);
 
+    console.log('[UAZAPI Webhook] Messages found:', messages.length);
+
     if (messages.length === 0) {
+      console.log('[UAZAPI Webhook] No messages in payload');
       res.status(200).json({ received: true, processed: false });
       return;
     }
@@ -151,7 +157,10 @@ export async function handleUazapiWebhook(
 
     for (const msg of messages) {
       // Verifica se é do grupo AVISOS
-      const chatId = msg.key.remoteJid;
+      const chatId = msg.key?.remoteJid;
+
+      console.log('[UAZAPI Webhook] Processing message from chat:', chatId);
+      console.log('[UAZAPI Webhook] Expected group ID:', AVISOS_GROUP_ID);
 
       if (!AVISOS_GROUP_ID) {
         console.warn('[UAZAPI Webhook] UAZAPI_AVISOS_GROUP_ID not configured');
@@ -159,7 +168,7 @@ export async function handleUazapiWebhook(
       }
 
       if (chatId !== AVISOS_GROUP_ID) {
-        console.log('[UAZAPI Webhook] Ignoring message from:', chatId);
+        console.log('[UAZAPI Webhook] Ignoring message - chat ID mismatch');
         continue;
       }
 
