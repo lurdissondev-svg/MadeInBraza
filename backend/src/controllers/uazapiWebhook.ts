@@ -2,117 +2,41 @@ import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { downloadAndSaveMedia } from '../services/uazapiMedia.js';
 
-// Configuração do grupo AVISOS (será preenchido após listar grupos)
 const AVISOS_GROUP_ID = process.env.UAZAPI_AVISOS_GROUP_ID || '';
 
-interface UazapiMessage {
-  key: {
-    remoteJid: string;
-    fromMe: boolean;
-    id: string;
-    participant?: string;
-  };
-  pushName?: string;
-  message?: {
-    conversation?: string;
-    extendedTextMessage?: {
-      text: string;
-    };
-    imageMessage?: {
-      caption?: string;
-      mimetype?: string;
-      url?: string;
-    };
-    videoMessage?: {
-      caption?: string;
-      mimetype?: string;
-      url?: string;
-    };
-    documentMessage?: {
-      caption?: string;
-      mimetype?: string;
-      fileName?: string;
-      url?: string;
-    };
-    audioMessage?: {
-      mimetype?: string;
-      url?: string;
-    };
-  };
-  messageTimestamp?: number | string;
-}
-
 interface UazapiWebhookPayload {
-  event: string;
-  instance: string;
-  data?: {
-    messages?: UazapiMessage[];
-    message?: UazapiMessage;
+  EventType?: string;
+  event?: string;
+  chat?: {
+    wa_chatid?: string;
+    name?: string;
   };
+  message?: {
+    messageid?: string;
+    id?: string;
+    text?: string;
+    senderName?: string;
+    sender?: string;
+    fromMe?: boolean;
+    messageTimestamp?: number;
+    messageType?: string;
+    content?: {
+      caption?: string;
+      URL?: string;
+    };
+  };
+  owner?: string;
 }
 
-function extractMessageContent(message: UazapiMessage['message']): { text: string; mediaType?: string; mediaUrl?: string } {
-  if (!message) return { text: '' };
-
-  // Mensagem de texto simples
-  if (message.conversation) {
-    return { text: message.conversation };
-  }
-
-  // Mensagem de texto estendida (com links, etc)
-  if (message.extendedTextMessage?.text) {
-    return { text: message.extendedTextMessage.text };
-  }
-
-  // Imagem
-  if (message.imageMessage) {
-    return {
-      text: message.imageMessage.caption || '',
-      mediaType: 'image',
-      mediaUrl: message.imageMessage.url,
-    };
-  }
-
-  // Vídeo
-  if (message.videoMessage) {
-    return {
-      text: message.videoMessage.caption || '',
-      mediaType: 'video',
-      mediaUrl: message.videoMessage.url,
-    };
-  }
-
-  // Documento
-  if (message.documentMessage) {
-    return {
-      text: message.documentMessage.caption || message.documentMessage.fileName || '',
-      mediaType: 'document',
-      mediaUrl: message.documentMessage.url,
-    };
-  }
-
-  // Áudio
-  if (message.audioMessage) {
-    return {
-      text: '[Áudio]',
-      mediaType: 'audio',
-      mediaUrl: message.audioMessage.url,
-    };
-  }
-
-  return { text: '' };
-}
-
-function generateTitle(content: string, authorName: string): string {
-  // Limita o título a 100 caracteres
+function generateTitle(content: string): string {
   const maxLength = 100;
+  const cleanContent = content.replace(/\n/g, ' ').trim();
 
-  if (content.length <= maxLength) {
-    return content;
+  if (cleanContent.length <= maxLength) {
+    return cleanContent;
   }
 
-  // Tenta cortar em uma palavra completa
-  const truncated = content.substring(0, maxLength);
+  const truncated = cleanContent.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(' ');
 
   if (lastSpace > 50) {
@@ -130,117 +54,118 @@ export async function handleUazapiWebhook(
   try {
     const payload = req.body as UazapiWebhookPayload;
 
-    // Log detalhado para debug
     console.log('[UAZAPI Webhook] ========== INCOMING WEBHOOK ==========');
-    console.log('[UAZAPI Webhook] Event:', payload.event);
-    console.log('[UAZAPI Webhook] Full payload:', JSON.stringify(payload, null, 2));
+    console.log('[UAZAPI Webhook] EventType:', payload.EventType);
+    console.log('[UAZAPI Webhook] Chat ID:', payload.chat?.wa_chatid);
 
-    // Só processa eventos de mensagens
-    if (payload.event !== 'messages' && payload.event !== 'messages.upsert') {
-      console.log('[UAZAPI Webhook] Ignoring non-message event:', payload.event);
+    // Aceita tanto 'EventType' quanto 'event'
+    const eventType = payload.EventType || payload.event;
+
+    if (eventType !== 'messages') {
+      console.log('[UAZAPI Webhook] Ignoring non-message event:', eventType);
       res.status(200).json({ received: true, processed: false });
       return;
     }
 
-    // Extrai a mensagem do payload
-    const messages = payload.data?.messages || (payload.data?.message ? [payload.data.message] : []);
+    // Verifica se é do grupo AVISOS
+    const chatId = payload.chat?.wa_chatid;
 
-    console.log('[UAZAPI Webhook] Messages found:', messages.length);
+    if (!AVISOS_GROUP_ID) {
+      console.warn('[UAZAPI Webhook] UAZAPI_AVISOS_GROUP_ID not configured');
+      res.status(200).json({ received: true, processed: false, error: 'Group ID not configured' });
+      return;
+    }
 
-    if (messages.length === 0) {
-      console.log('[UAZAPI Webhook] No messages in payload');
+    if (chatId !== AVISOS_GROUP_ID) {
+      console.log('[UAZAPI Webhook] Ignoring message from different chat:', chatId);
+      console.log('[UAZAPI Webhook] Expected:', AVISOS_GROUP_ID);
       res.status(200).json({ received: true, processed: false });
       return;
     }
 
-    let processedCount = 0;
-
-    for (const msg of messages) {
-      // Verifica se é do grupo AVISOS
-      const chatId = msg.key?.remoteJid;
-
-      console.log('[UAZAPI Webhook] Processing message from chat:', chatId);
-      console.log('[UAZAPI Webhook] Expected group ID:', AVISOS_GROUP_ID);
-
-      if (!AVISOS_GROUP_ID) {
-        console.warn('[UAZAPI Webhook] UAZAPI_AVISOS_GROUP_ID not configured');
-        continue;
-      }
-
-      if (chatId !== AVISOS_GROUP_ID) {
-        console.log('[UAZAPI Webhook] Ignoring message - chat ID mismatch');
-        continue;
-      }
-
-      // Ignora mensagens enviadas pelo próprio bot
-      if (msg.key.fromMe) {
-        continue;
-      }
-
-      const messageId = msg.key.id;
-      const authorName = msg.pushName || 'WhatsApp';
-      const { text, mediaType, mediaUrl } = extractMessageContent(msg.message);
-
-      // Ignora mensagens sem conteúdo
-      if (!text && !mediaUrl) {
-        continue;
-      }
-
-      // Verifica se a mensagem já existe
-      const existing = await prisma.announcement.findUnique({
-        where: { whatsappMessageId: messageId },
-      });
-
-      if (existing) {
-        console.log('[UAZAPI Webhook] Message already exists:', messageId);
-        continue;
-      }
-
-      // Converte timestamp
-      let whatsappTimestamp: Date | undefined;
-      if (msg.messageTimestamp) {
-        const ts = typeof msg.messageTimestamp === 'string'
-          ? parseInt(msg.messageTimestamp)
-          : msg.messageTimestamp;
-        whatsappTimestamp = new Date(ts * 1000);
-      }
-
-      // Se tem mídia, baixa e salva localmente
-      let finalMediaUrl = mediaUrl;
-      if (mediaUrl && mediaType) {
-        console.log('[UAZAPI Webhook] Downloading media for message:', messageId);
-        const downloaded = await downloadAndSaveMedia(messageId, chatId);
-        if (downloaded) {
-          finalMediaUrl = downloaded.url;
-          console.log('[UAZAPI Webhook] Media saved to:', finalMediaUrl);
-        } else {
-          console.warn('[UAZAPI Webhook] Failed to download media, keeping original URL');
-        }
-      }
-
-      // Cria o anúncio
-      const title = generateTitle(text || `Mídia de ${authorName}`, authorName);
-
-      await prisma.announcement.create({
-        data: {
-          title,
-          content: text || `[${mediaType}]`,
-          whatsappMessageId: messageId,
-          whatsappAuthor: authorName,
-          whatsappTimestamp,
-          mediaUrl: finalMediaUrl,
-          mediaType,
-        },
-      });
-
-      console.log('[UAZAPI Webhook] Created announcement from:', authorName, '- ID:', messageId);
-      processedCount++;
+    const msg = payload.message;
+    if (!msg) {
+      console.log('[UAZAPI Webhook] No message in payload');
+      res.status(200).json({ received: true, processed: false });
+      return;
     }
+
+    // Nota: Removido filtro fromMe pois o dono da instância também envia avisos
+
+    const messageId = msg.messageid || msg.id || '';
+    const authorName = msg.senderName || msg.sender?.split('@')[0] || 'WhatsApp';
+    const text = msg.text || msg.content?.caption || '';
+    const mediaUrl = msg.content?.URL;
+
+    // Determina o tipo de mídia
+    let mediaType: string | undefined;
+    if (msg.messageType) {
+      const type = msg.messageType.toLowerCase();
+      if (type.includes('image')) mediaType = 'image';
+      else if (type.includes('video')) mediaType = 'video';
+      else if (type.includes('audio')) mediaType = 'audio';
+      else if (type.includes('document')) mediaType = 'document';
+    }
+
+    // Ignora mensagens sem conteúdo
+    if (!text && !mediaUrl) {
+      console.log('[UAZAPI Webhook] Ignoring empty message');
+      res.status(200).json({ received: true, processed: false });
+      return;
+    }
+
+    // Verifica se a mensagem já existe
+    const existing = await prisma.announcement.findUnique({
+      where: { whatsappMessageId: messageId },
+    });
+
+    if (existing) {
+      console.log('[UAZAPI Webhook] Message already exists:', messageId);
+      res.status(200).json({ received: true, processed: false, reason: 'duplicate' });
+      return;
+    }
+
+    // Converte timestamp (já vem em milliseconds)
+    let whatsappTimestamp: Date | undefined;
+    if (msg.messageTimestamp) {
+      whatsappTimestamp = new Date(msg.messageTimestamp);
+    }
+
+    // Se tem mídia, baixa e salva localmente
+    let finalMediaUrl = mediaUrl;
+    if (mediaUrl && mediaType) {
+      console.log('[UAZAPI Webhook] Downloading media for message:', messageId);
+      const fullMessageId = payload.owner ? `${payload.owner}:${messageId}` : messageId;
+      const downloaded = await downloadAndSaveMedia(fullMessageId);
+      if (downloaded) {
+        finalMediaUrl = downloaded.url;
+        console.log('[UAZAPI Webhook] Media saved to:', finalMediaUrl);
+      } else {
+        console.warn('[UAZAPI Webhook] Failed to download media, keeping original URL');
+      }
+    }
+
+    // Cria o anúncio
+    const title = generateTitle(text || `Mídia de ${authorName}`);
+
+    await prisma.announcement.create({
+      data: {
+        title,
+        content: text || `[${mediaType}]`,
+        whatsappMessageId: messageId,
+        whatsappAuthor: authorName,
+        whatsappTimestamp,
+        mediaUrl: finalMediaUrl,
+        mediaType,
+      },
+    });
+
+    console.log('[UAZAPI Webhook] ✅ Created announcement from:', authorName, '- ID:', messageId);
 
     res.status(200).json({
       received: true,
       processed: true,
-      count: processedCount,
+      messageId,
     });
   } catch (err) {
     console.error('[UAZAPI Webhook] Error:', err);
@@ -255,7 +180,7 @@ export async function importMessagesFromGroup(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { messages } = req.body as { messages: UazapiMessage[] };
+    const { messages } = req.body;
 
     if (!Array.isArray(messages)) {
       res.status(400).json({ error: 'messages must be an array' });
@@ -266,17 +191,15 @@ export async function importMessagesFromGroup(
     let skipped = 0;
 
     for (const msg of messages) {
-      const messageId = msg.key.id;
-      const authorName = msg.pushName || 'WhatsApp';
-      const { text, mediaType, mediaUrl } = extractMessageContent(msg.message);
+      const messageId = msg.messageid || msg.key?.id;
+      const authorName = msg.senderName || msg.pushName || 'WhatsApp';
+      const text = msg.text || msg.message?.conversation || '';
 
-      // Ignora mensagens sem conteúdo
-      if (!text && !mediaUrl) {
+      if (!text) {
         skipped++;
         continue;
       }
 
-      // Verifica se já existe
       const existing = await prisma.announcement.findUnique({
         where: { whatsappMessageId: messageId },
       });
@@ -286,26 +209,20 @@ export async function importMessagesFromGroup(
         continue;
       }
 
-      // Converte timestamp
       let whatsappTimestamp: Date | undefined;
       if (msg.messageTimestamp) {
-        const ts = typeof msg.messageTimestamp === 'string'
-          ? parseInt(msg.messageTimestamp)
-          : msg.messageTimestamp;
-        whatsappTimestamp = new Date(ts * 1000);
+        whatsappTimestamp = new Date(msg.messageTimestamp);
       }
 
-      const title = generateTitle(text || `Mídia de ${authorName}`, authorName);
+      const title = generateTitle(text);
 
       await prisma.announcement.create({
         data: {
           title,
-          content: text || `[${mediaType}]`,
+          content: text,
           whatsappMessageId: messageId,
           whatsappAuthor: authorName,
           whatsappTimestamp,
-          mediaUrl,
-          mediaType,
         },
       });
 

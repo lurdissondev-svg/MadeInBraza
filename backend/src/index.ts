@@ -37,6 +37,7 @@ app.use('/api/siege-war', siegeWarRouter);
 app.use('/api/channels', channelRouter);
 app.use('/api/announcements', announcementsRouter);
 app.use('/api/webhook', webhookRouter);
+app.use('/webhook', webhookRouter); // Rota alternativa sem /api
 
 app.use(errorHandler);
 
