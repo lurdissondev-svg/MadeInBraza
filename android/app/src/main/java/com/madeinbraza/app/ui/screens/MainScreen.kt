@@ -136,7 +136,7 @@ fun MainScreen(
         floatingActionButton = {
             val isHomeRoute = currentDestination?.route == BottomNavItem.Home.route
             if (isHomeRoute && homeFabVisible && homeFabOnClick != null) {
-                FloatingActionButton(
+                SmallFloatingActionButton(
                     onClick = { homeFabOnClick?.invoke() },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
