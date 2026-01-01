@@ -359,6 +359,31 @@ data class CreateSiegeWarResponse(
     val siegeWar: SiegeWar
 )
 
+// Siege War History models
+data class SWHistoryResponseItem(
+    val id: String,
+    val user: SWResponseUser,
+    val responseType: SWResponseType,
+    val tag: SWTag?,
+    val sharedClass: PlayerClass?,
+    val pilotingFor: PilotingForUser?,
+    val preferredClass: PlayerClass?,
+    val createdAt: String
+)
+
+data class SiegeWarHistoryItem(
+    val id: String,
+    val weekStart: String,
+    val weekEnd: String,
+    val isActive: Boolean,
+    val responses: List<SWHistoryResponseItem>,
+    val summary: SWResponsesSummary
+)
+
+data class SiegeWarHistoryResponse(
+    val siegeWars: List<SiegeWarHistoryItem>
+)
+
 // Channel models
 enum class ChannelType {
     GENERAL, LEADERS, EVENT, PARTY
@@ -437,8 +462,16 @@ data class Announcement(
     val mediaType: String? = null
 ) {
     // Retorna o autor (seja do app ou do WhatsApp)
+    // Se for um número de telefone (só dígitos), mostra "WhatsApp" em vez do número
     val authorName: String
-        get() = createdBy?.nick ?: whatsappAuthor ?: "Desconhecido"
+        get() {
+            createdBy?.nick?.let { return it }
+
+            val author = whatsappAuthor ?: return "Desconhecido"
+
+            // Se o autor é um número de telefone (apenas dígitos), mostra "WhatsApp"
+            return if (author.all { it.isDigit() }) "WhatsApp" else author
+        }
 
     // Indica se é uma mensagem do WhatsApp
     val isFromWhatsApp: Boolean

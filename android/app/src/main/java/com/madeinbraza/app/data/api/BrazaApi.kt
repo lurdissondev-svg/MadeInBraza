@@ -8,6 +8,7 @@ import com.madeinbraza.app.data.model.CreateEventRequest
 import com.madeinbraza.app.data.model.CreatePartyRequest
 import com.madeinbraza.app.data.model.CreatePartyResponse
 import com.madeinbraza.app.data.model.CreateSiegeWarResponse
+import com.madeinbraza.app.data.model.SiegeWarHistoryResponse
 import com.madeinbraza.app.data.model.CurrentSiegeWarResponse
 import com.madeinbraza.app.data.model.FcmTokenRequest
 import com.madeinbraza.app.data.model.CreateEventResponse
@@ -274,6 +275,11 @@ interface BrazaApi {
         @Header("Authorization") token: String,
         @Path("siegeWarId") siegeWarId: String
     ): Response<CreateSiegeWarResponse>
+
+    @GET("siege-war/history")
+    suspend fun getSiegeWarHistory(
+        @Header("Authorization") token: String
+    ): Response<SiegeWarHistoryResponse>
 
     // Channel endpoints
     @GET("channels")

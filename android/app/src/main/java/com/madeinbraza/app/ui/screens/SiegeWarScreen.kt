@@ -36,6 +36,8 @@ import com.madeinbraza.app.data.model.SWResponseUser
 import com.madeinbraza.app.data.model.SWTag
 import com.madeinbraza.app.data.model.SiegeWar
 import com.madeinbraza.app.data.model.SWUserResponse
+import com.madeinbraza.app.data.model.SiegeWarHistoryItem
+import com.madeinbraza.app.data.model.SWHistoryResponseItem
 import com.madeinbraza.app.ui.viewmodel.SiegeWarViewModel
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -102,6 +104,16 @@ fun SiegeWarScreen(
         }
     }
 
+    // Determine history tab index based on leader status
+    val historyTabIndex = if (uiState.isLeader) 2 else 1
+
+    // Load history when Histórico tab is selected
+    LaunchedEffect(selectedTabIndex, historyTabIndex) {
+        if (selectedTabIndex == historyTabIndex) {
+            viewModel.loadHistory()
+        }
+    }
+
     // Initialize form with existing response
     LaunchedEffect(uiState.userResponse) {
         uiState.userResponse?.let { response ->
@@ -163,25 +175,30 @@ fun SiegeWarScreen(
                         // Header Card (similar to Google Form header)
                         FormHeader(siegeWar = uiState.siegeWar!!)
 
-                        // Tabs for leaders
-                        if (uiState.isLeader) {
-                            TabRow(selectedTabIndex = selectedTabIndex) {
-                                Tab(
-                                    selected = selectedTabIndex == 0,
-                                    onClick = { selectedTabIndex = 0 },
-                                    text = { Text("Minha Resposta") }
-                                )
+                        // Tabs
+                        TabRow(selectedTabIndex = selectedTabIndex) {
+                            Tab(
+                                selected = selectedTabIndex == 0,
+                                onClick = { selectedTabIndex = 0 },
+                                text = { Text("Minha Resposta") }
+                            )
+                            if (uiState.isLeader) {
                                 Tab(
                                     selected = selectedTabIndex == 1,
                                     onClick = { selectedTabIndex = 1 },
                                     text = { Text("Respostas (${uiState.responses.size})") }
                                 )
                             }
+                            Tab(
+                                selected = selectedTabIndex == historyTabIndex,
+                                onClick = { selectedTabIndex = historyTabIndex },
+                                text = { Text("Histórico") }
+                            )
                         }
 
                         // Content based on selected tab
                         when {
-                            !uiState.isLeader || selectedTabIndex == 0 -> {
+                            selectedTabIndex == 0 -> {
                                 // Form Tab
                                 Column(
                                     modifier = Modifier
@@ -349,7 +366,7 @@ fun SiegeWarScreen(
                                     }
                                 }
                             }
-                            selectedTabIndex == 1 -> {
+                            uiState.isLeader && selectedTabIndex == 1 -> {
                                 // Responses Tab (Leader only)
                                 Column(
                                     modifier = Modifier
@@ -365,6 +382,13 @@ fun SiegeWarScreen(
                                         isActive = uiState.siegeWar?.isActive == true
                                     )
                                 }
+                            }
+                            selectedTabIndex == historyTabIndex -> {
+                                // History Tab
+                                HistoryTab(
+                                    history = uiState.history,
+                                    isLoading = uiState.isLoadingHistory
+                                )
                             }
                         }
                     }
@@ -1075,6 +1099,237 @@ private fun ResponseListItem(response: SWResponseItem) {
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryTab(
+    history: List<SiegeWarHistoryItem>,
+    isLoading: Boolean
+) {
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else if (history.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Nenhum historico disponivel",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            history.forEach { siegeWar ->
+                HistoryItemCard(siegeWar = siegeWar)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryItemCard(siegeWar: SiegeWarHistoryItem) {
+    val eventDate = try {
+        val zonedDateTime = ZonedDateTime.parse(siegeWar.weekEnd)
+        val localDateTime = zonedDateTime.withZoneSameInstant(java.time.ZoneId.systemDefault())
+        val dayOfWeek = localDateTime.dayOfWeek
+        val daysToSubtract = when (dayOfWeek) {
+            java.time.DayOfWeek.MONDAY -> 1L
+            java.time.DayOfWeek.TUESDAY -> 2L
+            java.time.DayOfWeek.WEDNESDAY -> 3L
+            java.time.DayOfWeek.THURSDAY -> 4L
+            java.time.DayOfWeek.FRIDAY -> 5L
+            java.time.DayOfWeek.SATURDAY -> 6L
+            java.time.DayOfWeek.SUNDAY -> 0L
+        }
+        val sundayDateTime = localDateTime.minusDays(daysToSubtract)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("pt", "BR"))
+        "Domingo, ${sundayDateTime.format(dateFormatter)}"
+    } catch (e: Exception) {
+        siegeWar.weekEnd
+    }
+
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header (clickable)
+            Surface(
+                onClick = { expanded = !expanded },
+                color = Color.Transparent
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = eventDate,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            contentDescription = if (expanded) "Recolher" else "Expandir"
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Summary chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        SummaryChip("Resp.", siegeWar.summary.responded, MaterialTheme.colorScheme.primary)
+                        SummaryChip("Conf.", siegeWar.summary.confirmed, MaterialTheme.colorScheme.primary)
+                        SummaryChip("Comp.", siegeWar.summary.shared, MaterialTheme.colorScheme.secondary)
+                        SummaryChip("Pilot", siegeWar.summary.pilots, MaterialTheme.colorScheme.tertiary)
+                        SummaryChip("Aus.", siegeWar.summary.absent, MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+
+            // Expandable content with responses
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                    )
+
+                    if (siegeWar.responses.isEmpty()) {
+                        Text(
+                            text = "Nenhuma resposta registrada",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        siegeWar.responses.forEach { response ->
+                            HistoryResponseItem(response = response)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryResponseItem(response: SWHistoryResponseItem) {
+    val responseColor = when (response.responseType) {
+        SWResponseType.CONFIRMED -> MaterialTheme.colorScheme.primary
+        SWResponseType.SHARED -> MaterialTheme.colorScheme.secondary
+        SWResponseType.PILOT -> MaterialTheme.colorScheme.tertiary
+        SWResponseType.ABSENT -> MaterialTheme.colorScheme.error
+    }
+
+    val responseLabel = when (response.responseType) {
+        SWResponseType.CONFIRMED -> "CONFIRMADO"
+        SWResponseType.SHARED -> "SHARED"
+        SWResponseType.PILOT -> "PILOTO"
+        SWResponseType.ABSENT -> "AUSENTE"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                when (response.responseType) {
+                    SWResponseType.CONFIRMED -> Icons.Filled.Check
+                    SWResponseType.SHARED -> Icons.Filled.Share
+                    SWResponseType.PILOT -> Icons.Filled.Person
+                    SWResponseType.ABSENT -> Icons.Filled.Close
+                },
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = responseColor
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = response.user.nick,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "(${CLASS_DISPLAY_NAMES[response.user.playerClass] ?: response.user.playerClass.name})",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Tag badge
+            response.tag?.let { tag ->
+                Surface(
+                    color = when (tag) {
+                        SWTag.ATTACK -> Color(0xFFE53935)
+                        SWTag.DEFENSE -> Color(0xFF1E88E5)
+                        SWTag.ACADEMY -> Color(0xFF43A047)
+                    },
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = TAG_DISPLAY_NAMES[tag] ?: tag.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            // Response type chip
+            Surface(
+                color = responseColor.copy(alpha = 0.2f),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text(
+                    text = responseLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = responseColor,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
             }
         }
     }

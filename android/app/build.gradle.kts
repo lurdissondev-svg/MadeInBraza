@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,15 +8,33 @@ plugins {
     kotlin("kapt")
 }
 
+// Load keystore properties
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
 android {
     namespace = "com.madeinbraza.app"
-    compileSdk = 34
+    compileSdk = 35
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.madeinbraza.app"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
+        targetSdk = 35
+        versionCode = 2
         versionName = "1.0.0"
 
         buildConfigField("String", "API_BASE_URL", "\"https://braza.lurdisson.com.br/api/\"")
@@ -23,10 +43,14 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

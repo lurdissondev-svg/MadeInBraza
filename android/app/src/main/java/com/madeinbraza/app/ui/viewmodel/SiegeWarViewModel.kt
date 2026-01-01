@@ -12,6 +12,7 @@ import com.madeinbraza.app.data.model.SWResponseType
 import com.madeinbraza.app.data.model.SWResponseUser
 import com.madeinbraza.app.data.model.SWTag
 import com.madeinbraza.app.data.model.SWUserResponse
+import com.madeinbraza.app.data.model.SiegeWarHistoryItem
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.Result
 import com.madeinbraza.app.data.repository.SiegeWarRepository
@@ -38,6 +39,9 @@ data class SiegeWarUiState(
     // For submitting
     val showResponseDialog: Boolean = false,
     val selectedResponseType: SWResponseType? = null,
+    // History
+    val history: List<SiegeWarHistoryItem> = emptyList(),
+    val isLoadingHistory: Boolean = false,
     val error: String? = null
 )
 
@@ -236,5 +240,24 @@ class SiegeWarViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun loadHistory() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingHistory = true) }
+
+            when (val result = repository.getHistory()) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(isLoadingHistory = false, history = result.data)
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(isLoadingHistory = false, error = result.message)
+                    }
+                }
+            }
+        }
     }
 }

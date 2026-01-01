@@ -392,13 +392,22 @@ export async function getSiegeWarHistory(
 ): Promise<void> {
   try {
     const siegeWars = await prisma.siegeWar.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 10,
+      orderBy: { weekEnd: 'desc' },
+      take: 20,
       include: {
-        _count: {
-          select: { responses: true },
+        responses: {
+          include: {
+            user: { select: { id: true, nick: true, playerClass: true } },
+            pilotingFor: { select: { id: true, nick: true, playerClass: true } },
+          },
+          orderBy: [{ responseType: 'asc' }, { createdAt: 'asc' }],
         },
       },
+    });
+
+    // Get all approved members count for summary
+    const totalMembers = await prisma.user.count({
+      where: { status: 'APPROVED' },
     });
 
     res.json({
@@ -407,7 +416,24 @@ export async function getSiegeWarHistory(
         weekStart: sw.weekStart,
         weekEnd: sw.weekEnd,
         isActive: sw.isActive,
-        responseCount: sw._count.responses,
+        responses: sw.responses.map((r) => ({
+          id: r.id,
+          user: r.user,
+          responseType: r.responseType,
+          tag: r.tag,
+          sharedClass: r.sharedClass,
+          pilotingFor: r.pilotingFor,
+          preferredClass: r.preferredClass,
+          createdAt: r.createdAt,
+        })),
+        summary: {
+          total: totalMembers,
+          responded: sw.responses.length,
+          confirmed: sw.responses.filter((r) => r.responseType === 'CONFIRMED').length,
+          shared: sw.responses.filter((r) => r.responseType === 'SHARED').length,
+          pilots: sw.responses.filter((r) => r.responseType === 'PILOT').length,
+          absent: sw.responses.filter((r) => r.responseType === 'ABSENT').length,
+        },
       })),
     });
   } catch (err) {

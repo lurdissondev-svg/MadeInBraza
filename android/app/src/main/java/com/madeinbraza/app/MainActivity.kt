@@ -8,21 +8,30 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.madeinbraza.app.ui.BrazaNavHost
 import com.madeinbraza.app.ui.NotificationNavigation
+import com.madeinbraza.app.ui.components.UpdateDialog
 import com.madeinbraza.app.ui.theme.BrazaTheme
+import com.madeinbraza.app.util.AppUpdate
+import com.madeinbraza.app.util.AppUpdateManager
 import com.madeinbraza.app.util.LanguageManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var appUpdateManager: AppUpdateManager
 
     private var pendingNotificationNavigation by mutableStateOf<NotificationNavigation?>(null)
 
@@ -43,6 +52,17 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val languageCode by LanguageManager.getLanguageFlow(this).collectAsState(initial = "pt")
+            var availableUpdate by remember { mutableStateOf<AppUpdate?>(null) }
+            var showUpdateDialog by remember { mutableStateOf(false) }
+
+            // Check for updates on app start
+            LaunchedEffect(Unit) {
+                val update = appUpdateManager.checkForUpdate()
+                if (update != null && appUpdateManager.isUpdateAvailable(update)) {
+                    availableUpdate = update
+                    showUpdateDialog = true
+                }
+            }
 
             BrazaTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -53,6 +73,20 @@ class MainActivity : ComponentActivity() {
                             recreate()
                         }
                     )
+
+                    // Update dialog
+                    if (showUpdateDialog && availableUpdate != null) {
+                        UpdateDialog(
+                            update = availableUpdate!!,
+                            onUpdate = {
+                                appUpdateManager.downloadAndInstall(this@MainActivity, availableUpdate!!)
+                                showUpdateDialog = false
+                            },
+                            onDismiss = {
+                                showUpdateDialog = false
+                            }
+                        )
+                    }
                 }
             }
         }

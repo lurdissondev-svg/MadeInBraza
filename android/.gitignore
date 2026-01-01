@@ -8,3 +8,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Signing
+keystore.properties
+*.keystore
+*.jks
+/keystore/

@@ -261,7 +261,7 @@ fun EventMembersDialog(
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = CLASS_DISPLAY_NAMES[participant.playerClass] ?: participant.playerClass.name,
+                                        text = participant.playerClass.name,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -462,7 +462,7 @@ fun EventCard(
                             onClick = {},
                             label = {
                                 Text(
-                                    text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
+                                    text = playerClass.name,
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             },
@@ -530,18 +530,20 @@ fun EventCard(
                     }
                 }
 
-                // Members button
-                OutlinedButton(
-                    onClick = onViewMembers,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Filled.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.members))
+                // Participants button (only for leaders)
+                if (isLeader) {
+                    OutlinedButton(
+                        onClick = onViewMembers,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Filled.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.participants))
+                    }
                 }
             }
         }

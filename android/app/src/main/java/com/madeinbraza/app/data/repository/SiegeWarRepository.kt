@@ -9,6 +9,7 @@ import com.madeinbraza.app.data.model.SWResponsesResponse
 import com.madeinbraza.app.data.model.SWResponseType
 import com.madeinbraza.app.data.model.SWTag
 import com.madeinbraza.app.data.model.SWUserResponse
+import com.madeinbraza.app.data.model.SiegeWarHistoryItem
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -110,6 +111,19 @@ class SiegeWarRepository @Inject constructor(
                 Result.Success(response.body()!!.siegeWar)
             } else {
                 Result.Error("Erro ao fechar Siege War")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Erro desconhecido")
+        }
+    }
+
+    suspend fun getHistory(): Result<List<SiegeWarHistoryItem>> {
+        return try {
+            val response = api.getSiegeWarHistory(getToken())
+            if (response.isSuccessful) {
+                Result.Success(response.body()!!.siegeWars)
+            } else {
+                Result.Error("Erro ao carregar histórico")
             }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Erro desconhecido")

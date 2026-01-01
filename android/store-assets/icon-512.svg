@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 108 108">
+  <!-- Background -->
+  <rect width="108" height="108" fill="#000000"/>
+
+  <!-- Foreground (scaled and translated like Android adaptive icon) -->
+  <g transform="translate(27, 27) scale(0.5)">
+    <!-- White circle -->
+    <path fill="#FFFFFF" d="M54,27 L54,27 C69.464,27 82,39.536 82,55 L82,55 C82,70.464 69.464,83 54,83 L54,83 C38.536,83 26,70.464 26,55 L26,55 C26,39.536 38.536,27 54,27 Z"/>
+    <!-- Black bars (B symbol) -->
+    <path fill="#000000" d="M42,50 L50,50 L50,70 L42,70 Z M58,45 L66,45 L66,70 L58,70 Z"/>
+  </g>
+</svg>

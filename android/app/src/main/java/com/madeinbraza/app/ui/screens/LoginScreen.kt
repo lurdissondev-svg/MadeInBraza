@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,6 +27,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.loginSuccess) {
         if (uiState.loginSuccess) {
@@ -67,8 +69,16 @@ fun LoginScreen(
             onValueChange = { viewModel.updatePassword(it) },
             label = { Text(stringResource(R.string.password)) },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Text(
+                        text = if (passwordVisible) "🙈" else "👁",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,

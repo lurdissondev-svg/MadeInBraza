@@ -25,7 +25,7 @@
     <string name="home">Home</string>
     <string name="channels">Canais</string>
     <string name="events">Eventos</string>
-    <string name="parties">Parties</string>
+    <string name="parties">PTs</string>
     <string name="members">Membros</string>
     <string name="profile">Perfil</string>
 
@@ -129,6 +129,7 @@
     <string name="slots_info">%1$d/%2$d vagas</string>
     <string name="participants_singular">%1$d participante</string>
     <string name="participants_plural">%1$d participantes</string>
+    <string name="participants">Participantes</string>
 
     <!-- Create Event Screen -->
     <string name="title">Título</string>
@@ -253,4 +254,11 @@
     <string name="notification_new_party">Nova party criada</string>
     <string name="notification_siege_war_open">Siege War aberta!</string>
     <string name="notification_siege_war_closed">Siege War encerrada</string>
+
+    <!-- App Update -->
+    <string name="update_available_title">Atualização Disponível!</string>
+    <string name="update_new_version">Uma nova versão (%1$s) está disponível para download.</string>
+    <string name="update_whats_new">O que há de novo:</string>
+    <string name="update_now">Atualizar Agora</string>
+    <string name="update_later">Depois</string>
 </resources>

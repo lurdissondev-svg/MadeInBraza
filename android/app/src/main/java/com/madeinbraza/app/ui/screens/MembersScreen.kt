@@ -8,7 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -266,11 +266,9 @@ fun MemberCard(
                     )
                     if (isLeader) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            Icons.Filled.Star,
-                            contentDescription = leaderText,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                        Text(
+                            text = "👑",
+                            fontSize = 16.sp
                         )
                     }
                     if (isSelf) {
@@ -309,10 +307,11 @@ fun MemberCard(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Text(
-                                    text = "👑",
-                                    fontSize = 20.sp,
-                                    modifier = Modifier.padding(2.dp)
+                                Icon(
+                                    Icons.Outlined.Star,
+                                    contentDescription = promoteText,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

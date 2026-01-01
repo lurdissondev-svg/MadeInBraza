@@ -449,7 +449,7 @@ fun GlobalPartyCard(
                 ) {
                     items(party.members) { member ->
                         val isCurrentUser = member.id == currentUserId
-                        val className = member.playerClass?.let { CLASS_DISPLAY_NAMES[it] ?: it.name } ?: "?"
+                        val className = member.playerClass?.name ?: "?"
                         AssistChip(
                             onClick = {},
                             label = {

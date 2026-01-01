@@ -6,5 +6,5 @@
     @retrofit2.http.* <methods>;
 }
 
-# Gson
--keep class com.braza.app.data.model.** { *; }
+# Gson - Keep data models for serialization
+-keep class com.madeinbraza.app.data.model.** { *; }
