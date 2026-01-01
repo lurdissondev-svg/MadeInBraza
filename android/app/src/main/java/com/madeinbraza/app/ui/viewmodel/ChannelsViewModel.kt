@@ -178,7 +178,9 @@ class ChannelsViewModel @Inject constructor(
     fun closeChannel() {
         messagePoller.stop()
         currentChannelId = null
-        _chatState.update { ChannelChatUiState() }
+        // Preserve currentUserId when resetting chat state
+        val userId = _chatState.value.currentUserId
+        _chatState.update { ChannelChatUiState(currentUserId = userId) }
         // Reload unread counts when returning to channel list
         loadUnreadCounts()
     }
