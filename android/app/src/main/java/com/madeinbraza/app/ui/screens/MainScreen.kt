@@ -57,7 +57,7 @@ sealed class BottomNavItem(
     )
     object Parties : BottomNavItem(
         route = "main_parties",
-        title = "Parties",
+        title = "PTs",
         selectedIcon = Icons.Filled.Star,
         unselectedIcon = Icons.Outlined.Star
     )

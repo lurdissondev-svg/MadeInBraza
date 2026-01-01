@@ -4,10 +4,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
@@ -29,9 +32,12 @@ import coil.compose.AsyncImage
 import com.madeinbraza.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.data.model.Announcement
+import com.madeinbraza.app.data.model.Event
+import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.ui.viewmodel.HomeViewModel
 import com.madeinbraza.app.util.AppUpdate
+import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -64,6 +70,10 @@ fun MainHomeContent(
         )
     }
 
+    val tabs = listOf("Avisos", "Eventos")
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -89,142 +99,408 @@ fun MainHomeContent(
             )
         }
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = { viewModel.refresh() },
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Update available banner
-                if (pendingUpdate != null) {
-                    item {
-                        UpdateBanner(
-                            update = pendingUpdate,
-                            onClick = onUpdateClick
-                        )
-                    }
-                }
-
-                // User info card
-                item {
-                    if (uiState.user != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.welcome, uiState.user!!.nick),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = stringResource(R.string.class_info, uiState.user!!.playerClass),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = stringResource(R.string.role_info, if (isLeader) leaderText else memberText),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-
-                // Announcements section header
-                item {
-                    Text(
-                        text = stringResource(R.string.announcements),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+            // User info card
+            if (uiState.user != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
-                }
-
-                // Announcements content
-                if (uiState.isLoadingAnnouncements && uiState.announcements.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else if (uiState.announcements.isEmpty()) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.no_announcements),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    items(uiState.announcements) { announcement ->
-                        AnnouncementCard(
-                            announcement = announcement,
-                            isLeader = isLeader,
-                            isDeleting = uiState.isDeleting == announcement.id,
-                            onDelete = { viewModel.deleteAnnouncement(announcement.id) }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.welcome, uiState.user!!.nick),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.class_info, uiState.user!!.playerClass),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(R.string.role_info, if (isLeader) leaderText else memberText),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
 
-            // Error snackbar
-            uiState.error?.let { error ->
-                Snackbar(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp),
-                    action = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text(stringResource(R.string.ok))
+            // Update available banner
+            if (pendingUpdate != null) {
+                UpdateBanner(
+                    update = pendingUpdate,
+                    onClick = onUpdateClick,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            // Tab Row
+            TabRow(
+                selectedTabIndex = pagerState.currentPage,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        text = {
+                            Text(
+                                text = title,
+                                fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                }
+            }
+
+            // Pager content
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0 -> AnnouncementsTab(
+                        announcements = uiState.announcements,
+                        isLoading = uiState.isLoadingAnnouncements,
+                        isRefreshing = uiState.isRefreshing,
+                        isLeader = isLeader,
+                        deletingId = uiState.isDeleting,
+                        error = uiState.error,
+                        onRefresh = { viewModel.refresh() },
+                        onDelete = { viewModel.deleteAnnouncement(it) },
+                        onClearError = { viewModel.clearError() }
+                    )
+                    1 -> EventsTab(
+                        events = uiState.events,
+                        isLoading = uiState.isLoadingEvents,
+                        isRefreshing = uiState.isRefreshing,
+                        userId = uiState.user?.id ?: "",
+                        userClass = uiState.user?.playerClass ?: PlayerClass.ATALANTA,
+                        joiningEventId = uiState.joiningEventId,
+                        onRefresh = { viewModel.refresh() },
+                        onJoinEvent = { viewModel.joinEvent(it) },
+                        onLeaveEvent = { viewModel.leaveEvent(it) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AnnouncementsTab(
+    announcements: List<Announcement>,
+    isLoading: Boolean,
+    isRefreshing: Boolean,
+    isLeader: Boolean,
+    deletingId: String?,
+    error: String?,
+    onRefresh: () -> Unit,
+    onDelete: (String) -> Unit,
+    onClearError: () -> Unit
+) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (isLoading && announcements.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            } else if (announcements.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_announcements),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
-                ) {
-                    Text(error)
+                }
+            } else {
+                items(announcements) { announcement ->
+                    AnnouncementCard(
+                        announcement = announcement,
+                        isLeader = isLeader,
+                        isDeleting = deletingId == announcement.id,
+                        onDelete = { onDelete(announcement.id) }
+                    )
+                }
+            }
+        }
+
+        error?.let { errorMsg ->
+            Snackbar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                action = {
+                    TextButton(onClick = onClearError) {
+                        Text(stringResource(R.string.ok))
+                    }
+                }
+            ) {
+                Text(errorMsg)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EventsTab(
+    events: List<Event>,
+    isLoading: Boolean,
+    isRefreshing: Boolean,
+    userId: String,
+    userClass: PlayerClass,
+    joiningEventId: String?,
+    onRefresh: () -> Unit,
+    onJoinEvent: (String) -> Unit,
+    onLeaveEvent: (String) -> Unit
+) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (isLoading && events.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            } else if (events.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_events),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(events) { event ->
+                    HomeEventCard(
+                        event = event,
+                        userId = userId,
+                        userClass = userClass,
+                        isJoining = joiningEventId == event.id,
+                        onJoinEvent = onJoinEvent,
+                        onLeaveEvent = onLeaveEvent
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeEventCard(
+    event: Event,
+    userId: String,
+    userClass: PlayerClass,
+    isJoining: Boolean,
+    onJoinEvent: (String) -> Unit,
+    onLeaveEvent: (String) -> Unit
+) {
+    val isParticipating = event.participants.any { it.id == userId }
+    val canJoin = !event.isFull &&
+            (event.requiredClasses.isEmpty() || event.requiredClasses.contains(userClass))
+
+    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm")
+    val eventDate = try {
+        ZonedDateTime.parse(event.eventDate).format(dateFormatter)
+    } catch (e: Exception) {
+        event.eventDate
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (event.isFull) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.error,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = stringResource(R.string.full),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = eventDate,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = if (event.maxParticipants != null) {
+                        "${event.participants.size}/${event.maxParticipants} vagas"
+                    } else {
+                        "${event.participants.size} participante(s)"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (event.description?.isNotBlank() == true) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = event.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                if (isJoining) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else if (isParticipating) {
+                    FilledTonalButton(
+                        onClick = { onLeaveEvent(event.id) }
+                    ) {
+                        Text(stringResource(R.string.leave_event))
+                    }
+                } else if (canJoin) {
+                    Button(
+                        onClick = { onJoinEvent(event.id) }
+                    ) {
+                        Text(stringResource(R.string.join_event))
+                    }
+                } else {
+                    Text(
+                        text = if (event.isFull) {
+                            stringResource(R.string.event_full)
+                        } else {
+                            stringResource(R.string.class_not_allowed)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
@@ -460,11 +736,12 @@ fun CreateAnnouncementDialog(
 @Composable
 fun UpdateBanner(
     update: AppUpdate,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
