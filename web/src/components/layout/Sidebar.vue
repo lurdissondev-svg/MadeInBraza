@@ -20,7 +20,7 @@ const mainNavItems: NavItem[] = [
   { name: 'home', route: '/', icon: 'home', label: 'Início' },
   { name: 'siege-war', route: '/siege-war', icon: 'sword', label: 'Siege War' },
   { name: 'parties', route: '/parties', icon: 'users-group', label: 'PTs' },
-  { name: 'channels', route: '/channels', icon: 'chat', label: 'Canais' },
+  { name: 'channels', route: '/channels', icon: 'chat', label: 'Chat' },
   { name: 'members', route: '/members', icon: 'users', label: 'Membros' }
 ]
 
@@ -29,7 +29,7 @@ const avatarUrl = computed(() => {
   const url = authStore.user?.avatarUrl
   if (!url) return null
   // Add timestamp for cache busting
-  const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api/', '') || ''
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
   return `${baseUrl}${url}?t=${Date.now()}`
 })
 

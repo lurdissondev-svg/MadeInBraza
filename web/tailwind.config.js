@@ -7,18 +7,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Cores do tema Made in Braza (identico ao app Android)
+        // Cores do tema Made in Braza
         primary: {
-          50: '#ffffff',
-          100: '#fafafa',
-          200: '#f5f5f5',
-          300: '#e0e0e0',
-          400: '#ffffff', // Branco
-          500: '#ffffff', // Cor principal (branco - igual Android)
-          600: '#e0e0e0',
-          700: '#bdbdbd',
-          800: '#9e9e9e',
-          900: '#757575',
+          50: '#f3e5f5',
+          100: '#e1bee7',
+          200: '#ce93d8',
+          300: '#ba68c8',
+          400: '#ab47bc',
+          500: '#9c27b0', // Roxo principal
+          600: '#8e24aa',
+          700: '#7b1fa2',
+          800: '#6a1b9a',
+          900: '#4a148c',
         },
         dark: {
           50: '#424242',

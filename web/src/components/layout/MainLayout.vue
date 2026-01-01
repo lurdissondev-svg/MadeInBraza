@@ -11,9 +11,9 @@ const pageTitle = computed(() => {
   const titles: Record<string, string> = {
     home: 'Início',
     events: 'Eventos',
-    parties: 'Parties',
+    parties: 'PTs',
     'siege-war': 'Siege War',
-    channels: 'Canais',
+    channels: 'Chat',
     chat: 'Chat',
     members: 'Membros',
     'member-profile': 'Perfil do Membro',
