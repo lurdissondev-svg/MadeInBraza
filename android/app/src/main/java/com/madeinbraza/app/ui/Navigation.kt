@@ -155,9 +155,6 @@ fun BrazaNavHost(
                 onNavigateToSiegeWar = {
                     navController.navigate(Screen.SiegeWar.route)
                 },
-                onNavigateToCreateEvent = {
-                    navController.navigate(Screen.CreateEvent.route)
-                },
                 onNavigateToMemberProfile = { memberId ->
                     navController.navigate(Screen.MemberProfile.createRoute(memberId))
                 },

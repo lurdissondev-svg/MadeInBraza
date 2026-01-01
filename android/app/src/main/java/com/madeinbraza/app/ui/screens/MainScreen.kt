@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Home
@@ -22,12 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.madeinbraza.app.ui.NotificationNavigation
 import com.madeinbraza.app.util.AppUpdate
 
@@ -48,12 +44,6 @@ sealed class BottomNavItem(
         title = "Chat",
         selectedIcon = Icons.Filled.List,
         unselectedIcon = Icons.Outlined.List
-    )
-    object Events : BottomNavItem(
-        route = "main_events",
-        title = "Eventos",
-        selectedIcon = Icons.Filled.DateRange,
-        unselectedIcon = Icons.Outlined.DateRange
     )
     object Parties : BottomNavItem(
         route = "main_parties",
@@ -83,7 +73,6 @@ fun MainScreen(
     onNavigateToPendingMembers: () -> Unit,
     onNavigateToBannedUsers: () -> Unit,
     onNavigateToSiegeWar: () -> Unit,
-    onNavigateToCreateEvent: () -> Unit,
     onNavigateToMemberProfile: (String) -> Unit,
     onLanguageChanged: () -> Unit = {},
     pendingUpdate: AppUpdate? = null,
@@ -96,7 +85,6 @@ fun MainScreen(
     val bottomNavItems = listOf(
         BottomNavItem.Home,
         BottomNavItem.Channels,
-        BottomNavItem.Events,
         BottomNavItem.Parties,
         BottomNavItem.Members,
         BottomNavItem.Profile
@@ -111,7 +99,7 @@ fun MainScreen(
         notificationNavigation?.let { nav ->
             val targetRoute = when (nav.target) {
                 "channel", "channels" -> BottomNavItem.Channels.route
-                "events" -> BottomNavItem.Events.route
+                "events" -> BottomNavItem.Home.route // Events are now in Home tab
                 "parties" -> BottomNavItem.Parties.route
                 "home" -> BottomNavItem.Home.route
                 "siege_war" -> {
@@ -203,13 +191,6 @@ fun MainScreen(
 
             composable(BottomNavItem.Channels.route) {
                 ChannelsScreen()
-            }
-
-            composable(BottomNavItem.Events.route) {
-                EventsScreen(
-                    onNavigateToCreateEvent = onNavigateToCreateEvent,
-                    onNavigateToSiegeWar = onNavigateToSiegeWar
-                )
             }
 
             composable(BottomNavItem.Parties.route) {
