@@ -22,6 +22,7 @@ class BrazaMessagingService : FirebaseMessagingService() {
         const val CHANNEL_MESSAGES = "braza_messages"
         const val CHANNEL_EVENTS = "braza_events"
         const val CHANNEL_GENERAL = "braza_general"
+        const val CHANNEL_UPDATES = "braza_updates"
 
         // Notification types from backend
         const val TYPE_CHANNEL_MESSAGE = "channel_message"
@@ -29,6 +30,7 @@ class BrazaMessagingService : FirebaseMessagingService() {
         const val TYPE_ANNOUNCEMENT = "announcement"
         const val TYPE_PARTY = "party"
         const val TYPE_SIEGE_WAR = "siege_war"
+        const val TYPE_APP_UPDATE = "app_update"
     }
 
     override fun onNewToken(token: String) {
@@ -50,6 +52,7 @@ class BrazaMessagingService : FirebaseMessagingService() {
             TYPE_ANNOUNCEMENT -> handleAnnouncementNotification(data)
             TYPE_PARTY -> handlePartyNotification(data)
             TYPE_SIEGE_WAR -> handleSiegeWarNotification(data)
+            TYPE_APP_UPDATE -> handleAppUpdateNotification(data)
             else -> handleGeneralNotification(message)
         }
     }
@@ -197,6 +200,38 @@ class BrazaMessagingService : FirebaseMessagingService() {
         )
     }
 
+    private fun handleAppUpdateNotification(data: Map<String, String>) {
+        val version = data["version"] ?: "nova"
+        val releaseName = data["releaseName"] ?: "Nova versão"
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("navigateTo", "update")
+            putExtra("version", version)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            "app_update".hashCode(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_UPDATES)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("🚀 Atualização v$version")
+            .setContentText("Toque para atualizar o app")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(releaseName))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setColor(Color.parseColor("#2196F3"))
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify("app_update".hashCode(), notificationBuilder.build())
+    }
+
     private fun handleGeneralNotification(message: RemoteMessage) {
         val notification = message.notification ?: return
         val data = message.data
@@ -277,8 +312,20 @@ class BrazaMessagingService : FirebaseMessagingService() {
                 description = "Notificações gerais do Braza"
             }
 
+            // Updates channel - high importance for app updates
+            val updatesChannel = NotificationChannel(
+                CHANNEL_UPDATES,
+                "Atualizações",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notificações de atualizações do app"
+                enableLights(true)
+                lightColor = Color.parseColor("#2196F3")
+                enableVibration(true)
+            }
+
             notificationManager.createNotificationChannels(
-                listOf(messagesChannel, eventsChannel, generalChannel)
+                listOf(messagesChannel, eventsChannel, generalChannel, updatesChannel)
             )
         }
     }

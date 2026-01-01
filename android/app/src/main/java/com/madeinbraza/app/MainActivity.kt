@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
     lateinit var appUpdateManager: AppUpdateManager
 
     private var pendingNotificationNavigation by mutableStateOf<NotificationNavigation?>(null)
+    private var triggerUpdateCheck by mutableStateOf(false)
 
     override fun attachBaseContext(newBase: Context) {
         val languageCode = runBlocking {
@@ -55,12 +56,15 @@ class MainActivity : ComponentActivity() {
             var availableUpdate by remember { mutableStateOf<AppUpdate?>(null) }
             var showUpdateDialog by remember { mutableStateOf(false) }
 
-            // Check for updates on app start
-            LaunchedEffect(Unit) {
-                val update = appUpdateManager.checkForUpdate()
-                if (update != null && appUpdateManager.isUpdateAvailable(update)) {
-                    availableUpdate = update
-                    showUpdateDialog = true
+            // Check for updates on app start or when triggered by notification
+            LaunchedEffect(Unit, triggerUpdateCheck) {
+                if (triggerUpdateCheck || availableUpdate == null) {
+                    val update = appUpdateManager.checkForUpdate()
+                    if (update != null && appUpdateManager.isUpdateAvailable(update)) {
+                        availableUpdate = update
+                        showUpdateDialog = true
+                    }
+                    triggerUpdateCheck = false
                 }
             }
 
@@ -102,6 +106,13 @@ class MainActivity : ComponentActivity() {
         intent?.let {
             val navigateTo = it.getStringExtra("navigateTo")
             if (navigateTo != null) {
+                // Handle update notification - trigger update check
+                if (navigateTo == "update") {
+                    triggerUpdateCheck = true
+                    it.removeExtra("navigateTo")
+                    return
+                }
+
                 pendingNotificationNavigation = NotificationNavigation(
                     target = navigateTo,
                     channelId = it.getStringExtra("channelId"),

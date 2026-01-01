@@ -60,3 +60,17 @@ jobs:
           name: Release ${{ steps.version.outputs.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Send update notification
+        run: |
+          curl -X POST "${{ secrets.API_BASE_URL }}/webhook/github" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: release" \
+            -d '{
+              "action": "published",
+              "release": {
+                "tag_name": "v${{ steps.version.outputs.VERSION }}",
+                "name": "Release ${{ steps.version.outputs.VERSION }}",
+                "body": "Nova versão disponível!"
+              }
+            }' || echo "Notification failed, but release was successful"
