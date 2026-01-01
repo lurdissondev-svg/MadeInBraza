@@ -110,7 +110,8 @@ class AppUpdateManager @Inject constructor() {
     }
 
     fun isUpdateAvailable(update: AppUpdate): Boolean {
-        val currentVersionCode = BuildConfig.VERSION_CODE
+        // Compare using same calculation method for consistency
+        val currentVersionCode = parseVersionCode(BuildConfig.VERSION_NAME)
         return update.versionCode > currentVersionCode
     }
 
