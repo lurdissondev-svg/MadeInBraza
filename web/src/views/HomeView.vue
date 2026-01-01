@@ -111,7 +111,7 @@ async function toggleParticipation(eventId: string) {
       <div class="flex gap-2 bg-dark-700 p-1 rounded-lg">
         <button
           @click="activeTab = 'avisos'"
-          class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors"
+          class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors outline-none focus:outline-none"
           :class="activeTab === 'avisos'
             ? 'bg-primary-500 text-white'
             : 'text-gray-400 hover:text-white hover:bg-dark-600'"
@@ -125,7 +125,7 @@ async function toggleParticipation(eventId: string) {
         </button>
         <button
           @click="activeTab = 'eventos'"
-          class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors"
+          class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors outline-none focus:outline-none"
           :class="activeTab === 'eventos'
             ? 'bg-primary-500 text-white'
             : 'text-gray-400 hover:text-white hover:bg-dark-600'"
@@ -164,7 +164,7 @@ async function toggleParticipation(eventId: string) {
               <button
                 v-if="authStore.isLeader"
                 @click="showCreateModal = true"
-                class="px-4 py-2 bg-white text-black font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                class="px-4 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

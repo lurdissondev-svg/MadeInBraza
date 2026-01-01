@@ -145,7 +145,7 @@ async function handleSubmit() {
                   type="range"
                   class="flex-1 h-2 bg-dark-600 rounded-lg appearance-none cursor-pointer accent-primary-500"
                   min="2"
-                  max="10"
+                  max="6"
                   :disabled="isSubmitting"
                 />
                 <span class="text-gray-100 font-medium w-6 text-center">{{ maxMembers }}</span>
