@@ -22,6 +22,7 @@ import com.madeinbraza.app.ui.screens.RegisterScreen
 import com.madeinbraza.app.ui.screens.SiegeWarScreen
 import com.madeinbraza.app.ui.screens.SplashScreen
 import com.madeinbraza.app.ui.screens.WaitingScreen
+import com.madeinbraza.app.util.AppUpdate
 
 // Data class for notification navigation
 data class NotificationNavigation(
@@ -54,7 +55,9 @@ sealed class Screen(val route: String) {
 fun BrazaNavHost(
     notificationNavigation: NotificationNavigation? = null,
     onNotificationHandled: () -> Unit = {},
-    onLanguageChanged: () -> Unit = {}
+    onLanguageChanged: () -> Unit = {},
+    pendingUpdate: AppUpdate? = null,
+    onUpdateClick: () -> Unit = {}
 ) {
     val navController = rememberNavController()
 
@@ -158,7 +161,9 @@ fun BrazaNavHost(
                 onNavigateToMemberProfile = { memberId ->
                     navController.navigate(Screen.MemberProfile.createRoute(memberId))
                 },
-                onLanguageChanged = onLanguageChanged
+                onLanguageChanged = onLanguageChanged,
+                pendingUpdate = pendingUpdate,
+                onUpdateClick = onUpdateClick
             )
         }
 

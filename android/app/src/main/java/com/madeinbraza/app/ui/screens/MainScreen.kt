@@ -29,6 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.madeinbraza.app.ui.NotificationNavigation
+import com.madeinbraza.app.util.AppUpdate
 
 sealed class BottomNavItem(
     val route: String,
@@ -84,7 +85,9 @@ fun MainScreen(
     onNavigateToSiegeWar: () -> Unit,
     onNavigateToCreateEvent: () -> Unit,
     onNavigateToMemberProfile: (String) -> Unit,
-    onLanguageChanged: () -> Unit = {}
+    onLanguageChanged: () -> Unit = {},
+    pendingUpdate: AppUpdate? = null,
+    onUpdateClick: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -192,7 +195,9 @@ fun MainScreen(
                     onFabStateChanged = { visible, onClick ->
                         homeFabVisible = visible
                         homeFabOnClick = onClick
-                    }
+                    },
+                    pendingUpdate = pendingUpdate,
+                    onUpdateClick = onUpdateClick
                 )
             }
 

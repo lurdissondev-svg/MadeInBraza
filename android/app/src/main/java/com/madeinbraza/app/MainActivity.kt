@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     private var pendingNotificationNavigation by mutableStateOf<NotificationNavigation?>(null)
     private var triggerUpdateCheck by mutableStateOf(false)
+    private var pendingUpdate by mutableStateOf<AppUpdate?>(null)
 
     override fun attachBaseContext(newBase: Context) {
         val languageCode = runBlocking {
@@ -75,6 +76,10 @@ class MainActivity : ComponentActivity() {
                         onNotificationHandled = { pendingNotificationNavigation = null },
                         onLanguageChanged = {
                             recreate()
+                        },
+                        pendingUpdate = pendingUpdate,
+                        onUpdateClick = {
+                            showUpdateDialog = true
                         }
                     )
 
@@ -85,9 +90,12 @@ class MainActivity : ComponentActivity() {
                             onUpdate = {
                                 appUpdateManager.downloadAndInstall(this@MainActivity, availableUpdate!!)
                                 showUpdateDialog = false
+                                pendingUpdate = null
                             },
                             onDismiss = {
                                 showUpdateDialog = false
+                                // Keep the update available for the banner
+                                pendingUpdate = availableUpdate
                             }
                         )
                     }

@@ -9,7 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -29,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.data.model.Announcement
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.ui.viewmodel.HomeViewModel
+import com.madeinbraza.app.util.AppUpdate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -38,6 +41,8 @@ import java.util.Locale
 fun MainHomeContent(
     onLogout: () -> Unit,
     onFabStateChanged: (visible: Boolean, onClick: (() -> Unit)?) -> Unit = { _, _ -> },
+    pendingUpdate: AppUpdate? = null,
+    onUpdateClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -96,6 +101,16 @@ fun MainHomeContent(
                 contentPadding = PaddingValues(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Update available banner
+                if (pendingUpdate != null) {
+                    item {
+                        UpdateBanner(
+                            update = pendingUpdate,
+                            onClick = onUpdateClick
+                        )
+                    }
+                }
+
                 // User info card
                 item {
                     if (uiState.user != null) {
@@ -440,4 +455,55 @@ fun CreateAnnouncementDialog(
             }
         }
     )
+}
+
+@Composable
+fun UpdateBanner(
+    update: AppUpdate,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.Default.Refresh,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = stringResource(R.string.update_available_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = stringResource(R.string.update_new_version, update.versionName),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+            }
+
+            Icon(
+                Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
 }
