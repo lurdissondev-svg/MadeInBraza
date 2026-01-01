@@ -150,7 +150,7 @@ export async function uploadUserAvatar(
       },
     });
 
-    res.json({ user: updated });
+    res.json({ avatarUrl, user: updated });
   } catch (err) {
     // Try to clean up file on error
     if (req.file) {

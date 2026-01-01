@@ -74,9 +74,9 @@ async function handleAvatarChange(event: Event) {
       return
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      profileStore.error = 'Arquivo muito grande. Máximo 5MB.'
+    // Validate file size (20MB)
+    if (file.size > 20 * 1024 * 1024) {
+      profileStore.error = 'Arquivo muito grande. Máximo 20MB.'
       return
     }
 
@@ -119,7 +119,7 @@ async function handleDeleteAvatar() {
             <div class="relative mb-4">
               <!-- Avatar image or placeholder -->
               <div
-                class="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden"
+                class="w-32 h-32 rounded-full flex items-center justify-center overflow-hidden"
                 :class="avatarUrl ? '' : (authStore.isLeader ? 'bg-primary-500' : 'bg-primary-500/20')"
               >
                 <img
@@ -130,7 +130,7 @@ async function handleDeleteAvatar() {
                 />
                 <span
                   v-else
-                  class="text-4xl font-bold"
+                  class="text-5xl font-bold"
                   :class="authStore.isLeader ? 'text-white' : 'text-primary-400'"
                 >
                   {{ authStore.user?.nick?.charAt(0).toUpperCase() }}
