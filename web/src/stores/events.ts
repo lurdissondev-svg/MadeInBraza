@@ -8,6 +8,7 @@ export const useEventsStore = defineStore('events', () => {
   const events = ref<Event[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const joiningEventId = ref<string | null>(null)
 
   // Actions
   async function fetchEvents(): Promise<boolean> {
@@ -59,6 +60,7 @@ export const useEventsStore = defineStore('events', () => {
 
   async function joinEvent(id: string): Promise<boolean> {
     error.value = null
+    joiningEventId.value = id
 
     try {
       const updatedEvent = await eventsApi.joinEvent(id)
@@ -70,11 +72,14 @@ export const useEventsStore = defineStore('events', () => {
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao entrar no evento'
       return false
+    } finally {
+      joiningEventId.value = null
     }
   }
 
   async function leaveEvent(id: string): Promise<boolean> {
     error.value = null
+    joiningEventId.value = id
 
     try {
       const updatedEvent = await eventsApi.leaveEvent(id)
@@ -86,6 +91,8 @@ export const useEventsStore = defineStore('events', () => {
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao sair do evento'
       return false
+    } finally {
+      joiningEventId.value = null
     }
   }
 
@@ -98,6 +105,7 @@ export const useEventsStore = defineStore('events', () => {
     events,
     loading,
     error,
+    joiningEventId,
     // Actions
     fetchEvents,
     createEvent,

@@ -19,11 +19,19 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { name: 'home', route: '/', icon: 'home', label: 'Início' },
   { name: 'siege-war', route: '/siege-war', icon: 'sword', label: 'Siege War' },
-  { name: 'events', route: '/events', icon: 'calendar', label: 'Eventos' },
-  { name: 'parties', route: '/parties', icon: 'users-group', label: 'Parties' },
+  { name: 'parties', route: '/parties', icon: 'users-group', label: 'PTs' },
   { name: 'channels', route: '/channels', icon: 'chat', label: 'Canais' },
   { name: 'members', route: '/members', icon: 'users', label: 'Membros' }
 ]
+
+// Avatar URL with cache busting
+const avatarUrl = computed(() => {
+  const url = authStore.user?.avatarUrl
+  if (!url) return null
+  // Add timestamp for cache busting
+  const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api/', '') || ''
+  return `${baseUrl}${url}?t=${Date.now()}`
+})
 
 const adminNavItems: NavItem[] = [
   { name: 'admin-pending', route: '/admin/pending', icon: 'clock', label: 'Pendentes', leaderOnly: true },
@@ -137,8 +145,19 @@ function handleLogout() {
     <!-- User Section -->
     <div class="p-4 border-t border-dark-600">
       <div class="flex items-center gap-3 mb-3">
-        <div class="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
-          <span class="text-primary-400 font-semibold">
+        <div class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
+             :class="avatarUrl ? '' : (authStore.isLeader ? 'bg-primary-500' : 'bg-primary-500/20')">
+          <img
+            v-if="avatarUrl"
+            :src="avatarUrl"
+            alt="Avatar"
+            class="w-full h-full object-cover"
+          />
+          <span
+            v-else
+            class="font-semibold"
+            :class="authStore.isLeader ? 'text-white' : 'text-primary-400'"
+          >
             {{ authStore.user?.nick?.charAt(0).toUpperCase() }}
           </span>
         </div>
