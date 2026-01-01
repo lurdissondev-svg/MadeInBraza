@@ -33,4 +33,9 @@ router.post('/:channelId/messages/media', uploadMedia, sendMediaMessage);
 // GET /channels/:channelId/members - Get channel members
 router.get('/:channelId/members', getChannelMembers);
 
+// POST /channels/:channelId/read - Mark channel as read (stub - no-op for now)
+router.post('/:channelId/read', (_req, res) => {
+  res.json({ success: true });
+});
+
 export default router;
