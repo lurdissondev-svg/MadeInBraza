@@ -15,8 +15,8 @@ export interface ChannelMembersResponse {
 
 export const channelsApi = {
   async getChannels(): Promise<Channel[]> {
-    const response = await apiClient.get<ChannelsResponse>('/channels')
-    return response.data.channels
+    const response = await apiClient.get<Channel[]>('/channels')
+    return response.data
   },
 
   async setupDefaultChannels(): Promise<void> {
