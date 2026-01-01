@@ -19,12 +19,22 @@ const avatarUrl = computed(() => {
 
 const bubbleClasses = computed(() => {
   if (props.isCurrentUser) {
-    return 'bg-primary-500 text-white'
+    return 'bg-primary-500'
   }
   if (isLeader.value) {
-    return 'bg-primary-500/20 text-gray-100'
+    return 'bg-primary-500/20'
   }
-  return 'bg-dark-600 text-gray-200'
+  return 'bg-dark-600'
+})
+
+const textColorClass = computed(() => {
+  if (props.isCurrentUser) {
+    return 'text-white'
+  }
+  if (isLeader.value) {
+    return 'text-gray-100'
+  }
+  return 'text-gray-200'
 })
 
 // Check if media is an image (by type or file extension)
@@ -162,6 +172,7 @@ function openFullImage() {
           :href="getMediaUrl(message.mediaUrl)"
           target="_blank"
           class="flex items-center gap-2 px-3 py-2 text-sm hover:opacity-80"
+          :class="textColorClass"
         >
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -173,6 +184,7 @@ function openFullImage() {
         <p
           v-if="(isImage || isVideo) && message.fileName"
           class="text-xs px-2 py-1 opacity-70 truncate"
+          :class="textColorClass"
         >
           {{ message.fileName }}
         </p>
@@ -182,7 +194,7 @@ function openFullImage() {
       <p
         v-if="message.content"
         class="whitespace-pre-wrap break-words"
-        :class="message.mediaUrl ? 'px-3 py-2' : ''"
+        :class="[textColorClass, message.mediaUrl ? 'px-3 py-2' : '']"
       >
         {{ message.content }}
       </p>
