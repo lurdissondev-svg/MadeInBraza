@@ -44,7 +44,7 @@ function formatDate(isoDate: string): string {
 
 function handleLogout() {
   authStore.logout()
-  router.push('/web/login')
+  router.push('/login')
 }
 </script>
 
@@ -161,7 +161,7 @@ function handleLogout() {
           <!-- Leader actions -->
           <template v-if="authStore.isLeader">
             <router-link
-              to="/web/admin/pending"
+              to="/admin/pending"
               class="btn-secondary w-full py-3 flex items-center justify-center gap-2"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +171,7 @@ function handleLogout() {
             </router-link>
 
             <router-link
-              to="/web/admin/banned"
+              to="/admin/banned"
               class="btn-secondary w-full py-3 flex items-center justify-center gap-2"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

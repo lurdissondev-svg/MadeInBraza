@@ -19,7 +19,7 @@ onMounted(() => {
 })
 
 function handleChannelClick(channel: Channel) {
-  router.push(`/web/channels/${channel.id}`)
+  router.push(`/channels/${channel.id}`)
 }
 
 function handleShowMembers(channel: Channel) {

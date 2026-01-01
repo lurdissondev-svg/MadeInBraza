@@ -44,19 +44,19 @@ export enum ChannelType {
   PARTY = 'PARTY'
 }
 
-// Player class display names
+// Player class display names (original names without translation)
 export const PlayerClassNames: Record<PlayerClass, string> = {
-  [PlayerClass.ASSASSIN]: 'Assassino',
-  [PlayerClass.BRAWLER]: 'Brigão',
+  [PlayerClass.ASSASSIN]: 'Assassin',
+  [PlayerClass.BRAWLER]: 'Brawler',
   [PlayerClass.ATALANTA]: 'Atalanta',
-  [PlayerClass.PIKEMAN]: 'Lanceiro',
-  [PlayerClass.FIGHTER]: 'Lutador',
-  [PlayerClass.MECHANIC]: 'Mecânico',
-  [PlayerClass.KNIGHT]: 'Cavaleiro',
-  [PlayerClass.PRIESTESS]: 'Sacerdotisa',
-  [PlayerClass.SHAMAN]: 'Xamã',
-  [PlayerClass.MAGE]: 'Mago',
-  [PlayerClass.ARCHER]: 'Arqueiro'
+  [PlayerClass.PIKEMAN]: 'Pikeman',
+  [PlayerClass.FIGHTER]: 'Fighter',
+  [PlayerClass.MECHANIC]: 'Mechanic',
+  [PlayerClass.KNIGHT]: 'Knight',
+  [PlayerClass.PRIESTESS]: 'Priestess',
+  [PlayerClass.SHAMAN]: 'Shaman',
+  [PlayerClass.MAGE]: 'Mage',
+  [PlayerClass.ARCHER]: 'Archer'
 }
 
 export const PlayerClassAbbreviations: Record<PlayerClass, string> = {

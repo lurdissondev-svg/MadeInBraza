@@ -35,7 +35,7 @@ onMounted(async () => {
       startPolling()
     } else {
       // Channel not found, go back
-      router.push('/web/channels')
+      router.push('/channels')
     }
   }
 })
@@ -92,7 +92,7 @@ function handleShowMembers() {
 }
 
 function goBack() {
-  router.push('/web/channels')
+  router.push('/channels')
 }
 </script>
 

@@ -20,7 +20,7 @@ onMounted(() => {
 })
 
 function handleMemberClick(member: Member) {
-  router.push(`/web/members/${member.id}`)
+  router.push(`/members/${member.id}`)
 }
 
 async function handlePromote() {

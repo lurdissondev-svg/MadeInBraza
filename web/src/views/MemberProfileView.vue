@@ -36,7 +36,7 @@ function formatDate(isoDate: string): string {
 }
 
 function goBack() {
-  router.push('/web/members')
+  router.push('/members')
 }
 </script>
 
