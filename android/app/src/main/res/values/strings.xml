@@ -88,7 +88,7 @@
     <string name="leader_actions">AÇÕES DO LÍDER</string>
     <string name="approve_members">APROVAR MEMBROS</string>
     <string name="banned_users">BANIDOS</string>
-    <string name="siege_war">SIEGE WAR</string>
+    <string name="siege_war">SW</string>
     <string name="announcements">MURAL DE AVISOS</string>
     <string name="no_announcements">Nenhum aviso no momento</string>
     <string name="by_author">Por %1$s</string>
