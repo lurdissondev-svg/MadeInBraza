@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Production domain (HTTPS) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">braza.lurdisson.com.br</domain>
+        <domain includeSubdomains="true">lurdisson.com.br</domain>
+    </domain-config>
+
+    <!-- Development/local (HTTP allowed) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">192.168.1.6</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
