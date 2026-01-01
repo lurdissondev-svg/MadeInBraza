@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.madeinbraza.app.BuildConfig
 import com.madeinbraza.app.R
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,6 +48,13 @@ import com.madeinbraza.app.util.LanguageManager
 import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+
+private fun buildFullAvatarUrl(avatarUrl: String?): String? {
+    if (avatarUrl == null) return null
+    if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) return avatarUrl
+    val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/api/").removeSuffix("/api")
+    return "$baseUrl$avatarUrl"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -360,7 +368,7 @@ fun ProfileScreen(
                                                 )
                                             } else if (profile.avatarUrl != null) {
                                                 AsyncImage(
-                                                    model = profile.avatarUrl,
+                                                    model = buildFullAvatarUrl(profile.avatarUrl),
                                                     contentDescription = stringResource(R.string.profile_picture),
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Crop
