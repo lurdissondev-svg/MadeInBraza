@@ -20,13 +20,13 @@ export const useAuthStore = defineStore('auth', () => {
   const isBanned = computed(() => user.value?.status === UserStatus.BANNED)
 
   // Actions
-  async function login(nick: string, password: string): Promise<boolean> {
+  async function login(nick: string, password: string, stayLoggedIn: boolean = true): Promise<boolean> {
     loading.value = true
     error.value = null
 
     try {
       const response = await authApi.login({ nick, password })
-      setToken(response.token)
+      setToken(response.token, stayLoggedIn)
       user.value = response.user
       return true
     } catch (err) {

@@ -14,15 +14,20 @@ const apiClient: AxiosInstance = axios.create({
 
 // Token management
 export const getToken = (): string | null => {
-  return localStorage.getItem(TOKEN_KEY)
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY)
 }
 
-export const setToken = (token: string): void => {
-  localStorage.setItem(TOKEN_KEY, token)
+export const setToken = (token: string, persistent: boolean = true): void => {
+  if (persistent) {
+    localStorage.setItem(TOKEN_KEY, token)
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token)
+  }
 }
 
 export const removeToken = (): void => {
   localStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
 }
 
 export const hasToken = (): boolean => {

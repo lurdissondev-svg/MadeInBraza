@@ -57,8 +57,9 @@ function handleLogout() {
 <template>
   <aside class="fixed left-0 top-0 bottom-0 w-64 bg-dark-800 border-r border-dark-600 flex flex-col z-40">
     <!-- Logo -->
-    <div class="p-6 border-b border-dark-600">
-      <h1 class="text-xl font-bold text-primary-500">Made in Braza</h1>
+    <div class="p-4 border-b border-dark-600 flex items-center justify-center">
+      <img src="/braza_logo.png" alt="Made in Braza" class="w-12 h-12" />
+      <span class="ml-3 text-lg font-bold text-white">BRAZA</span>
     </div>
 
     <!-- Navigation -->
