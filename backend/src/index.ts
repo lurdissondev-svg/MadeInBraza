@@ -26,6 +26,15 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // Serve public files (privacy policy, etc.)
 app.use(express.static(path.join(process.cwd(), 'public')));
 
+// Serve Vue.js web app
+const webDistPath = path.join(process.cwd(), 'web', 'dist');
+app.use('/web', express.static(webDistPath));
+
+// SPA fallback for Vue Router history mode
+app.get('/web/*', (_req, res) => {
+  res.sendFile(path.join(webDistPath, 'index.html'));
+});
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
