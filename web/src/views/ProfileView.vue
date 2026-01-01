@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
@@ -15,6 +15,17 @@ const profileStore = useProfileStore()
 
 const showEditProfile = ref(false)
 const showChangePassword = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
+
+// Get the avatar URL with base URL prepended
+const avatarUrl = computed(() => {
+  const url = profileStore.profile?.avatarUrl || authStore.user?.avatarUrl
+  if (!url) return null
+
+  // Avatar URL is like "/uploads/avatars/uuid.ext"
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+  return `${baseUrl}${url}`
+})
 
 onMounted(() => {
   profileStore.fetchProfile()
@@ -46,6 +57,41 @@ function handleLogout() {
   authStore.logout()
   router.push('/login')
 }
+
+function triggerAvatarUpload() {
+  avatarInput.value?.click()
+}
+
+async function handleAvatarChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (file) {
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!validTypes.includes(file.type)) {
+      profileStore.error = 'Tipo de arquivo inválido. Use JPEG, PNG, WebP ou GIF.'
+      return
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      profileStore.error = 'Arquivo muito grande. Máximo 5MB.'
+      return
+    }
+
+    await profileStore.uploadAvatar(file)
+  }
+
+  // Reset input
+  target.value = ''
+}
+
+async function handleDeleteAvatar() {
+  if (confirm('Tem certeza que deseja remover sua foto de perfil?')) {
+    await profileStore.deleteAvatar()
+  }
+}
 </script>
 
 <template>
@@ -57,19 +103,65 @@ function handleLogout() {
       </div>
 
       <template v-else>
+        <!-- Hidden file input for avatar -->
+        <input
+          ref="avatarInput"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          class="hidden"
+          @change="handleAvatarChange"
+        />
+
         <!-- Profile Card -->
         <div class="card">
           <div class="flex flex-col items-center text-center">
-            <div
-              class="w-24 h-24 rounded-full flex items-center justify-center mb-4"
-              :class="authStore.isLeader ? 'bg-primary-500' : 'bg-primary-500/20'"
-            >
-              <span
-                class="text-4xl font-bold"
-                :class="authStore.isLeader ? 'text-white' : 'text-primary-400'"
+            <!-- Avatar with edit button -->
+            <div class="relative mb-4">
+              <!-- Avatar image or placeholder -->
+              <div
+                class="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden"
+                :class="avatarUrl ? '' : (authStore.isLeader ? 'bg-primary-500' : 'bg-primary-500/20')"
               >
-                {{ authStore.user?.nick?.charAt(0).toUpperCase() }}
-              </span>
+                <img
+                  v-if="avatarUrl"
+                  :src="avatarUrl"
+                  alt="Avatar"
+                  class="w-full h-full object-cover"
+                />
+                <span
+                  v-else
+                  class="text-4xl font-bold"
+                  :class="authStore.isLeader ? 'text-white' : 'text-primary-400'"
+                >
+                  {{ authStore.user?.nick?.charAt(0).toUpperCase() }}
+                </span>
+              </div>
+
+              <!-- Upload/edit button -->
+              <button
+                @click="triggerAvatarUpload"
+                :disabled="profileStore.uploadingAvatar"
+                class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary-500 hover:bg-primary-600 flex items-center justify-center transition-colors disabled:opacity-50"
+                title="Alterar foto"
+              >
+                <svg v-if="!profileStore.uploadingAvatar" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <LoadingSpinner v-else class="w-4 h-4" />
+              </button>
+
+              <!-- Delete button (only if has avatar) -->
+              <button
+                v-if="avatarUrl && !profileStore.uploadingAvatar"
+                @click="handleDeleteAvatar"
+                class="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors"
+                title="Remover foto"
+              >
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
 
             <div class="flex items-center gap-2 mb-1">

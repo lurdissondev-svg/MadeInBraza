@@ -29,6 +29,13 @@ const canBan = computed(() => props.isLeader && !isMemberLeader.value && !isSelf
 const isPromoting = computed(() => props.promotingId === props.member.id)
 const isDemoting = computed(() => props.demotingId === props.member.id)
 const isBanning = computed(() => props.banningId === props.member.id)
+
+const avatarUrl = computed(() => {
+  const url = props.member.avatarUrl
+  if (!url) return null
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+  return `${baseUrl}${url}`
+})
 </script>
 
 <template>
@@ -40,10 +47,16 @@ const isBanning = computed(() => props.banningId === props.member.id)
     <div class="flex items-center gap-3">
       <!-- Avatar -->
       <div
-        class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-        :class="isMemberLeader ? 'bg-primary-500' : 'bg-dark-500'"
+        class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden"
+        :class="avatarUrl ? '' : (isMemberLeader ? 'bg-primary-500' : 'bg-dark-500')"
       >
-        {{ member.nick.charAt(0).toUpperCase() }}
+        <img
+          v-if="avatarUrl"
+          :src="avatarUrl"
+          alt="Avatar"
+          class="w-full h-full object-cover"
+        />
+        <span v-else>{{ member.nick.charAt(0).toUpperCase() }}</span>
       </div>
 
       <!-- Info -->

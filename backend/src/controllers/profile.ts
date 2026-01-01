@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { getAvatarUrl, deleteAvatarFile } from '../middleware/upload.js';
+import fs from 'fs';
 
 export async function getProfile(
   req: Request,
@@ -16,6 +18,7 @@ export async function getProfile(
         playerClass: true,
         status: true,
         role: true,
+        avatarUrl: true,
         createdAt: true,
         _count: {
           select: {
@@ -37,6 +40,7 @@ export async function getProfile(
         playerClass: user.playerClass,
         status: user.status,
         role: user.role,
+        avatarUrl: user.avatarUrl,
         createdAt: user.createdAt,
         stats: {
           messagesCount: user._count.messages,
@@ -96,6 +100,99 @@ export async function updateProfile(
         playerClass: true,
         status: true,
         role: true,
+        avatarUrl: true,
+      },
+    });
+
+    res.json({ user: updated });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Upload avatar
+export async function uploadUserAvatar(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const file = req.file;
+
+    if (!file) {
+      throw new AppError(400, 'Arquivo de avatar é obrigatório');
+    }
+
+    // Get current user to delete old avatar if exists
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { avatarUrl: true },
+    });
+
+    // Delete old avatar file if exists
+    if (currentUser?.avatarUrl) {
+      deleteAvatarFile(currentUser.avatarUrl);
+    }
+
+    // Update user with new avatar URL
+    const avatarUrl = getAvatarUrl(file.filename);
+
+    const updated = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: { avatarUrl },
+      select: {
+        id: true,
+        nick: true,
+        playerClass: true,
+        status: true,
+        role: true,
+        avatarUrl: true,
+      },
+    });
+
+    res.json({ user: updated });
+  } catch (err) {
+    // Try to clean up file on error
+    if (req.file) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch {}
+    }
+    next(err);
+  }
+}
+
+// Delete avatar
+export async function deleteUserAvatar(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    // Get current user to delete avatar file
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { avatarUrl: true },
+    });
+
+    if (!currentUser?.avatarUrl) {
+      throw new AppError(400, 'Usuário não possui avatar');
+    }
+
+    // Delete avatar file
+    deleteAvatarFile(currentUser.avatarUrl);
+
+    // Update user to remove avatar URL
+    const updated = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: { avatarUrl: null },
+      select: {
+        id: true,
+        nick: true,
+        playerClass: true,
+        status: true,
+        role: true,
+        avatarUrl: true,
       },
     });
 

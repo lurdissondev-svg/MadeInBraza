@@ -3,10 +3,12 @@ package com.madeinbraza.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.Announcement
+import com.madeinbraza.app.data.model.Event
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.data.model.User
 import com.madeinbraza.app.data.repository.AnnouncementsRepository
 import com.madeinbraza.app.data.repository.AuthRepository
+import com.madeinbraza.app.data.repository.EventsRepository
 import com.madeinbraza.app.data.repository.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,20 +21,25 @@ import javax.inject.Inject
 data class HomeUiState(
     val user: User? = null,
     val announcements: List<Announcement> = emptyList(),
+    val events: List<Event> = emptyList(),
     val isLoadingAnnouncements: Boolean = false,
+    val isLoadingEvents: Boolean = false,
     val isRefreshing: Boolean = false,
     val showCreateDialog: Boolean = false,
     val isCreating: Boolean = false,
     val isDeleting: String? = null,
+    val joiningEventId: String? = null,
     val error: String? = null
 ) {
     val isLeader: Boolean get() = user?.role == Role.LEADER
+    val upcomingEvents: List<Event> get() = events.take(3)
 }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val announcementsRepository: AnnouncementsRepository
+    private val announcementsRepository: AnnouncementsRepository,
+    private val eventsRepository: EventsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -41,6 +48,7 @@ class HomeViewModel @Inject constructor(
     init {
         loadUser()
         loadAnnouncements()
+        loadEvents()
     }
 
     private fun loadUser() {
@@ -77,16 +85,74 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            when (val result = announcementsRepository.getAnnouncements()) {
+
+            // Load both announcements and events in parallel
+            val announcementsResult = announcementsRepository.getAnnouncements()
+            val eventsResult = eventsRepository.getEvents()
+
+            _uiState.update { state ->
+                state.copy(
+                    announcements = if (announcementsResult is Result.Success) announcementsResult.data else state.announcements,
+                    events = if (eventsResult is Result.Success) eventsResult.data else state.events,
+                    isRefreshing = false,
+                    error = when {
+                        announcementsResult is Result.Error -> announcementsResult.message
+                        eventsResult is Result.Error -> eventsResult.message
+                        else -> null
+                    }
+                )
+            }
+        }
+    }
+
+    private fun loadEvents() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingEvents = true) }
+            when (val result = eventsRepository.getEvents()) {
                 is Result.Success -> {
                     _uiState.update { it.copy(
-                        announcements = result.data,
-                        isRefreshing = false
+                        events = result.data,
+                        isLoadingEvents = false
                     ) }
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(
-                        isRefreshing = false,
+                        isLoadingEvents = false
+                    ) }
+                }
+            }
+        }
+    }
+
+    fun joinEvent(eventId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(joiningEventId = eventId) }
+            when (val result = eventsRepository.joinEvent(eventId)) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(joiningEventId = null) }
+                    loadEvents()
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(
+                        joiningEventId = null,
+                        error = result.message
+                    ) }
+                }
+            }
+        }
+    }
+
+    fun leaveEvent(eventId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(joiningEventId = eventId) }
+            when (val result = eventsRepository.leaveEvent(eventId)) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(joiningEventId = null) }
+                    loadEvents()
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(
+                        joiningEventId = null,
                         error = result.message
                     ) }
                 }

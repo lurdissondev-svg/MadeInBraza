@@ -32,8 +32,40 @@ const formattedDate = computed(() => {
   })
 })
 
+// Check if media is an image (by type or file extension)
+const isImage = computed(() => {
+  if (!props.announcement.mediaUrl) return false
+
+  // Check by mediaType
+  if (props.announcement.mediaType?.startsWith('image/')) return true
+
+  // Check by file extension as fallback
+  const url = props.announcement.mediaUrl.toLowerCase()
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+  return imageExtensions.some(ext => url.includes(ext))
+})
+
+// Check if media is a video (by type or file extension)
+const isVideo = computed(() => {
+  if (!props.announcement.mediaUrl) return false
+
+  // Check by mediaType
+  if (props.announcement.mediaType?.startsWith('video/')) return true
+
+  // Check by file extension as fallback
+  const url = props.announcement.mediaUrl.toLowerCase()
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi']
+  return videoExtensions.some(ext => url.includes(ext))
+})
+
 function handleDelete() {
   emit('delete', props.announcement.id)
+}
+
+function openMedia() {
+  if (props.announcement.mediaUrl) {
+    window.open(props.announcement.mediaUrl, '_blank')
+  }
 }
 </script>
 
@@ -65,20 +97,24 @@ function handleDelete() {
         <!-- Content -->
         <p class="text-gray-400 text-sm whitespace-pre-wrap">{{ announcement.content }}</p>
 
-        <!-- Media -->
+        <!-- Media Preview -->
         <div v-if="announcement.mediaUrl" class="mt-3">
+          <!-- Image Preview (including GIF) -->
           <img
-            v-if="announcement.mediaType?.startsWith('image/')"
+            v-if="isImage"
             :src="announcement.mediaUrl"
             :alt="announcement.title"
-            class="rounded-lg max-h-48 object-cover"
+            class="rounded-lg max-w-full max-h-64 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+            @click="openMedia"
           />
+          <!-- Video Preview -->
           <video
-            v-else-if="announcement.mediaType?.startsWith('video/')"
+            v-else-if="isVideo"
             :src="announcement.mediaUrl"
             controls
-            class="rounded-lg max-h-48 w-full"
+            class="rounded-lg max-h-64 w-full"
           />
+          <!-- Other files (documents, etc.) -->
           <a
             v-else
             :href="announcement.mediaUrl"

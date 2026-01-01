@@ -18,7 +18,8 @@ data class User(
     val nick: String,
     val playerClass: PlayerClass,
     val status: UserStatus,
-    val role: Role
+    val role: Role,
+    val avatarUrl: String? = null
 )
 
 data class AuthResponse(
@@ -69,7 +70,8 @@ data class MessageUser(
     val id: String,
     val nick: String,
     val playerClass: PlayerClass,
-    val role: Role
+    val role: Role,
+    val avatarUrl: String? = null
 )
 
 data class ChatMessage(
@@ -147,7 +149,8 @@ data class Member(
     val nick: String,
     val playerClass: PlayerClass,
     val role: Role,
-    val createdAt: String
+    val createdAt: String,
+    val avatarUrl: String? = null
 )
 
 data class MembersResponse(
@@ -167,7 +170,8 @@ data class Profile(
     val status: UserStatus,
     val role: Role,
     val createdAt: String,
-    val stats: ProfileStats
+    val stats: ProfileStats,
+    val avatarUrl: String? = null
 )
 
 data class ProfileResponse(
@@ -180,6 +184,16 @@ data class UpdateProfileRequest(
 )
 
 data class UpdateProfileResponse(
+    val user: User
+)
+
+data class AvatarUploadResponse(
+    val avatarUrl: String,
+    val user: User
+)
+
+data class AvatarDeleteResponse(
+    val message: String,
     val user: User
 )
 
@@ -203,7 +217,8 @@ data class MemberProfile(
     val role: Role,
     val status: UserStatus,
     val createdAt: String,
-    val approvedAt: String?
+    val approvedAt: String?,
+    val avatarUrl: String? = null
 )
 
 data class MemberProfileResponse(

@@ -1,5 +1,6 @@
 package com.madeinbraza.app.ui.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.PlayerClass
@@ -22,7 +23,10 @@ data class ProfileUiState(
     val updateSuccess: Boolean = false,
     val showPasswordDialog: Boolean = false,
     val isChangingPassword: Boolean = false,
-    val passwordChangeSuccess: Boolean = false
+    val passwordChangeSuccess: Boolean = false,
+    val isUploadingAvatar: Boolean = false,
+    val isDeletingAvatar: Boolean = false,
+    val avatarSuccess: Boolean = false
 )
 
 @HiltViewModel
@@ -119,5 +123,51 @@ class ProfileViewModel @Inject constructor(
 
     fun clearPasswordChangeSuccess() {
         _uiState.value = _uiState.value.copy(passwordChangeSuccess = false)
+    }
+
+    fun uploadAvatar(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUploadingAvatar = true, error = null, avatarSuccess = false)
+            when (val result = repository.uploadAvatar(uri)) {
+                is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingAvatar = false,
+                        avatarSuccess = true
+                    )
+                    loadProfile()
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        error = result.message,
+                        isUploadingAvatar = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun deleteAvatar() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDeletingAvatar = true, error = null, avatarSuccess = false)
+            when (val result = repository.deleteAvatar()) {
+                is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isDeletingAvatar = false,
+                        avatarSuccess = true
+                    )
+                    loadProfile()
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        error = result.message,
+                        isDeletingAvatar = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearAvatarSuccess() {
+        _uiState.value = _uiState.value.copy(avatarSuccess = false)
     }
 }

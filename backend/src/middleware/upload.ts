@@ -71,3 +71,73 @@ export function getMediaType(mimetype: string): 'image' | 'video' {
 export function getMediaUrl(channelId: string, filename: string): string {
   return `/uploads/channels/${channelId}/${filename}`;
 }
+
+// === Avatar Upload ===
+
+// Pasta para avatars
+const AVATARS_DIR = path.join(process.cwd(), 'uploads', 'avatars');
+
+// Garantir que a pasta existe
+if (!fs.existsSync(AVATARS_DIR)) {
+  fs.mkdirSync(AVATARS_DIR, { recursive: true });
+}
+
+// Tipos permitidos para avatar (imagens incluindo GIF)
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5MB para avatares
+
+// Configuração do storage para avatares
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, AVATARS_DIR);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const uniqueName = `${uuidv4()}${ext}`;
+    cb(null, uniqueName);
+  }
+});
+
+// Filtro de arquivos para avatares
+const avatarFileFilter = (
+  _req: Express.Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  if (ALLOWED_AVATAR_TYPES.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new AppError(400, 'Tipo de arquivo não permitido. Use imagens (JPEG, PNG, WebP, GIF).'));
+  }
+};
+
+// Middleware de upload de avatar
+export const uploadAvatar = multer({
+  storage: avatarStorage,
+  fileFilter: avatarFileFilter,
+  limits: {
+    fileSize: MAX_AVATAR_SIZE
+  }
+}).single('avatar');
+
+// Helper para construir URL do avatar
+export function getAvatarUrl(filename: string): string {
+  return `/uploads/avatars/${filename}`;
+}
+
+// Helper para deletar arquivo de avatar antigo
+export function deleteAvatarFile(avatarUrl: string | null): void {
+  if (!avatarUrl) return;
+
+  try {
+    // avatarUrl é como "/uploads/avatars/uuid.ext"
+    const filename = path.basename(avatarUrl);
+    const filePath = path.join(AVATARS_DIR, filename);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (error) {
+    console.error('Error deleting avatar file:', error);
+  }
+}

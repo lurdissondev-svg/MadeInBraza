@@ -2,6 +2,8 @@ package com.madeinbraza.app.data.api
 
 import com.madeinbraza.app.data.model.ApproveUserResponse
 import com.madeinbraza.app.data.model.AuthResponse
+import com.madeinbraza.app.data.model.AvatarDeleteResponse
+import com.madeinbraza.app.data.model.AvatarUploadResponse
 import com.madeinbraza.app.data.model.AvailableSharesResponse
 import com.madeinbraza.app.data.model.BannedUsersResponse
 import com.madeinbraza.app.data.model.CreateEventRequest
@@ -189,6 +191,18 @@ interface BrazaApi {
         @Header("Authorization") token: String,
         @Body request: UpdateProfileRequest
     ): Response<UpdateProfileResponse>
+
+    @Multipart
+    @POST("profile/avatar")
+    suspend fun uploadAvatar(
+        @Header("Authorization") token: String,
+        @Part avatar: MultipartBody.Part
+    ): Response<AvatarUploadResponse>
+
+    @DELETE("profile/avatar")
+    suspend fun deleteAvatar(
+        @Header("Authorization") token: String
+    ): Response<AvatarDeleteResponse>
 
     // Party endpoints
     @GET("parties")

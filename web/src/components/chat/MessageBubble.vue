@@ -10,6 +10,13 @@ const props = defineProps<{
 
 const isLeader = computed(() => props.message.user.role === Role.LEADER)
 
+const avatarUrl = computed(() => {
+  const url = props.message.user.avatarUrl
+  if (!url) return null
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+  return `${baseUrl}${url}`
+})
+
 const bubbleClasses = computed(() => {
   if (props.isCurrentUser) {
     return 'bg-primary-500 text-white'
@@ -18,6 +25,36 @@ const bubbleClasses = computed(() => {
     return 'bg-primary-500/20 text-gray-100'
   }
   return 'bg-dark-600 text-gray-200'
+})
+
+// Check if media is an image (by type or file extension)
+const isImage = computed(() => {
+  if (!props.message.mediaUrl) return false
+
+  // Check by mediaType
+  if (props.message.mediaType === 'image') return true
+  if (props.message.mediaType?.startsWith('image/')) return true
+
+  // Check by file extension as fallback
+  const url = props.message.mediaUrl.toLowerCase()
+  const fileName = props.message.fileName?.toLowerCase() || ''
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+  return imageExtensions.some(ext => url.includes(ext) || fileName.endsWith(ext))
+})
+
+// Check if media is a video (by type or file extension)
+const isVideo = computed(() => {
+  if (!props.message.mediaUrl) return false
+
+  // Check by mediaType
+  if (props.message.mediaType === 'video') return true
+  if (props.message.mediaType?.startsWith('video/')) return true
+
+  // Check by file extension as fallback
+  const url = props.message.mediaUrl.toLowerCase()
+  const fileName = props.message.fileName?.toLowerCase() || ''
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi']
+  return videoExtensions.some(ext => url.includes(ext) || fileName.endsWith(ext))
 })
 
 function formatTime(isoDate: string): string {
@@ -35,34 +72,59 @@ function getMediaUrl(mediaUrl: string): string {
   const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
   return `${baseUrl}${mediaUrl}`
 }
+
+function openFullImage() {
+  if (props.message.mediaUrl) {
+    window.open(getMediaUrl(props.message.mediaUrl), '_blank')
+  }
+}
 </script>
 
 <template>
   <div
-    class="flex flex-col"
-    :class="isCurrentUser ? 'items-end' : 'items-start'"
+    class="flex gap-2"
+    :class="isCurrentUser ? 'flex-row-reverse' : 'flex-row'"
   >
-    <!-- Header (nick, leader tag, time) -->
-    <div class="flex items-center gap-2 px-1 mb-1">
-      <span
-        v-if="!isCurrentUser"
-        class="text-sm font-semibold"
-        :class="isLeader ? 'text-primary-400' : 'text-gray-300'"
+    <!-- Avatar (only for other users) -->
+    <div v-if="!isCurrentUser" class="flex-shrink-0">
+      <div
+        class="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
+        :class="avatarUrl ? '' : (isLeader ? 'bg-primary-500' : 'bg-dark-500')"
       >
-        {{ message.user.nick }}
-      </span>
-      <span
-        v-if="!isCurrentUser && isLeader"
-        class="text-xs text-primary-400"
-      >
-        [LIDER]
-      </span>
-      <span class="text-xs text-gray-500">
-        {{ formatTime(message.createdAt) }}
-      </span>
+        <img
+          v-if="avatarUrl"
+          :src="avatarUrl"
+          alt="Avatar"
+          class="w-full h-full object-cover"
+        />
+        <span v-else class="text-sm font-bold text-white">
+          {{ message.user.nick.charAt(0).toUpperCase() }}
+        </span>
+      </div>
     </div>
 
-    <!-- Message bubble -->
+    <div class="flex flex-col" :class="isCurrentUser ? 'items-end' : 'items-start'">
+      <!-- Header (nick, leader tag, time) -->
+      <div class="flex items-center gap-2 px-1 mb-1">
+        <span
+          v-if="!isCurrentUser"
+          class="text-sm font-semibold"
+          :class="isLeader ? 'text-primary-400' : 'text-gray-300'"
+        >
+          {{ message.user.nick }}
+        </span>
+        <span
+          v-if="!isCurrentUser && isLeader"
+          class="text-xs text-primary-400"
+        >
+          [LIDER]
+        </span>
+        <span class="text-xs text-gray-500">
+          {{ formatTime(message.createdAt) }}
+        </span>
+      </div>
+
+      <!-- Message bubble -->
     <div
       class="max-w-[280px] rounded-2xl overflow-hidden"
       :class="[
@@ -73,16 +135,18 @@ function getMediaUrl(mediaUrl: string): string {
     >
       <!-- Media content -->
       <template v-if="message.mediaUrl">
-        <div v-if="message.mediaType === 'image'" class="rounded-xl overflow-hidden">
+        <!-- Image (including GIF) -->
+        <div v-if="isImage" class="rounded-xl overflow-hidden cursor-pointer" @click="openFullImage">
           <img
             :src="getMediaUrl(message.mediaUrl)"
             :alt="message.fileName || 'Imagem'"
-            class="max-h-72 w-full object-contain bg-dark-700"
+            class="max-h-72 w-full object-contain bg-dark-700 hover:opacity-90 transition-opacity"
           />
         </div>
 
+        <!-- Video -->
         <div
-          v-else-if="message.mediaType === 'video'"
+          v-else-if="isVideo"
           class="relative rounded-xl overflow-hidden bg-dark-700"
         >
           <video
@@ -92,9 +156,22 @@ function getMediaUrl(mediaUrl: string): string {
           />
         </div>
 
-        <!-- File name -->
+        <!-- Other file types -->
+        <a
+          v-else
+          :href="getMediaUrl(message.mediaUrl)"
+          target="_blank"
+          class="flex items-center gap-2 px-3 py-2 text-sm hover:opacity-80"
+        >
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span class="truncate">{{ message.fileName || 'Arquivo' }}</span>
+        </a>
+
+        <!-- File name for images/videos -->
         <p
-          v-if="message.fileName"
+          v-if="(isImage || isVideo) && message.fileName"
           class="text-xs px-2 py-1 opacity-70 truncate"
         >
           {{ message.fileName }}
@@ -109,6 +186,7 @@ function getMediaUrl(mediaUrl: string): string {
       >
         {{ message.content }}
       </p>
+    </div>
     </div>
   </div>
 </template>

@@ -80,8 +80,17 @@
     <string name="password_min_length">A nova senha deve ter no mínimo 6 caracteres</string>
     <string name="passwords_dont_match">As senhas não conferem</string>
 
+    <!-- Avatar -->
+    <string name="profile_picture">Foto de perfil</string>
+    <string name="change_avatar">Alterar foto</string>
+    <string name="delete_avatar">Remover foto</string>
+    <string name="delete_avatar_title">Remover foto de perfil</string>
+    <string name="delete_avatar_message">Tem certeza que deseja remover sua foto de perfil?</string>
+    <string name="avatar_updated">Foto de perfil atualizada!</string>
+
     <!-- Home Screen -->
     <string name="welcome">Bem-vindo, %1$s!</string>
+    <string name="view_all">Ver todos</string>
     <string name="class_info">Classe: %1$s</string>
     <string name="role_info">Cargo: %1$s</string>
     <string name="leader_panel">Painel do Líder</string>

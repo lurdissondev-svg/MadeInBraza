@@ -1,9 +1,13 @@
 import apiClient from './client'
-import type { Profile, ProfileResponse, UpdateProfileRequest } from '@/types'
+import type { Profile, ProfileResponse, UpdateProfileRequest, User } from '@/types'
 
 interface ChangePasswordRequest {
   currentPassword: string
   newPassword: string
+}
+
+interface UserResponse {
+  user: User
 }
 
 export const profileApi = {
@@ -23,5 +27,24 @@ export const profileApi = {
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     const request: ChangePasswordRequest = { currentPassword, newPassword }
     await apiClient.put('/auth/change-password', request)
+  },
+
+  // Upload avatar
+  async uploadAvatar(file: File): Promise<User> {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    const response = await apiClient.post<UserResponse>('/profile/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    return response.data.user
+  },
+
+  // Delete avatar
+  async deleteAvatar(): Promise<User> {
+    const response = await apiClient.delete<UserResponse>('/profile/avatar')
+    return response.data.user
   }
 }

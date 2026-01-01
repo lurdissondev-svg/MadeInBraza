@@ -9,6 +9,7 @@ export const useProfileStore = defineStore('profile', () => {
   const profile = ref<Profile | null>(null)
   const loading = ref(false)
   const updating = ref(false)
+  const uploadingAvatar = ref(false)
   const changingPassword = ref(false)
   const error = ref<string | null>(null)
   const successMessage = ref<string | null>(null)
@@ -70,6 +71,64 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
+  async function uploadAvatar(file: File): Promise<boolean> {
+    uploadingAvatar.value = true
+    error.value = null
+    try {
+      const user = await profileApi.uploadAvatar(file)
+
+      // Update profile avatarUrl
+      if (profile.value) {
+        profile.value.avatarUrl = user.avatarUrl
+      }
+
+      // Also update auth store user data
+      const authStore = useAuthStore()
+      if (authStore.user) {
+        authStore.user.avatarUrl = user.avatarUrl
+      }
+
+      successMessage.value = 'Foto de perfil atualizada!'
+      return true
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      error.value = err.response?.data?.message || 'Erro ao atualizar foto de perfil'
+      console.error('Error uploading avatar:', e)
+      return false
+    } finally {
+      uploadingAvatar.value = false
+    }
+  }
+
+  async function deleteAvatar(): Promise<boolean> {
+    uploadingAvatar.value = true
+    error.value = null
+    try {
+      await profileApi.deleteAvatar()
+
+      // Update profile avatarUrl
+      if (profile.value) {
+        profile.value.avatarUrl = null
+      }
+
+      // Also update auth store user data
+      const authStore = useAuthStore()
+      if (authStore.user) {
+        authStore.user.avatarUrl = null
+      }
+
+      successMessage.value = 'Foto de perfil removida!'
+      return true
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      error.value = err.response?.data?.message || 'Erro ao remover foto de perfil'
+      console.error('Error deleting avatar:', e)
+      return false
+    } finally {
+      uploadingAvatar.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -83,6 +142,7 @@ export const useProfileStore = defineStore('profile', () => {
     profile,
     loading,
     updating,
+    uploadingAvatar,
     changingPassword,
     error,
     successMessage,
@@ -90,6 +150,8 @@ export const useProfileStore = defineStore('profile', () => {
     // Actions
     fetchProfile,
     updateProfile,
+    uploadAvatar,
+    deleteAvatar,
     changePassword,
     clearError,
     clearSuccessMessage

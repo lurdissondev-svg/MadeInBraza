@@ -97,7 +97,7 @@ export async function getChannelMessages(req: Request, res: Response): Promise<v
       },
       include: {
         user: {
-          select: { id: true, nick: true, playerClass: true, role: true },
+          select: { id: true, nick: true, playerClass: true, role: true, avatarUrl: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -163,7 +163,7 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
       },
       include: {
         user: {
-          select: { id: true, nick: true, playerClass: true, role: true },
+          select: { id: true, nick: true, playerClass: true, role: true, avatarUrl: true },
         },
       },
     });
@@ -238,7 +238,7 @@ export async function sendMediaMessage(req: Request, res: Response): Promise<voi
       },
       include: {
         user: {
-          select: { id: true, nick: true, playerClass: true, role: true },
+          select: { id: true, nick: true, playerClass: true, role: true, avatarUrl: true },
         },
       },
     });

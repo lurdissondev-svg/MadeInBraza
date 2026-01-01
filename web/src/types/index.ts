@@ -80,6 +80,7 @@ export interface User {
   playerClass: PlayerClass
   status: UserStatus
   role: Role
+  avatarUrl: string | null
 }
 
 export interface AuthResponse {
@@ -136,6 +137,7 @@ export interface Member {
   nick: string
   playerClass: PlayerClass
   role: Role
+  avatarUrl: string | null
   createdAt: string
 }
 
@@ -149,6 +151,7 @@ export interface MemberProfile {
   playerClass: PlayerClass
   role: Role
   status: UserStatus
+  avatarUrl: string | null
   createdAt: string
   approvedAt: string | null
 }
@@ -169,6 +172,7 @@ export interface Profile {
   playerClass: PlayerClass
   status: UserStatus
   role: Role
+  avatarUrl: string | null
   createdAt: string
   stats: ProfileStats
 }
@@ -188,6 +192,7 @@ export interface MessageUser {
   nick: string
   playerClass: PlayerClass
   role: Role
+  avatarUrl: string | null
 }
 
 export interface ChatMessage {

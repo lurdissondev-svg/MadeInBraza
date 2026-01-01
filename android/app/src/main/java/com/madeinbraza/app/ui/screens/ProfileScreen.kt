@@ -6,22 +6,31 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.*
+import coil.compose.AsyncImage
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +87,16 @@ fun ProfileScreen(
         notificationsEnabled = isGranted
     }
 
+    // Photo picker launcher
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { viewModel.uploadAvatar(it) }
+    }
+
+    // Delete avatar confirmation dialog state
+    var showDeleteAvatarDialog by remember { mutableStateOf(false) }
+
     // Refresh notification state when screen resumes
     LaunchedEffect(Unit) {
         notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
@@ -118,6 +137,42 @@ fun ProfileScreen(
             snackbarHostState.showSnackbar(passwordChangedMsg)
             viewModel.clearPasswordChangeSuccess()
         }
+    }
+
+    val avatarUpdatedMsg = stringResource(R.string.avatar_updated)
+
+    LaunchedEffect(uiState.avatarSuccess) {
+        if (uiState.avatarSuccess) {
+            snackbarHostState.showSnackbar(avatarUpdatedMsg)
+            viewModel.clearAvatarSuccess()
+        }
+    }
+
+    // Delete avatar confirmation dialog
+    if (showDeleteAvatarDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAvatarDialog = false },
+            title = { Text(stringResource(R.string.delete_avatar_title)) },
+            text = { Text(stringResource(R.string.delete_avatar_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteAvatar()
+                        showDeleteAvatarDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAvatarDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -272,6 +327,99 @@ fun ProfileScreen(
                                     // View mode
                                     val leaderText = stringResource(R.string.leader)
                                     val memberText = stringResource(R.string.member)
+
+                                    // Avatar section
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.CenterHorizontally)
+                                            .padding(bottom = 16.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(100.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                                .border(
+                                                    width = 2.dp,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    shape = CircleShape
+                                                )
+                                                .clickable(
+                                                    enabled = !uiState.isUploadingAvatar && !uiState.isDeletingAvatar
+                                                ) {
+                                                    photoPickerLauncher.launch(
+                                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                    )
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (uiState.isUploadingAvatar || uiState.isDeletingAvatar) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(40.dp),
+                                                    strokeWidth = 3.dp
+                                                )
+                                            } else if (profile.avatarUrl != null) {
+                                                AsyncImage(
+                                                    model = profile.avatarUrl,
+                                                    contentDescription = stringResource(R.string.profile_picture),
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Icon(
+                                                    Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(48.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+
+                                        // Camera icon overlay
+                                        if (!uiState.isUploadingAvatar && !uiState.isDeletingAvatar) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary)
+                                                    .clickable {
+                                                        photoPickerLauncher.launch(
+                                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                        )
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Edit,
+                                                    contentDescription = stringResource(R.string.change_avatar),
+                                                    modifier = Modifier.size(18.dp),
+                                                    tint = MaterialTheme.colorScheme.onPrimary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Delete avatar button
+                                    if (profile.avatarUrl != null && !uiState.isUploadingAvatar && !uiState.isDeletingAvatar) {
+                                        TextButton(
+                                            onClick = { showDeleteAvatarDialog = true },
+                                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                                            colors = ButtonDefaults.textButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error
+                                            )
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(stringResource(R.string.delete_avatar))
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
 
                                     Text(
                                         text = profile.nick,

@@ -98,3 +98,28 @@ MadeInBraza/
 - [ ] Update Web API calls
 - [ ] Update types/models on both sides
 - [ ] Test both platforms
+
+## Feature-Specific Notes
+
+### Profile Pictures (Avatar)
+
+Users can upload profile pictures (including GIFs):
+- **Max file size**: 5MB
+- **Allowed types**: JPEG, PNG, WebP, GIF
+- **Storage**: `/uploads/avatars/{uuid}.{ext}`
+- **API endpoints**:
+  - `POST /api/profile/avatar` - Upload avatar (multipart/form-data, field: `avatar`)
+  - `DELETE /api/profile/avatar` - Delete avatar
+- **Database**: `User.avatarUrl` field (nullable String)
+- **Display**: Show avatar in Profile, Chat messages, Member lists
+- **Fallback**: Show first letter of nick with background color (primary for leaders, gray for members)
+
+### Media in Chat/Announcements
+
+Images should be displayed inline, not as "Ver arquivo" links:
+- Check `mediaType` or file extension to determine if it's an image
+- Image types: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`, `.svg`
+- Video types: `.mp4`, `.webm`, `.ogg`, `.mov`, `.avi`
+- Display images with `<img>` tag directly in the UI
+- Display videos with `<video>` controls
+- Only show "Ver arquivo" for other file types (PDFs, docs, etc.)

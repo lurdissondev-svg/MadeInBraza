@@ -15,6 +15,7 @@ export async function getMembers(
         nick: true,
         playerClass: true,
         role: true,
+        avatarUrl: true,
         createdAt: true,
       },
       orderBy: [
@@ -297,6 +298,7 @@ export async function getUserProfile(
         playerClass: true,
         role: true,
         status: true,
+        avatarUrl: true,
         createdAt: true,
         approvedAt: true,
       },

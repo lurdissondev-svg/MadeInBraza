@@ -1,5 +1,6 @@
 package com.madeinbraza.app.di
 
+import android.content.ContentResolver
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -7,6 +8,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.madeinbraza.app.BuildConfig
 import com.madeinbraza.app.data.api.BrazaApi
 import com.madeinbraza.app.data.repository.AuthRepository
+import com.madeinbraza.app.data.repository.ProfileRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -63,5 +65,21 @@ object AppModule {
         dataStore: DataStore<Preferences>
     ): AuthRepository {
         return AuthRepository(api, dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver {
+        return context.contentResolver
+    }
+
+    @Provides
+    @Singleton
+    fun provideProfileRepository(
+        api: BrazaApi,
+        dataStore: DataStore<Preferences>,
+        contentResolver: ContentResolver
+    ): ProfileRepository {
+        return ProfileRepository(api, dataStore, contentResolver)
     }
 }
