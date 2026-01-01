@@ -4,30 +4,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* Custom Theme Configuration for Tailwind CSS v4 */
+/* Tema identico ao app Android - Primary = Branco, Background = Preto */
 @theme {
-  /* Primary Colors (Yellow/Gold) */
-  --color-primary-50: #fef3e2;
-  --color-primary-100: #fde4b9;
-  --color-primary-200: #fcd48b;
-  --color-primary-300: #fbc35d;
-  --color-primary-400: #fab639;
-  --color-primary-500: #f9a825;
-  --color-primary-600: #f59100;
-  --color-primary-700: #ef7a00;
-  --color-primary-800: #e86400;
-  --color-primary-900: #dd4200;
+  /* Primary Colors (Branco - igual Android) */
+  --color-primary-50: #ffffff;
+  --color-primary-100: #fafafa;
+  --color-primary-200: #f5f5f5;
+  --color-primary-300: #e0e0e0;
+  --color-primary-400: #ffffff;
+  --color-primary-500: #ffffff;
+  --color-primary-600: #e0e0e0;
+  --color-primary-700: #bdbdbd;
+  --color-primary-800: #9e9e9e;
+  --color-primary-900: #757575;
 
-  /* Dark Colors */
-  --color-dark-50: #f5f5f5;
-  --color-dark-100: #e0e0e0;
-  --color-dark-200: #bdbdbd;
-  --color-dark-300: #9e9e9e;
-  --color-dark-400: #757575;
-  --color-dark-500: #424242;
-  --color-dark-600: #303030;
-  --color-dark-700: #212121;
-  --color-dark-800: #1a1a1a;
-  --color-dark-900: #121212;
+  /* Dark Colors (igual Android) */
+  --color-dark-50: #424242;
+  --color-dark-100: #373737;
+  --color-dark-200: #2c2c2c;
+  --color-dark-300: #242424;
+  --color-dark-400: #1e1e1e;
+  --color-dark-500: #181818;
+  --color-dark-600: #141414;
+  --color-dark-700: #121212;
+  --color-dark-800: #0a0a0a;
+  --color-dark-900: #000000;
+
+  /* Accent Colors (Azul para acentos secundarios) */
+  --color-accent-500: #2196f3;
 
   /* Font Family */
   --font-sans: 'Inter', system-ui, sans-serif;
@@ -39,8 +43,8 @@ html {
 }
 
 body {
-  background-color: var(--color-dark-900);
-  color: #f3f4f6;
+  background-color: #000000;
+  color: #ffffff;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -175,8 +179,8 @@ body {
 }
 
 .badge-primary {
-  background-color: rgba(249, 168, 37, 0.2);
-  color: var(--color-primary-400);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-primary-500);
 }
 
 .badge-success {
