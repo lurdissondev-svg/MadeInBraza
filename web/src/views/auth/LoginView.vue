@@ -23,7 +23,8 @@ async function handleLogin() {
 
   if (success) {
     const redirect = route.query.redirect as string
-    router.push(redirect || '/')
+    // Use replace to avoid back button returning to login
+    await router.replace(redirect || '/')
   }
 }
 
