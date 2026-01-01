@@ -462,15 +462,10 @@ data class Announcement(
     val mediaType: String? = null
 ) {
     // Retorna o autor (seja do app ou do WhatsApp)
-    // Se for um número de telefone (só dígitos), mostra "WhatsApp" em vez do número
     val authorName: String
         get() {
             createdBy?.nick?.let { return it }
-
-            val author = whatsappAuthor ?: return "Desconhecido"
-
-            // Se o autor é um número de telefone (apenas dígitos), mostra "WhatsApp"
-            return if (author.all { it.isDigit() }) "WhatsApp" else author
+            return whatsappAuthor ?: "Desconhecido"
         }
 
     // Indica se é uma mensagem do WhatsApp
