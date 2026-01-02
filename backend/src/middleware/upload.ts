@@ -149,7 +149,7 @@ export function deleteAvatarFile(avatarUrl: string | null): void {
 // === GIF Compression (like Discord) ===
 
 // Max dimensions for avatar GIFs (Discord uses 128x128 for animated)
-const MAX_AVATAR_DIMENSION = 256;
+const MAX_AVATAR_DIMENSION = 128;
 // Target file size in bytes (2MB like Discord)
 const TARGET_GIF_SIZE = 2 * 1024 * 1024;
 
@@ -179,14 +179,14 @@ export async function optimizeGif(filePath: string): Promise<void> {
     // Use system gifsicle (installed via apk in Docker)
     // Optimization flags:
     // --optimize=3: Maximum optimization
-    // --lossy=80: Lossy compression (Discord-like quality)
+    // --lossy=200: Aggressive lossy compression (Discord-like quality)
     // --resize-fit: Resize to max dimension while keeping aspect ratio
-    // --colors=256: Reduce color palette if needed
+    // --colors=128: Reduce color palette for smaller size
     await execFileAsync('gifsicle', [
       '--optimize=3',
-      '--lossy=80',
+      '--lossy=200',
       `--resize-fit=${MAX_AVATAR_DIMENSION}x${MAX_AVATAR_DIMENSION}`,
-      '--colors=256',
+      '--colors=128',
       '-o', tempPath,
       filePath
     ]);
