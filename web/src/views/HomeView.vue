@@ -7,6 +7,7 @@ import { PlayerClassNames } from '@/types'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import AnnouncementCard from '@/components/announcements/AnnouncementCard.vue'
 import CreateAnnouncementModal from '@/components/announcements/CreateAnnouncementModal.vue'
+import CreateEventModal from '@/components/events/CreateEventModal.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const authStore = useAuthStore()
@@ -14,6 +15,7 @@ const announcementsStore = useAnnouncementsStore()
 const eventsStore = useEventsStore()
 
 const showCreateModal = ref(false)
+const showCreateEventModal = ref(false)
 const activeTab = ref<'avisos' | 'eventos'>('avisos')
 
 const userClassName = computed(() => {
@@ -164,7 +166,7 @@ async function toggleParticipation(eventId: string) {
               <button
                 v-if="authStore.isLeader"
                 @click="showCreateModal = true"
-                class="px-4 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
+                class="px-4 py-2 bg-[#9c27b0] text-black font-semibold rounded-lg hover:bg-[#7b1fa2] transition-colors flex items-center gap-2"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -211,21 +213,33 @@ async function toggleParticipation(eventId: string) {
         <div v-else-if="activeTab === 'eventos'">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-white">Eventos</h3>
-            <button
-              @click="handleRefresh"
-              class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-600 transition-colors"
-              :disabled="eventsStore.loading"
-            >
-              <svg
-                class="w-5 h-5"
-                :class="{ 'animate-spin': eventsStore.loading }"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div class="flex items-center gap-2">
+              <button
+                @click="handleRefresh"
+                class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-600 transition-colors"
+                :disabled="eventsStore.loading"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+                <svg
+                  class="w-5 h-5"
+                  :class="{ 'animate-spin': eventsStore.loading }"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+              <button
+                v-if="authStore.isLeader"
+                @click="showCreateEventModal = true"
+                class="px-4 py-2 bg-[#9c27b0] text-black font-semibold rounded-lg hover:bg-[#7b1fa2] transition-colors flex items-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Novo
+              </button>
+            </div>
           </div>
 
           <!-- Loading -->
@@ -320,6 +334,11 @@ async function toggleParticipation(eventId: string) {
     <!-- Create Announcement Modal -->
     <CreateAnnouncementModal
       v-model:show="showCreateModal"
+    />
+
+    <!-- Create Event Modal -->
+    <CreateEventModal
+      v-model:show="showCreateEventModal"
     />
   </MainLayout>
 </template>
