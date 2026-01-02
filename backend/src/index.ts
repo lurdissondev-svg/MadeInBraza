@@ -22,8 +22,14 @@ app.use(cors());
 app.use(compression()); // Enable gzip compression for responses
 app.use(express.json({ limit: '50mb' }));
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serve uploaded files statically with aggressive caching
+// Files have UUID names so they're immutable - cache for 1 year
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  maxAge: '365d',
+  immutable: true,
+  etag: true,
+  lastModified: true,
+}));
 
 // Serve public files (privacy policy, etc.)
 app.use(express.static(path.join(process.cwd(), 'public')));

@@ -126,6 +126,8 @@ async function handleDeleteAvatar() {
                   v-if="avatarUrl"
                   :src="avatarUrl"
                   alt="Avatar"
+                  loading="eager"
+                  decoding="async"
                   class="w-full h-full object-cover"
                 />
                 <span

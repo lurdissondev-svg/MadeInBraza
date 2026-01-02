@@ -54,6 +54,8 @@ const avatarUrl = computed(() => {
           v-if="avatarUrl"
           :src="avatarUrl"
           alt="Avatar"
+          loading="lazy"
+          decoding="async"
           class="w-full h-full object-cover"
         />
         <span v-else>{{ member.nick.charAt(0).toUpperCase() }}</span>

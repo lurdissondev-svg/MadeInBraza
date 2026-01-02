@@ -105,6 +105,8 @@ function openFullImage() {
           v-if="avatarUrl"
           :src="avatarUrl"
           alt="Avatar"
+          loading="lazy"
+          decoding="async"
           class="w-full h-full object-cover"
         />
         <span v-else class="text-sm font-bold text-white">
