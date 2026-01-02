@@ -3,6 +3,7 @@ import { prisma } from '../utils/prisma.js';
 import { notifyAllMembers, notifyUsers } from './notification.js';
 
 // Create a new Siege War for the upcoming week
+// Called every Monday at 00:00h (right after Sunday SW ends)
 async function createWeeklySiegeWar(): Promise<void> {
   try {
     console.log('[SiegeWarCron] Creating new weekly Siege War...');
@@ -18,6 +19,7 @@ async function createWeeklySiegeWar(): Promise<void> {
     const dayOfWeek = now.getDay();
 
     // Find next Sunday (0 = Sunday)
+    // If today is Monday (1), Sunday is in 6 days
     // If today is Thursday (4), Sunday is in 3 days
     let daysUntilSunday = (7 - dayOfWeek) % 7;
     if (daysUntilSunday === 0) {
@@ -29,7 +31,7 @@ async function createWeeklySiegeWar(): Promise<void> {
     eventDate.setDate(now.getDate() + daysUntilSunday);
     eventDate.setHours(0, 0, 0, 0);
 
-    // weekStart = when form opens (now/Thursday)
+    // weekStart = when form opens (Monday)
     // weekEnd = event day (Sunday end of day)
     const weekStart = new Date(now);
     weekStart.setHours(0, 0, 0, 0);
@@ -51,8 +53,29 @@ async function createWeeklySiegeWar(): Promise<void> {
       weekEnd: weekEnd.toISOString(),
     });
 
-    // Notify all members
-    const formattedEventDate = weekEnd.toLocaleDateString('pt-BR', {
+    // Don't send notification on Monday - wait until Thursday
+    console.log('[SiegeWarCron] SW created, notification will be sent on Thursday');
+  } catch (error) {
+    console.error('[SiegeWarCron] Error creating weekly Siege War:', error);
+  }
+}
+
+// Send notification on Thursday to remind members to fill the form
+async function sendThursdayNotification(): Promise<void> {
+  try {
+    // Find active siege war
+    const activeSW = await prisma.siegeWar.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!activeSW) {
+      console.log('[SiegeWarCron] No active Siege War, skipping Thursday notification');
+      return;
+    }
+
+    // Format event date
+    const formattedEventDate = activeSW.weekEnd.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
     });
@@ -60,12 +83,12 @@ async function createWeeklySiegeWar(): Promise<void> {
     await notifyAllMembers(
       'Siege War - Domingo!',
       `SW domingo (${formattedEventDate})! Responda o formulário até sábado.`,
-      { siegeWarId: siegeWar.id }
+      { siegeWarId: activeSW.id }
     );
 
-    console.log('[SiegeWarCron] Notifications sent');
+    console.log('[SiegeWarCron] Thursday notification sent');
   } catch (error) {
-    console.error('[SiegeWarCron] Error creating weekly Siege War:', error);
+    console.error('[SiegeWarCron] Error sending Thursday notification:', error);
   }
 }
 
@@ -144,12 +167,21 @@ async function closeExpiredSiegeWars(): Promise<void> {
 }
 
 export function startSiegeWarCron(): void {
-  // Run every Thursday at 10:00 AM (Brazil time) - Open SW form for Sunday
+  // Run every Monday at 00:00 (midnight, Brazil time) - Create SW for next Sunday
   // Cron: minute hour day-of-month month day-of-week
-  // Thursday = 4
-  cron.schedule('0 10 * * 4', () => {
+  // Monday = 1
+  cron.schedule('0 0 * * 1', () => {
     console.log('[SiegeWarCron] Running weekly Siege War creation job...');
     createWeeklySiegeWar();
+  }, {
+    timezone: 'America/Sao_Paulo',
+  });
+
+  // Thursday at 10:00 AM - Send notification to fill the form
+  // Thursday = 4
+  cron.schedule('0 10 * * 4', () => {
+    console.log('[SiegeWarCron] Running Thursday notification job...');
+    sendThursdayNotification();
   }, {
     timezone: 'America/Sao_Paulo',
   });
@@ -172,7 +204,8 @@ export function startSiegeWarCron(): void {
   });
 
   console.log('[SiegeWarCron] Cron jobs scheduled:');
-  console.log('  - Weekly SW creation: Every Thursday at 10:00 AM (America/Sao_Paulo)');
+  console.log('  - Weekly SW creation: Every Monday at 00:00 (America/Sao_Paulo)');
+  console.log('  - Thursday notification: Every Thursday at 10:00 AM (America/Sao_Paulo)');
   console.log('  - Saturday reminder: Every Saturday at 8:00 PM (for Sunday SW)');
   console.log('  - Expired SW cleanup: Every hour');
 }
