@@ -97,7 +97,12 @@ export async function handleUazapiWebhook(
     const messageId = msg.messageid || msg.id || '';
 
     // Prioriza nome visível (pushName/senderName/name) ao invés do número
-    const authorName = msg.pushName || msg.senderName || msg.name || 'WhatsApp';
+    // Filtra valores que são apenas números (telefone) - só aceita se tiver letras
+    const isValidName = (name?: string) => name && /[a-zA-ZÀ-ÿ]/.test(name);
+    const authorName = (isValidName(msg.pushName) ? msg.pushName : null)
+      || (isValidName(msg.senderName) ? msg.senderName : null)
+      || (isValidName(msg.name) ? msg.name : null)
+      || 'WhatsApp';
     console.log('[UAZAPI Webhook] Author fields - pushName:', msg.pushName, '| senderName:', msg.senderName, '| name:', msg.name, '| sender:', msg.sender);
     console.log('[UAZAPI Webhook] Using author name:', authorName);
 
@@ -199,7 +204,11 @@ export async function importMessagesFromGroup(
 
     for (const msg of messages) {
       const messageId = msg.messageid || msg.key?.id;
-      const authorName = msg.senderName || msg.pushName || 'WhatsApp';
+      // Filtra valores que são apenas números (telefone) - só aceita se tiver letras
+      const isValidName = (name?: string) => name && /[a-zA-ZÀ-ÿ]/.test(name);
+      const authorName = (isValidName(msg.pushName) ? msg.pushName : null)
+        || (isValidName(msg.senderName) ? msg.senderName : null)
+        || 'WhatsApp';
       const text = msg.text || msg.message?.conversation || '';
 
       if (!text) {
