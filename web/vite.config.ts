@@ -12,7 +12,8 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../backend/web/dist',
+    // Use env var for Docker, default for local dev
+    outDir: process.env.BUILD_OUTPUT || '../backend/web/dist',
     emptyOutDir: true
   },
   server: {
