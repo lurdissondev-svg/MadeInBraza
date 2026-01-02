@@ -1,7 +1,10 @@
 # Stage 1: Build web frontend
-FROM node:22-alpine AS web-builder
+FROM node:20-slim AS web-builder
 
 WORKDIR /web
+
+# Install build dependencies for native modules
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Copy web source and build
 COPY web/package*.json ./
@@ -12,14 +15,19 @@ ENV BUILD_OUTPUT=dist
 RUN npm run build
 
 # Stage 2: Backend
-FROM node:22-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Install gifsicle for GIF compression (like Discord)
-RUN apk add --no-cache gifsicle
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gifsicle \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+# Install dependencies (rebuild native modules for glibc)
 COPY backend/package*.json ./
 RUN npm ci --only=production
 
@@ -34,9 +42,13 @@ COPY backend/ ./
 COPY --from=web-builder /web/dist ./web/dist
 
 # Create required directories
-RUN mkdir -p /app/uploads/channels /app/public
+RUN mkdir -p /app/uploads/channels /app/uploads/avatars /app/uploads/media /app/public
 
 EXPOSE 3000
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # Run migrations and start server
 CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx src/index.ts"]

@@ -16,7 +16,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       # UAZAPI WhatsApp Integration
       UAZAPI_URL: https://lucas.uazapi.com
-      UAZAPI_TOKEN: cf359d24-11a3-486f-b995-975a29d09662
+      UAZAPI_TOKEN: ${UAZAPI_TOKEN}
       UAZAPI_AVISOS_GROUP_ID: 120363247580405853@g.us
       BASE_URL: https://braza.lurdisson.com.br
       # Nginx Proxy
