@@ -3,7 +3,8 @@ import type {
   PartiesResponse,
   Party,
   CreatePartyRequest,
-  JoinPartyRequest
+  JoinPartyRequest,
+  UpdatePartyRequest
 } from '@/types'
 
 export const partiesApi = {
@@ -24,6 +25,11 @@ export const partiesApi = {
 
   async createEventParty(eventId: string, data: CreatePartyRequest): Promise<Party> {
     const response = await apiClient.post<{ party: Party }>(`/parties/event/${eventId}`, data)
+    return response.data.party
+  },
+
+  async updateParty(id: string, data: UpdatePartyRequest): Promise<Party> {
+    const response = await apiClient.put<{ party: Party }>(`/parties/${id}`, data)
     return response.data.party
   },
 

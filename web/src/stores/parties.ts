@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Party, CreatePartyRequest } from '@/types'
+import type { Party, CreatePartyRequest, UpdatePartyRequest } from '@/types'
 import { partiesApi } from '@/services/api/parties'
 
 export const usePartiesStore = defineStore('parties', () => {
@@ -70,6 +70,38 @@ export const usePartiesStore = defineStore('parties', () => {
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao criar party'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function updateParty(id: string, data: UpdatePartyRequest, eventId?: string): Promise<boolean> {
+    loading.value = true
+    error.value = null
+
+    try {
+      const updatedParty = await partiesApi.updateParty(id, data)
+
+      // Update in global parties
+      const globalIndex = globalParties.value.findIndex(p => p.id === id)
+      if (globalIndex !== -1) {
+        globalParties.value[globalIndex] = updatedParty
+      }
+
+      // Update in event parties if applicable
+      if (eventId) {
+        const parties = eventParties.value.get(eventId) || []
+        const eventIndex = parties.findIndex(p => p.id === id)
+        if (eventIndex !== -1) {
+          parties[eventIndex] = updatedParty
+          eventParties.value.set(eventId, [...parties])
+        }
+      }
+
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao atualizar party'
       return false
     } finally {
       loading.value = false
@@ -178,6 +210,7 @@ export const usePartiesStore = defineStore('parties', () => {
     fetchEventParties,
     createGlobalParty,
     createEventParty,
+    updateParty,
     deleteParty,
     joinParty,
     leaveParty,

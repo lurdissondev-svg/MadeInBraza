@@ -307,6 +307,11 @@ export interface JoinPartyRequest {
   selectedClass?: string // Required for FREE slots
 }
 
+export interface UpdatePartyRequest {
+  name: string
+  description?: string | null
+}
+
 // Siege War
 export interface SiegeWar {
   id: string

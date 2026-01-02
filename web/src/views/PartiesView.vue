@@ -6,15 +6,20 @@ import type { Party } from '@/types'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import PartyCard from '@/components/parties/PartyCard.vue'
 import CreatePartyModal from '@/components/parties/CreatePartyModal.vue'
+import EditPartyModal from '@/components/parties/EditPartyModal.vue'
 import JoinPartyModal from '@/components/parties/JoinPartyModal.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const authStore = useAuthStore()
 const partiesStore = usePartiesStore()
 
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
 const showJoinModal = ref(false)
+const showDeleteModal = ref(false)
 const selectedParty = ref<Party | null>(null)
+const partyToDelete = ref<string | null>(null)
 
 onMounted(() => {
   partiesStore.fetchGlobalParties()
@@ -24,9 +29,20 @@ function handleRefresh() {
   partiesStore.fetchGlobalParties()
 }
 
-async function handleDelete(id: string) {
-  if (confirm('Tem certeza que deseja deletar esta party?')) {
-    await partiesStore.deleteParty(id)
+function handleEditClick(party: Party) {
+  selectedParty.value = party
+  showEditModal.value = true
+}
+
+function handleDeleteClick(id: string) {
+  partyToDelete.value = id
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+  if (partyToDelete.value) {
+    await partiesStore.deleteParty(partyToDelete.value)
+    partyToDelete.value = null
   }
 }
 
@@ -110,10 +126,12 @@ async function handleLeave(id: string) {
           :key="party.id"
           :party="party"
           :current-user-id="authStore.user?.id"
+          :can-edit="authStore.isLeader || party.createdBy.id === authStore.user?.id"
           :can-delete="authStore.isLeader || party.createdBy.id === authStore.user?.id"
           @join="handleJoinClick"
           @leave="handleLeave"
-          @delete="handleDelete"
+          @edit="handleEditClick"
+          @delete="handleDeleteClick"
         />
       </div>
     </div>
@@ -121,11 +139,27 @@ async function handleLeave(id: string) {
     <!-- Create Party Modal -->
     <CreatePartyModal v-model:show="showCreateModal" />
 
+    <!-- Edit Party Modal -->
+    <EditPartyModal
+      v-model:show="showEditModal"
+      :party="selectedParty"
+    />
+
     <!-- Join Party Modal -->
     <JoinPartyModal
       v-model:show="showJoinModal"
       :party="selectedParty"
       @join="handleJoin"
+    />
+
+    <!-- Delete Confirmation Modal -->
+    <ConfirmModal
+      v-model:show="showDeleteModal"
+      title="Deletar Party"
+      message="Tem certeza que deseja deletar esta party? Esta acao nao pode ser desfeita."
+      confirm-text="Deletar"
+      :danger="true"
+      @confirm="confirmDelete"
     />
   </MainLayout>
 </template>

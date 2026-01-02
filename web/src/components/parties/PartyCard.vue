@@ -6,12 +6,14 @@ import { PlayerClassAbbreviations } from '@/types'
 const props = defineProps<{
   party: Party
   currentUserId?: string
+  canEdit?: boolean
   canDelete?: boolean
 }>()
 
 const emit = defineEmits<{
   join: [party: Party]
   leave: [id: string]
+  edit: [party: Party]
   delete: [id: string]
 }>()
 
@@ -63,6 +65,10 @@ function handleLeave() {
   emit('leave', props.party.id)
 }
 
+function handleEdit() {
+  emit('edit', props.party)
+}
+
 function handleDelete() {
   emit('delete', props.party.id)
 }
@@ -83,16 +89,28 @@ function handleDelete() {
         </div>
         <p class="text-xs text-gray-500">Por: {{ party.createdBy.nick }}</p>
       </div>
-      <button
-        v-if="canDelete"
-        @click="handleDelete"
-        class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
-        title="Deletar party"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
+      <div v-if="canEdit || canDelete" class="flex items-center gap-1 flex-shrink-0">
+        <button
+          v-if="canEdit"
+          @click="handleEdit"
+          class="p-1.5 text-gray-500 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors"
+          title="Editar party"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+        <button
+          v-if="canDelete"
+          @click="handleDelete"
+          class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          title="Deletar party"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Description -->

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPartiesByEvent, createParty, deleteParty, joinParty, leaveParty, getGlobalParties, createGlobalParty } from '../controllers/parties.js';
+import { getPartiesByEvent, createParty, deleteParty, updateParty, joinParty, leaveParty, getGlobalParties, createGlobalParty } from '../controllers/parties.js';
 import { authenticate, requireApproved } from '../middleware/auth.js';
 
 export const partiesRouter = Router();
@@ -18,6 +18,9 @@ partiesRouter.get('/event/:eventId', getPartiesByEvent);
 
 // Create a new party for an event
 partiesRouter.post('/event/:eventId', createParty);
+
+// Update a party (creator or leader only)
+partiesRouter.put('/:partyId', updateParty);
 
 // Delete a party (creator or leader only)
 partiesRouter.delete('/:partyId', deleteParty);

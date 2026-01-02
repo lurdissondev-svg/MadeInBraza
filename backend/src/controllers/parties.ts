@@ -363,6 +363,55 @@ export async function createParty(
   }
 }
 
+// Update a party (name and description only)
+export async function updateParty(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { partyId } = req.params;
+    const { name, description } = req.body;
+    const userId = req.user!.userId;
+
+    const party = await prisma.party.findUnique({
+      where: { id: partyId },
+      include: { createdBy: true },
+    });
+
+    if (!party) {
+      throw new AppError(404, 'Party not found');
+    }
+
+    // Check if user is the creator or a leader
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (party.createdById !== userId && user?.role !== 'LEADER') {
+      throw new AppError(403, 'Only the party creator or a leader can edit this party');
+    }
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      throw new AppError(400, 'Party name is required');
+    }
+
+    const updatedParty = await prisma.party.update({
+      where: { id: partyId },
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+      },
+      select: partySelectFields,
+    });
+
+    res.json({ party: transformPartyResponse(updatedParty) });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Delete a party
 export async function deleteParty(
   req: Request,
