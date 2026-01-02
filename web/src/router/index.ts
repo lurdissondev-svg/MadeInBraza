@@ -2,17 +2,19 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-// Lazy load views for code splitting
+// Eager load main views for faster navigation
+import HomeView from '@/views/HomeView.vue'
+import SiegeWarView from '@/views/SiegeWarView.vue'
+import MembersView from '@/views/MembersView.vue'
+import PartiesView from '@/views/PartiesView.vue'
+import ChannelsView from '@/views/ChannelsView.vue'
+
+// Lazy load less frequent views for code splitting
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
 const ForgotPasswordView = () => import('@/views/auth/ForgotPasswordView.vue')
-const HomeView = () => import('@/views/HomeView.vue')
 const EventsView = () => import('@/views/EventsView.vue')
-const PartiesView = () => import('@/views/PartiesView.vue')
-const SiegeWarView = () => import('@/views/SiegeWarView.vue')
-const ChannelsView = () => import('@/views/ChannelsView.vue')
 const ChatView = () => import('@/views/ChatView.vue')
-const MembersView = () => import('@/views/MembersView.vue')
 const MemberProfileView = () => import('@/views/MemberProfileView.vue')
 const ProfileView = () => import('@/views/ProfileView.vue')
 const PendingMembersView = () => import('@/views/admin/PendingMembersView.vue')
