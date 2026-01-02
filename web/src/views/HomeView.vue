@@ -113,7 +113,7 @@ async function toggleParticipation(eventId: string) {
           @click="activeTab = 'avisos'"
           class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors outline-none focus:outline-none"
           :class="activeTab === 'avisos'
-            ? 'bg-[#9c27b0] text-white'
+            ? 'bg-[#9c27b0] text-black font-semibold'
             : 'text-gray-400 hover:text-white hover:bg-dark-600'"
         >
           <div class="flex items-center justify-center gap-2">
@@ -127,7 +127,7 @@ async function toggleParticipation(eventId: string) {
           @click="activeTab = 'eventos'"
           class="flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors outline-none focus:outline-none"
           :class="activeTab === 'eventos'
-            ? 'bg-[#9c27b0] text-white'
+            ? 'bg-[#9c27b0] text-black font-semibold'
             : 'text-gray-400 hover:text-white hover:bg-dark-600'"
         >
           <div class="flex items-center justify-center gap-2">
