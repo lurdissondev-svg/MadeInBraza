@@ -46,8 +46,8 @@ async function handleSubmit() {
   />
 
   <!-- Sheet -->
-  <div class="fixed inset-x-0 bottom-0 z-50 animate-slide-up">
-    <div class="bg-dark-700 rounded-t-2xl max-h-[80vh] overflow-hidden flex flex-col">
+  <div class="fixed inset-x-0 bottom-0 z-50 animate-slide-up pb-16 md:pb-0">
+    <div class="bg-dark-700 rounded-t-2xl max-h-[70vh] md:max-h-[80vh] overflow-hidden flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-dark-600">
         <h3 class="text-lg font-semibold text-gray-100">Editar Perfil</h3>
