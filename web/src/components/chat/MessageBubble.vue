@@ -29,7 +29,7 @@ const bubbleClasses = computed(() => {
 
 const textColorClass = computed(() => {
   if (props.isCurrentUser) {
-    return 'text-white'
+    return '!text-white'  // Force white text for own messages
   }
   if (isLeader.value) {
     return 'text-gray-100'
@@ -139,6 +139,7 @@ function openFullImage() {
       class="max-w-[280px] rounded-2xl overflow-hidden"
       :class="[
         bubbleClasses,
+        textColorClass,
         isCurrentUser ? 'rounded-tr-sm' : 'rounded-tl-sm',
         message.mediaUrl ? 'p-1' : 'px-4 py-2'
       ]"
