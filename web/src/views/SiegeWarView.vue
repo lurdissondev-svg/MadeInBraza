@@ -22,12 +22,12 @@ const isLeader = computed(() =>
 
 const tabs = computed(() => {
   const baseTabs: { id: TabId; label: string }[] = [
-    { id: 'response', label: 'Minha Resposta' },
-    { id: 'history', label: 'Histórico' }
+    { id: 'response', label: 'Minha Resposta' }
   ]
 
   if (isLeader.value) {
-    baseTabs.splice(1, 0, { id: 'responses', label: 'Respostas' })
+    baseTabs.push({ id: 'responses', label: 'Respostas' })
+    baseTabs.push({ id: 'history', label: 'Histórico' })
   }
 
   return baseTabs

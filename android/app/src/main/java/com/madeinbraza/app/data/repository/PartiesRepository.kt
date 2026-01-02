@@ -7,6 +7,7 @@ import com.madeinbraza.app.data.api.BrazaApi
 import com.madeinbraza.app.data.model.CreatePartyRequest
 import com.madeinbraza.app.data.model.JoinPartyRequest
 import com.madeinbraza.app.data.model.Party
+import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.SlotRequest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -36,12 +37,12 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun createGlobalParty(name: String, description: String?, slots: List<SlotRequest>): Result<Party> {
+    suspend fun createGlobalParty(name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: PlayerClass): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.createGlobalParty(
                 "Bearer $token",
-                CreatePartyRequest(name = name, description = description, slots = slots)
+                CreatePartyRequest(name = name, description = description, slots = slots, creatorSlotClass = creatorSlotClass)
             )
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!.party)
@@ -67,13 +68,13 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun createParty(eventId: String, name: String, description: String?, slots: List<SlotRequest>): Result<Party> {
+    suspend fun createParty(eventId: String, name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: PlayerClass): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.createParty(
                 "Bearer $token",
                 eventId,
-                CreatePartyRequest(name = name, description = description, slots = slots)
+                CreatePartyRequest(name = name, description = description, slots = slots, creatorSlotClass = creatorSlotClass)
             )
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!.party)

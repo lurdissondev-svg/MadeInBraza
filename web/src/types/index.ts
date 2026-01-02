@@ -298,6 +298,7 @@ export interface CreatePartyRequest {
   name: string
   description?: string | null
   slots: SlotRequest[]
+  creatorSlotClass: PlayerClass
 }
 
 export interface JoinPartyRequest {

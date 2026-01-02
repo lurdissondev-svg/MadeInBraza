@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -70,7 +71,7 @@ fun GlobalPartiesScreen(
         CreateGlobalPartyDialog(
             isCreating = uiState.isCreating,
             onDismiss = { viewModel.hideCreateDialog() },
-            onCreate = { name, description, slots -> viewModel.createParty(name, description, slots) }
+            onCreate = { name, description, slots, creatorSlotClass -> viewModel.createParty(name, description, slots, creatorSlotClass) }
         )
     }
 
@@ -170,13 +171,22 @@ fun GlobalPartiesScreen(
 fun CreateGlobalPartyDialog(
     isCreating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (String, String?, List<SlotRequest>) -> Unit
+    onCreate: (String, String?, List<SlotRequest>, PlayerClass) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var slotCounts by remember { mutableStateOf(PlayerClass.entries.associateWith { 0 }) }
+    var creatorSlotClass by remember { mutableStateOf<PlayerClass?>(null) }
 
     val totalSlots = slotCounts.values.sum()
+    val availableClasses = slotCounts.filter { it.value > 0 }.keys.toList()
+
+    // Reset creator class if not available anymore
+    LaunchedEffect(availableClasses) {
+        if (creatorSlotClass != null && creatorSlotClass !in availableClasses) {
+            creatorSlotClass = null
+        }
+    }
 
     AlertDialog(
         onDismissRequest = { if (!isCreating) onDismiss() },
@@ -272,6 +282,58 @@ fun CreateGlobalPartyDialog(
                         }
                     }
                 }
+
+                // Creator's class selection
+                if (availableClasses.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Sua vaga na Party",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "Escolha qual classe você vai ocupar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    availableClasses.forEach { playerClass ->
+                        val isSelected = creatorSlotClass == playerClass
+                        Card(
+                            onClick = { creatorSlotClass = playerClass },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                if (isSelected) {
+                                    Icon(
+                                        Icons.Filled.Person,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -281,9 +343,9 @@ fun CreateGlobalPartyDialog(
                         .filter { it.value > 0 }
                         .map { SlotRequest(playerClass = it.key, count = it.value) }
                     val desc = description.trim().ifEmpty { null }
-                    onCreate(name, desc, slots)
+                    onCreate(name, desc, slots, creatorSlotClass!!)
                 },
-                enabled = name.isNotBlank() && totalSlots in 2..6 && !isCreating
+                enabled = name.isNotBlank() && totalSlots in 2..6 && creatorSlotClass != null && !isCreating
             ) {
                 if (isCreating) {
                     CircularProgressIndicator(

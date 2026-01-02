@@ -20,6 +20,7 @@ const name = ref('')
 const description = ref('')
 const isSubmitting = ref(false)
 const error = ref<string | null>(null)
+const creatorSlotClass = ref<PlayerClass | null>(null)
 
 // Slot counts per class
 const slotCounts = ref<Record<PlayerClass, number>>(
@@ -34,6 +35,13 @@ const totalSlots = computed(() => {
   return Object.values(slotCounts.value).reduce((sum, count) => sum + count, 0)
 })
 
+// Available classes for creator to choose (only classes with slots > 0)
+const availableClasses = computed(() => {
+  return Object.entries(slotCounts.value)
+    .filter(([_, count]) => count > 0)
+    .map(([playerClass]) => playerClass as PlayerClass)
+})
+
 // Build slots array for API
 const slots = computed<SlotRequest[]>(() => {
   return Object.entries(slotCounts.value)
@@ -44,12 +52,20 @@ const slots = computed<SlotRequest[]>(() => {
     }))
 })
 
+// Reset creator slot class if their chosen class is no longer available
+watch(availableClasses, (newClasses) => {
+  if (creatorSlotClass.value && !newClasses.includes(creatorSlotClass.value)) {
+    creatorSlotClass.value = null
+  }
+})
+
 watch(() => props.show, (newValue) => {
   if (newValue) {
     // Reset form when opening
     name.value = ''
     description.value = ''
     error.value = null
+    creatorSlotClass.value = null
     // Reset all slot counts
     Object.keys(slotCounts.value).forEach(key => {
       slotCounts.value[key as PlayerClass] = 0
@@ -84,6 +100,11 @@ async function handleSubmit() {
     return
   }
 
+  if (!creatorSlotClass.value) {
+    error.value = 'Selecione sua classe na party'
+    return
+  }
+
   isSubmitting.value = true
   error.value = null
 
@@ -94,13 +115,15 @@ async function handleSubmit() {
       success = await partiesStore.createEventParty(props.eventId, {
         name: name.value.trim(),
         description: description.value.trim() || null,
-        slots: slots.value
+        slots: slots.value,
+        creatorSlotClass: creatorSlotClass.value
       })
     } else {
       success = await partiesStore.createGlobalParty({
         name: name.value.trim(),
         description: description.value.trim() || null,
-        slots: slots.value
+        slots: slots.value,
+        creatorSlotClass: creatorSlotClass.value
       })
     }
 
@@ -221,6 +244,27 @@ async function handleSubmit() {
               </div>
             </div>
 
+            <!-- Creator's Class Selection -->
+            <div v-if="availableClasses.length > 0">
+              <label class="label">Sua vaga na Party *</label>
+              <p class="text-xs text-gray-400 mb-2">Escolha qual classe você vai ocupar</p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="playerClass in availableClasses"
+                  :key="playerClass"
+                  type="button"
+                  @click="creatorSlotClass = playerClass"
+                  :disabled="isSubmitting"
+                  class="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                  :class="creatorSlotClass === playerClass
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-dark-600 text-gray-300 hover:bg-dark-500'"
+                >
+                  {{ PlayerClassNames[playerClass] }}
+                </button>
+              </div>
+            </div>
+
             <!-- Actions -->
             <div class="flex gap-3 pt-2">
               <button
@@ -234,7 +278,7 @@ async function handleSubmit() {
               <button
                 type="submit"
                 class="btn btn-primary flex-1"
-                :disabled="isSubmitting || !name.trim() || totalSlots < 2"
+                :disabled="isSubmitting || !name.trim() || totalSlots < 2 || !creatorSlotClass"
               >
                 <LoadingSpinner v-if="isSubmitting" size="sm" class="mr-2" />
                 {{ isSubmitting ? 'Criando...' : 'Criar Party' }}

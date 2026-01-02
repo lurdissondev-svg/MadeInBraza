@@ -285,7 +285,8 @@ data class SlotRequest(
 data class CreatePartyRequest(
     val name: String,
     val description: String? = null,
-    val slots: List<SlotRequest>
+    val slots: List<SlotRequest>,
+    val creatorSlotClass: PlayerClass
 )
 
 data class CreatePartyResponse(

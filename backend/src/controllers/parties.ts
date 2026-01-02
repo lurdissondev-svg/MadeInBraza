@@ -91,7 +91,7 @@ export async function createGlobalParty(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { name, description, slots } = req.body;
+    const { name, description, slots, creatorSlotClass } = req.body;
     const userId = req.user!.userId;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -109,8 +109,14 @@ export async function createGlobalParty(
       'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
     ];
 
+    // Validate creator's chosen class
+    if (!creatorSlotClass || !validClasses.includes(creatorSlotClass)) {
+      throw new AppError(400, 'Creator must choose a valid class slot to occupy');
+    }
+
     const slotEntries: { playerClass: string; count: number }[] = [];
     let totalSlots = 0;
+    let creatorClassExists = false;
 
     for (const slot of slots) {
       if (!slot.playerClass || !validClasses.includes(slot.playerClass)) {
@@ -122,6 +128,13 @@ export async function createGlobalParty(
       }
       slotEntries.push({ playerClass: slot.playerClass, count });
       totalSlots += count;
+      if (slot.playerClass === creatorSlotClass) {
+        creatorClassExists = true;
+      }
+    }
+
+    if (!creatorClassExists) {
+      throw new AppError(400, 'Creator must choose a class that exists in the party slots');
     }
 
     if (totalSlots < 2 || totalSlots > 6) {
@@ -156,11 +169,11 @@ export async function createGlobalParty(
       select: partySelectFields,
     });
 
-    // Creator automatically fills the first available slot
-    const firstSlot = party.slots[0];
-    if (firstSlot) {
+    // Creator fills the first slot of their chosen class
+    const creatorSlot = party.slots.find(s => s.playerClass === creatorSlotClass);
+    if (creatorSlot) {
       await prisma.partySlot.update({
-        where: { id: firstSlot.id },
+        where: { id: creatorSlot.id },
         data: { filledById: userId },
       });
 
@@ -218,7 +231,7 @@ export async function createParty(
 ): Promise<void> {
   try {
     const { eventId } = req.params;
-    const { name, description, slots } = req.body;
+    const { name, description, slots, creatorSlotClass } = req.body;
     const userId = req.user!.userId;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -241,8 +254,14 @@ export async function createParty(
       'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
     ];
 
+    // Validate creator's chosen class
+    if (!creatorSlotClass || !validClasses.includes(creatorSlotClass)) {
+      throw new AppError(400, 'Creator must choose a valid class slot to occupy');
+    }
+
     const slotEntries: { playerClass: string; count: number }[] = [];
     let totalSlots = 0;
+    let creatorClassExists = false;
 
     for (const slot of slots) {
       if (!slot.playerClass || !validClasses.includes(slot.playerClass)) {
@@ -254,6 +273,13 @@ export async function createParty(
       }
       slotEntries.push({ playerClass: slot.playerClass, count });
       totalSlots += count;
+      if (slot.playerClass === creatorSlotClass) {
+        creatorClassExists = true;
+      }
+    }
+
+    if (!creatorClassExists) {
+      throw new AppError(400, 'Creator must choose a class that exists in the party slots');
     }
 
     if (totalSlots < 2 || totalSlots > 6) {
@@ -288,11 +314,11 @@ export async function createParty(
       select: partySelectFields,
     });
 
-    // Creator automatically fills the first available slot
-    const firstSlot = party.slots[0];
-    if (firstSlot) {
+    // Creator fills the first slot of their chosen class
+    const creatorSlot = party.slots.find(s => s.playerClass === creatorSlotClass);
+    if (creatorSlot) {
       await prisma.partySlot.update({
-        where: { id: firstSlot.id },
+        where: { id: creatorSlot.id },
         data: { filledById: userId },
       });
 

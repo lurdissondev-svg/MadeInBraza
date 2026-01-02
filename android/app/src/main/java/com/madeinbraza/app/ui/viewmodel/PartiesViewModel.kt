@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.Party
+import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.SlotRequest
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.PartiesRepository
@@ -106,11 +107,11 @@ class PartiesViewModel @Inject constructor(
         _uiState.update { it.copy(showCreateDialog = false) }
     }
 
-    fun createParty(name: String, description: String?, slots: List<SlotRequest>) {
+    fun createParty(name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: PlayerClass) {
         viewModelScope.launch {
             _uiState.update { it.copy(isCreating = true) }
 
-            when (val result = partiesRepository.createParty(eventId, name, description, slots)) {
+            when (val result = partiesRepository.createParty(eventId, name, description, slots, creatorSlotClass)) {
                 is Result.Success -> {
                     _uiState.update { state ->
                         state.copy(
