@@ -107,7 +107,7 @@ function openFullImage() {
     <div v-if="!isCurrentUser" class="flex-shrink-0">
       <div
         class="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
-        :class="avatarUrl ? '' : (isLeader ? 'bg-primary-500' : 'bg-dark-500')"
+        :class="avatarUrl ? '' : 'bg-dark-500'"
       >
         <img
           v-if="avatarUrl"

@@ -95,7 +95,7 @@ function goBack() {
           <div class="flex items-center gap-4 mb-6">
             <div
               class="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl overflow-hidden"
-              :class="avatarUrl ? '' : (membersStore.selectedMember.role === Role.LEADER ? 'bg-primary-500' : 'bg-dark-500')"
+              :class="avatarUrl ? '' : 'bg-dark-500'"
             >
               <img
                 v-if="avatarUrl"

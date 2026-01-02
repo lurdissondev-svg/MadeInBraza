@@ -56,7 +56,7 @@ function handleAvatarError() {
       <!-- Avatar -->
       <div
         class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden"
-        :class="avatarUrl ? '' : (isMemberLeader ? 'bg-primary-500' : 'bg-dark-500')"
+        :class="avatarUrl ? '' : 'bg-dark-500'"
       >
         <img
           v-if="avatarUrl"
