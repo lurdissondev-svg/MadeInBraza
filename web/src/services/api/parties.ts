@@ -2,7 +2,8 @@ import apiClient from './client'
 import type {
   PartiesResponse,
   Party,
-  CreatePartyRequest
+  CreatePartyRequest,
+  JoinPartyRequest
 } from '@/types'
 
 export const partiesApi = {
@@ -30,8 +31,8 @@ export const partiesApi = {
     await apiClient.delete(`/parties/${id}`)
   },
 
-  async joinParty(id: string): Promise<Party> {
-    const response = await apiClient.post<{ party: Party }>(`/parties/${id}/join`)
+  async joinParty(id: string, data: JoinPartyRequest): Promise<Party> {
+    const response = await apiClient.post<{ party: Party }>(`/parties/${id}/join`, data)
     return response.data.party
   },
 

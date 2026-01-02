@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { usePartiesStore } from '@/stores/parties'
+import { PlayerClass, PlayerClassNames } from '@/types'
+import type { SlotRequest } from '@/types'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const props = defineProps<{
@@ -16,17 +18,42 @@ const partiesStore = usePartiesStore()
 
 const name = ref('')
 const description = ref('')
-const maxMembers = ref(5)
 const isSubmitting = ref(false)
 const error = ref<string | null>(null)
+
+// Slot counts per class
+const slotCounts = ref<Record<PlayerClass, number>>(
+  Object.values(PlayerClass).reduce((acc, pc) => {
+    acc[pc] = 0
+    return acc
+  }, {} as Record<PlayerClass, number>)
+)
+
+// Computed total slots
+const totalSlots = computed(() => {
+  return Object.values(slotCounts.value).reduce((sum, count) => sum + count, 0)
+})
+
+// Build slots array for API
+const slots = computed<SlotRequest[]>(() => {
+  return Object.entries(slotCounts.value)
+    .filter(([_, count]) => count > 0)
+    .map(([playerClass, count]) => ({
+      playerClass: playerClass as PlayerClass,
+      count
+    }))
+})
 
 watch(() => props.show, (newValue) => {
   if (newValue) {
     // Reset form when opening
     name.value = ''
     description.value = ''
-    maxMembers.value = 5
     error.value = null
+    // Reset all slot counts
+    Object.keys(slotCounts.value).forEach(key => {
+      slotCounts.value[key as PlayerClass] = 0
+    })
   }
 })
 
@@ -34,9 +61,26 @@ function close() {
   emit('update:show', false)
 }
 
+function incrementSlot(playerClass: PlayerClass) {
+  if (slotCounts.value[playerClass] < 10 && totalSlots.value < 50) {
+    slotCounts.value[playerClass]++
+  }
+}
+
+function decrementSlot(playerClass: PlayerClass) {
+  if (slotCounts.value[playerClass] > 0) {
+    slotCounts.value[playerClass]--
+  }
+}
+
 async function handleSubmit() {
   if (!name.value.trim()) {
     error.value = 'Digite um nome para a party'
+    return
+  }
+
+  if (totalSlots.value < 2) {
+    error.value = 'Selecione pelo menos 2 vagas'
     return
   }
 
@@ -50,13 +94,13 @@ async function handleSubmit() {
       success = await partiesStore.createEventParty(props.eventId, {
         name: name.value.trim(),
         description: description.value.trim() || null,
-        maxMembers: maxMembers.value
+        slots: slots.value
       })
     } else {
       success = await partiesStore.createGlobalParty({
         name: name.value.trim(),
         description: description.value.trim() || null,
-        maxMembers: maxMembers.value
+        slots: slots.value
       })
     }
 
@@ -87,7 +131,7 @@ async function handleSubmit() {
         />
 
         <!-- Modal -->
-        <div class="relative bg-dark-700 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-auto">
+        <div class="relative bg-dark-700 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-auto">
           <!-- Header -->
           <div class="flex items-center justify-between p-4 border-b border-dark-600">
             <h2 class="text-lg font-semibold text-gray-100">Nova Party</h2>
@@ -128,27 +172,52 @@ async function handleSubmit() {
               <textarea
                 id="description"
                 v-model="description"
-                class="input min-h-[80px] resize-none"
+                class="input min-h-[60px] resize-none"
                 placeholder="Descrição opcional..."
                 :disabled="isSubmitting"
                 maxlength="200"
               />
             </div>
 
-            <!-- Max Members -->
+            <!-- Class Slots -->
             <div>
-              <label for="maxMembers" class="label">Máximo de Membros</label>
-              <div class="flex items-center gap-3">
-                <input
-                  id="maxMembers"
-                  v-model.number="maxMembers"
-                  type="range"
-                  class="flex-1 h-2 bg-dark-600 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                  min="2"
-                  max="6"
-                  :disabled="isSubmitting"
-                />
-                <span class="text-gray-100 font-medium w-6 text-center">{{ maxMembers }}</span>
+              <div class="flex items-center justify-between mb-2">
+                <label class="label mb-0">Vagas por Classe *</label>
+                <span class="text-sm text-gray-400">Total: {{ totalSlots }}</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div
+                  v-for="playerClass in Object.values(PlayerClass)"
+                  :key="playerClass"
+                  class="flex items-center justify-between p-2 rounded-lg bg-dark-600"
+                  :class="slotCounts[playerClass] > 0 ? 'ring-1 ring-primary-500' : ''"
+                >
+                  <span class="text-sm text-gray-200">{{ PlayerClassNames[playerClass] }}</span>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      @click="decrementSlot(playerClass)"
+                      :disabled="isSubmitting || slotCounts[playerClass] === 0"
+                      class="w-6 h-6 flex items-center justify-center rounded bg-dark-500 text-gray-300 hover:bg-dark-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <span class="w-6 text-center text-sm font-medium text-gray-100">{{ slotCounts[playerClass] }}</span>
+                    <button
+                      type="button"
+                      @click="incrementSlot(playerClass)"
+                      :disabled="isSubmitting || slotCounts[playerClass] >= 10 || totalSlots >= 50"
+                      class="w-6 h-6 flex items-center justify-center rounded bg-dark-500 text-gray-300 hover:bg-dark-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -165,7 +234,7 @@ async function handleSubmit() {
               <button
                 type="submit"
                 class="btn btn-primary flex-1"
-                :disabled="isSubmitting || !name.trim()"
+                :disabled="isSubmitting || !name.trim() || totalSlots < 2"
               >
                 <LoadingSpinner v-if="isSubmitting" size="sm" class="mr-2" />
                 {{ isSubmitting ? 'Criando...' : 'Criar Party' }}

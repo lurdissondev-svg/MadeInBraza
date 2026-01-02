@@ -101,11 +101,11 @@ export const usePartiesStore = defineStore('parties', () => {
     }
   }
 
-  async function joinParty(id: string, eventId?: string): Promise<boolean> {
+  async function joinParty(id: string, slotId: string, eventId?: string): Promise<boolean> {
     error.value = null
 
     try {
-      const updatedParty = await partiesApi.joinParty(id)
+      const updatedParty = await partiesApi.joinParty(id, { slotId })
 
       // Update in global parties
       const globalIndex = globalParties.value.findIndex(p => p.id === id)

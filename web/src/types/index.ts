@@ -262,25 +262,46 @@ export interface PartyMember {
   joinedAt: string
 }
 
+export interface PartySlotUser {
+  id: string
+  nick: string
+  playerClass: PlayerClass | null
+}
+
+export interface PartySlot {
+  id: string
+  playerClass: PlayerClass
+  filledBy: PartySlotUser | null
+}
+
 export interface Party {
   id: string
   name: string
   description: string | null
-  maxMembers: number
   isClosed: boolean
   createdAt: string
   createdBy: PartyCreator
-  members: PartyMember[]
+  slots: PartySlot[]
+  members: PartyMember[] // Backwards compatibility
 }
 
 export interface PartiesResponse {
   parties: Party[]
 }
 
+export interface SlotRequest {
+  playerClass: PlayerClass
+  count: number
+}
+
 export interface CreatePartyRequest {
   name: string
   description?: string | null
-  maxMembers?: number
+  slots: SlotRequest[]
+}
+
+export interface JoinPartyRequest {
+  slotId: string
 }
 
 // Siege War

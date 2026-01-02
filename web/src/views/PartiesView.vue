@@ -2,15 +2,19 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePartiesStore } from '@/stores/parties'
+import type { Party } from '@/types'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import PartyCard from '@/components/parties/PartyCard.vue'
 import CreatePartyModal from '@/components/parties/CreatePartyModal.vue'
+import JoinPartyModal from '@/components/parties/JoinPartyModal.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const authStore = useAuthStore()
 const partiesStore = usePartiesStore()
 
 const showCreateModal = ref(false)
+const showJoinModal = ref(false)
+const selectedParty = ref<Party | null>(null)
 
 onMounted(() => {
   partiesStore.fetchGlobalParties()
@@ -26,8 +30,17 @@ async function handleDelete(id: string) {
   }
 }
 
-async function handleJoin(id: string) {
-  await partiesStore.joinParty(id)
+function handleJoinClick(party: Party) {
+  selectedParty.value = party
+  showJoinModal.value = true
+}
+
+async function handleJoin(partyId: string, slotId: string) {
+  const success = await partiesStore.joinParty(partyId, slotId)
+  if (success) {
+    showJoinModal.value = false
+    selectedParty.value = null
+  }
 }
 
 async function handleLeave(id: string) {
@@ -98,7 +111,7 @@ async function handleLeave(id: string) {
           :party="party"
           :current-user-id="authStore.user?.id"
           :can-delete="authStore.isLeader || party.createdBy.id === authStore.user?.id"
-          @join="handleJoin"
+          @join="handleJoinClick"
           @leave="handleLeave"
           @delete="handleDelete"
         />
@@ -107,5 +120,12 @@ async function handleLeave(id: string) {
 
     <!-- Create Party Modal -->
     <CreatePartyModal v-model:show="showCreateModal" />
+
+    <!-- Join Party Modal -->
+    <JoinPartyModal
+      v-model:show="showJoinModal"
+      :party="selectedParty"
+      @join="handleJoin"
+    />
   </MainLayout>
 </template>

@@ -4,6 +4,66 @@ import { AppError } from '../middleware/errorHandler.js';
 import { notifyPartyMembers } from '../services/notification.js';
 import { createPartyChannel } from './channel.js';
 
+// Helper to transform party with slots for response
+function transformPartyResponse(party: any) {
+  return {
+    id: party.id,
+    name: party.name,
+    description: party.description,
+    isClosed: party.isClosed,
+    createdAt: party.createdAt,
+    eventId: party.eventId,
+    createdBy: party.createdBy,
+    slots: party.slots.map((slot: any) => ({
+      id: slot.id,
+      playerClass: slot.playerClass,
+      filledBy: slot.filledBy ? {
+        id: slot.filledBy.id,
+        nick: slot.filledBy.nick,
+        playerClass: slot.filledBy.playerClass,
+      } : null,
+    })),
+    // Keep members for backwards compatibility
+    members: party.slots
+      .filter((slot: any) => slot.filledBy)
+      .map((slot: any) => ({
+        id: slot.filledBy.id,
+        nick: slot.filledBy.nick,
+        playerClass: slot.filledBy.playerClass,
+        joinedAt: slot.filledBy.joinedAt || new Date().toISOString(),
+      })),
+  };
+}
+
+// Party select fields for queries
+const partySelectFields = {
+  id: true,
+  name: true,
+  description: true,
+  isClosed: true,
+  createdAt: true,
+  eventId: true,
+  createdBy: {
+    select: {
+      id: true,
+      nick: true,
+    },
+  },
+  slots: {
+    select: {
+      id: true,
+      playerClass: true,
+      filledBy: {
+        select: {
+          id: true,
+          nick: true,
+          playerClass: true,
+        },
+      },
+    },
+  },
+};
+
 // Get all global parties (without event)
 export async function getGlobalParties(
   req: Request,
@@ -13,44 +73,11 @@ export async function getGlobalParties(
   try {
     const parties = await prisma.party.findMany({
       where: { eventId: null },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        maxMembers: true,
-        isClosed: true,
-        createdAt: true,
-        createdBy: {
-          select: {
-            id: true,
-            nick: true,
-          },
-        },
-        members: {
-          select: {
-            user: {
-              select: {
-                id: true,
-                nick: true,
-                playerClass: true,
-              },
-            },
-            joinedAt: true,
-          },
-        },
-      },
+      select: partySelectFields,
       orderBy: { createdAt: 'desc' },
     });
 
-    // Transform to flatten members
-    const transformedParties = parties.map(party => ({
-      ...party,
-      members: party.members.map(m => ({
-        ...m.user,
-        joinedAt: m.joinedAt,
-      })),
-    }));
-
+    const transformedParties = parties.map(transformPartyResponse);
     res.json({ parties: transformedParties });
   } catch (err) {
     next(err);
@@ -64,71 +91,93 @@ export async function createGlobalParty(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { name, description, maxMembers } = req.body;
+    const { name, description, slots } = req.body;
     const userId = req.user!.userId;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       throw new AppError(400, 'Party name is required');
     }
 
-    // Validate maxMembers
-    let validatedMaxMembers = 5; // Default
-    if (maxMembers !== undefined && maxMembers !== null) {
-      const parsed = parseInt(maxMembers, 10);
-      if (isNaN(parsed) || parsed < 2 || parsed > 50) {
-        throw new AppError(400, 'maxMembers must be between 2 and 50');
-      }
-      validatedMaxMembers = parsed;
+    // Validate slots
+    if (!slots || !Array.isArray(slots) || slots.length === 0) {
+      throw new AppError(400, 'At least one slot is required');
     }
 
+    // Validate each slot entry: { playerClass: "MAGE", count: 2 }
+    const validClasses = [
+      'ASSASSIN', 'BRAWLER', 'ATALANTA', 'PIKEMAN', 'FIGHTER',
+      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
+    ];
+
+    const slotEntries: { playerClass: string; count: number }[] = [];
+    let totalSlots = 0;
+
+    for (const slot of slots) {
+      if (!slot.playerClass || !validClasses.includes(slot.playerClass)) {
+        throw new AppError(400, `Invalid player class: ${slot.playerClass}`);
+      }
+      const count = parseInt(slot.count, 10);
+      if (isNaN(count) || count < 1 || count > 10) {
+        throw new AppError(400, 'Slot count must be between 1 and 10');
+      }
+      slotEntries.push({ playerClass: slot.playerClass, count });
+      totalSlots += count;
+    }
+
+    if (totalSlots < 2 || totalSlots > 50) {
+      throw new AppError(400, 'Total slots must be between 2 and 50');
+    }
+
+    // Get creator's info
+    const creator = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { nick: true, playerClass: true },
+    });
+
+    if (!creator) {
+      throw new AppError(404, 'User not found');
+    }
+
+    // Create party with slots
     const party = await prisma.party.create({
       data: {
         name: name.trim(),
         description: description?.trim() || null,
         eventId: null,
-        maxMembers: validatedMaxMembers,
         createdById: userId,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        maxMembers: true,
-        isClosed: true,
-        createdAt: true,
-        createdBy: {
-          select: {
-            id: true,
-            nick: true,
-            playerClass: true,
-          },
+        slots: {
+          create: slotEntries.flatMap(entry =>
+            Array.from({ length: entry.count }, () => ({
+              playerClass: entry.playerClass,
+            }))
+          ),
         },
       },
+      select: partySelectFields,
     });
 
-    // Creator automatically joins the party
-    await prisma.partyMember.create({
-      data: {
-        partyId: party.id,
-        userId,
-      },
-    });
+    // Creator automatically fills the first available slot
+    const firstSlot = party.slots[0];
+    if (firstSlot) {
+      await prisma.partySlot.update({
+        where: { id: firstSlot.id },
+        data: { filledById: userId },
+      });
 
-    // Create party channel for chat
-    createPartyChannel(party.id, party.name)
-      .catch(err => console.error('Failed to create party channel:', err));
+      // Refetch to get updated data
+      const updatedParty = await prisma.party.findUnique({
+        where: { id: party.id },
+        select: partySelectFields,
+      });
 
-    res.status(201).json({
-      party: {
-        ...party,
-        members: [{
-          id: userId,
-          nick: party.createdBy.nick,
-          playerClass: party.createdBy.playerClass,
-          joinedAt: new Date().toISOString(),
-        }],
-      },
-    });
+      // Create party channel for chat
+      createPartyChannel(party.id, party.name)
+        .catch(err => console.error('Failed to create party channel:', err));
+
+      res.status(201).json({ party: transformPartyResponse(updatedParty) });
+    } else {
+      res.status(201).json({ party: transformPartyResponse(party) });
+    }
   } catch (err) {
     next(err);
   }
@@ -150,44 +199,11 @@ export async function getPartiesByEvent(
 
     const parties = await prisma.party.findMany({
       where: { eventId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        maxMembers: true,
-        isClosed: true,
-        createdAt: true,
-        createdBy: {
-          select: {
-            id: true,
-            nick: true,
-          },
-        },
-        members: {
-          select: {
-            user: {
-              select: {
-                id: true,
-                nick: true,
-                playerClass: true,
-              },
-            },
-            joinedAt: true,
-          },
-        },
-      },
+      select: partySelectFields,
       orderBy: { createdAt: 'asc' },
     });
 
-    // Transform to flatten members
-    const transformedParties = parties.map(party => ({
-      ...party,
-      members: party.members.map(m => ({
-        ...m.user,
-        joinedAt: m.joinedAt,
-      })),
-    }));
-
+    const transformedParties = parties.map(transformPartyResponse);
     res.json({ parties: transformedParties });
   } catch (err) {
     next(err);
@@ -202,7 +218,7 @@ export async function createParty(
 ): Promise<void> {
   try {
     const { eventId } = req.params;
-    const { name, description, maxMembers } = req.body;
+    const { name, description, slots } = req.body;
     const userId = req.user!.userId;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -214,64 +230,86 @@ export async function createParty(
       throw new AppError(404, 'Event not found');
     }
 
-    // Validate maxMembers
-    let validatedMaxMembers = 5; // Default
-    if (maxMembers !== undefined && maxMembers !== null) {
-      const parsed = parseInt(maxMembers, 10);
-      if (isNaN(parsed) || parsed < 2 || parsed > 50) {
-        throw new AppError(400, 'maxMembers must be between 2 and 50');
-      }
-      validatedMaxMembers = parsed;
+    // Validate slots
+    if (!slots || !Array.isArray(slots) || slots.length === 0) {
+      throw new AppError(400, 'At least one slot is required');
     }
 
+    // Validate each slot entry: { playerClass: "MAGE", count: 2 }
+    const validClasses = [
+      'ASSASSIN', 'BRAWLER', 'ATALANTA', 'PIKEMAN', 'FIGHTER',
+      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
+    ];
+
+    const slotEntries: { playerClass: string; count: number }[] = [];
+    let totalSlots = 0;
+
+    for (const slot of slots) {
+      if (!slot.playerClass || !validClasses.includes(slot.playerClass)) {
+        throw new AppError(400, `Invalid player class: ${slot.playerClass}`);
+      }
+      const count = parseInt(slot.count, 10);
+      if (isNaN(count) || count < 1 || count > 10) {
+        throw new AppError(400, 'Slot count must be between 1 and 10');
+      }
+      slotEntries.push({ playerClass: slot.playerClass, count });
+      totalSlots += count;
+    }
+
+    if (totalSlots < 2 || totalSlots > 50) {
+      throw new AppError(400, 'Total slots must be between 2 and 50');
+    }
+
+    // Get creator's info
+    const creator = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { nick: true, playerClass: true },
+    });
+
+    if (!creator) {
+      throw new AppError(404, 'User not found');
+    }
+
+    // Create party with slots
     const party = await prisma.party.create({
       data: {
         name: name.trim(),
         description: description?.trim() || null,
         eventId,
-        maxMembers: validatedMaxMembers,
         createdById: userId,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        maxMembers: true,
-        isClosed: true,
-        createdAt: true,
-        createdBy: {
-          select: {
-            id: true,
-            nick: true,
-            playerClass: true,
-          },
+        slots: {
+          create: slotEntries.flatMap(entry =>
+            Array.from({ length: entry.count }, () => ({
+              playerClass: entry.playerClass,
+            }))
+          ),
         },
       },
+      select: partySelectFields,
     });
 
-    // Creator automatically joins the party
-    await prisma.partyMember.create({
-      data: {
-        partyId: party.id,
-        userId,
-      },
-    });
+    // Creator automatically fills the first available slot
+    const firstSlot = party.slots[0];
+    if (firstSlot) {
+      await prisma.partySlot.update({
+        where: { id: firstSlot.id },
+        data: { filledById: userId },
+      });
 
-    // Create party channel for chat
-    createPartyChannel(party.id, party.name)
-      .catch(err => console.error('Failed to create party channel:', err));
+      // Refetch to get updated data
+      const updatedParty = await prisma.party.findUnique({
+        where: { id: party.id },
+        select: partySelectFields,
+      });
 
-    res.status(201).json({
-      party: {
-        ...party,
-        members: [{
-          id: userId,
-          nick: party.createdBy.nick,
-          playerClass: party.createdBy.playerClass,
-          joinedAt: new Date().toISOString(),
-        }],
-      },
-    });
+      // Create party channel for chat
+      createPartyChannel(party.id, party.name)
+        .catch(err => console.error('Failed to create party channel:', err));
+
+      res.status(201).json({ party: transformPartyResponse(updatedParty) });
+    } else {
+      res.status(201).json({ party: transformPartyResponse(party) });
+    }
   } catch (err) {
     next(err);
   }
@@ -314,7 +352,7 @@ export async function deleteParty(
   }
 }
 
-// Join a party
+// Join a party (fill a slot)
 export async function joinParty(
   req: Request,
   res: Response,
@@ -322,12 +360,17 @@ export async function joinParty(
 ): Promise<void> {
   try {
     const { partyId } = req.params;
+    const { slotId } = req.body;
     const userId = req.user!.userId;
+
+    if (!slotId) {
+      throw new AppError(400, 'Slot ID is required');
+    }
 
     const party = await prisma.party.findUnique({
       where: { id: partyId },
       include: {
-        members: true,
+        slots: true,
         event: { select: { title: true } },
       },
     });
@@ -340,27 +383,31 @@ export async function joinParty(
       throw new AppError(400, 'Party is closed');
     }
 
-    // Check if already a member
-    const existing = await prisma.partyMember.findUnique({
-      where: { partyId_userId: { partyId, userId } },
-    });
-
-    if (existing) {
+    // Check if user already has a slot in this party
+    const existingSlot = party.slots.find(s => s.filledById === userId);
+    if (existingSlot) {
       throw new AppError(400, 'Already a member of this party');
     }
 
-    // Check if party is full
-    if (party.members.length >= party.maxMembers) {
-      throw new AppError(400, 'Party is full');
+    // Find the requested slot
+    const slot = party.slots.find(s => s.id === slotId);
+    if (!slot) {
+      throw new AppError(404, 'Slot not found');
     }
 
-    await prisma.partyMember.create({
-      data: { partyId, userId },
+    if (slot.filledById) {
+      throw new AppError(400, 'Slot is already filled');
+    }
+
+    // Fill the slot
+    await prisma.partySlot.update({
+      where: { id: slotId },
+      data: { filledById: userId },
     });
 
     // Check if party is now full and close it
-    const newMemberCount = party.members.length + 1;
-    if (newMemberCount >= party.maxMembers) {
+    const filledSlots = party.slots.filter(s => s.filledById).length + 1;
+    if (filledSlots >= party.slots.length) {
       await prisma.party.update({
         where: { id: partyId },
         data: { isClosed: true },
@@ -368,6 +415,11 @@ export async function joinParty(
 
       // Notify all party members
       const partyContext = party.event ? `${party.name} (${party.event.title})` : party.name;
+      const memberIds = party.slots
+        .filter(s => s.filledById)
+        .map(s => s.filledById!)
+        .concat(userId);
+
       notifyPartyMembers(
         partyId,
         'Party Completa!',
@@ -379,51 +431,16 @@ export async function joinParty(
     // Fetch and return the updated party
     const updatedParty = await prisma.party.findUnique({
       where: { id: partyId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        maxMembers: true,
-        isClosed: true,
-        createdAt: true,
-        eventId: true,
-        createdBy: {
-          select: {
-            id: true,
-            nick: true,
-          },
-        },
-        members: {
-          select: {
-            user: {
-              select: {
-                id: true,
-                nick: true,
-                playerClass: true,
-              },
-            },
-            joinedAt: true,
-          },
-        },
-      },
+      select: partySelectFields,
     });
 
-    // Transform to flatten members
-    const transformedParty = {
-      ...updatedParty,
-      members: updatedParty!.members.map(m => ({
-        ...m.user,
-        joinedAt: m.joinedAt,
-      })),
-    };
-
-    res.json({ party: transformedParty });
+    res.json({ party: transformPartyResponse(updatedParty) });
   } catch (err) {
     next(err);
   }
 }
 
-// Leave a party
+// Leave a party (free a slot)
 export async function leaveParty(
   req: Request,
   res: Response,
@@ -433,27 +450,27 @@ export async function leaveParty(
     const { partyId } = req.params;
     const userId = req.user!.userId;
 
-    const membership = await prisma.partyMember.findUnique({
-      where: { partyId_userId: { partyId, userId } },
-    });
-
-    if (!membership) {
-      throw new AppError(400, 'Not a member of this party');
-    }
-
     const party = await prisma.party.findUnique({
       where: { id: partyId },
+      include: { slots: true },
     });
 
     if (!party) {
       throw new AppError(404, 'Party not found');
     }
 
-    // If leaving and party was closed, reopen it
+    // Find user's slot
+    const userSlot = party.slots.find(s => s.filledById === userId);
+    if (!userSlot) {
+      throw new AppError(400, 'Not a member of this party');
+    }
+
     const wasClosed = party.isClosed;
 
-    await prisma.partyMember.delete({
-      where: { partyId_userId: { partyId, userId } },
+    // Free the slot
+    await prisma.partySlot.update({
+      where: { id: userSlot.id },
+      data: { filledById: null },
     });
 
     // Reopen party if it was closed
@@ -467,45 +484,10 @@ export async function leaveParty(
     // Fetch and return the updated party
     const updatedParty = await prisma.party.findUnique({
       where: { id: partyId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        maxMembers: true,
-        isClosed: true,
-        createdAt: true,
-        eventId: true,
-        createdBy: {
-          select: {
-            id: true,
-            nick: true,
-          },
-        },
-        members: {
-          select: {
-            user: {
-              select: {
-                id: true,
-                nick: true,
-                playerClass: true,
-              },
-            },
-            joinedAt: true,
-          },
-        },
-      },
+      select: partySelectFields,
     });
 
-    // Transform to flatten members
-    const transformedParty = {
-      ...updatedParty,
-      members: updatedParty!.members.map(m => ({
-        ...m.user,
-        joinedAt: m.joinedAt,
-      })),
-    };
-
-    res.json({ party: transformedParty });
+    res.json({ party: transformPartyResponse(updatedParty) });
   } catch (err) {
     next(err);
   }

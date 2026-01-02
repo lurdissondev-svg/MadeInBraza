@@ -245,7 +245,8 @@ interface BrazaApi {
     @POST("parties/{partyId}/join")
     suspend fun joinParty(
         @Header("Authorization") token: String,
-        @Path("partyId") partyId: String
+        @Path("partyId") partyId: String,
+        @Body request: JoinPartyRequest
     ): Response<JoinPartyResponse>
 
     @POST("parties/{partyId}/leave")

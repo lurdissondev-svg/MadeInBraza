@@ -4,7 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -18,26 +19,41 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.R
 import com.madeinbraza.app.data.model.Party
+import com.madeinbraza.app.data.model.PartySlot
 import com.madeinbraza.app.data.model.PlayerClass
+import com.madeinbraza.app.data.model.SlotRequest
 import com.madeinbraza.app.ui.viewmodel.PartiesViewModel
 
 private val CLASS_DISPLAY_NAMES = mapOf(
-    PlayerClass.ASSASSIN to "Assassino",
-    PlayerClass.BRAWLER to "Lutador",
+    PlayerClass.ASSASSIN to "Assassin",
+    PlayerClass.BRAWLER to "Brawler",
     PlayerClass.ATALANTA to "Atalanta",
-    PlayerClass.PIKEMAN to "Lanceiro",
-    PlayerClass.FIGHTER to "Guerreiro",
-    PlayerClass.MECHANIC to "Mecanico",
-    PlayerClass.KNIGHT to "Cavaleiro",
-    PlayerClass.PRIESTESS to "Sacerdotisa",
-    PlayerClass.SHAMAN to "Xama",
-    PlayerClass.MAGE to "Mago",
-    PlayerClass.ARCHER to "Arqueiro"
+    PlayerClass.PIKEMAN to "Pikeman",
+    PlayerClass.FIGHTER to "Fighter",
+    PlayerClass.MECHANIC to "Mechanic",
+    PlayerClass.KNIGHT to "Knight",
+    PlayerClass.PRIESTESS to "Priestess",
+    PlayerClass.SHAMAN to "Shaman",
+    PlayerClass.MAGE to "Mage",
+    PlayerClass.ARCHER to "Archer"
+)
+
+private val CLASS_ABBREVIATIONS = mapOf(
+    PlayerClass.ASSASSIN to "ASS",
+    PlayerClass.BRAWLER to "BS",
+    PlayerClass.ATALANTA to "ATA",
+    PlayerClass.PIKEMAN to "PIKE",
+    PlayerClass.FIGHTER to "FIGHT",
+    PlayerClass.MECHANIC to "MECH",
+    PlayerClass.KNIGHT to "KNT",
+    PlayerClass.PRIESTESS to "PRS",
+    PlayerClass.SHAMAN to "SHA",
+    PlayerClass.MAGE to "MAGE",
+    PlayerClass.ARCHER to "ARC"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,10 +66,20 @@ fun PartiesScreen(
 
     // Create party dialog
     if (uiState.showCreateDialog) {
-        CreatePartyDialog(
+        CreateEventPartyDialog(
             isCreating = uiState.isCreating,
             onDismiss = { viewModel.hideCreateDialog() },
-            onCreate = { name, description, maxMembers -> viewModel.createParty(name, description, maxMembers) }
+            onCreate = { name, description, slots -> viewModel.createParty(name, description, slots) }
+        )
+    }
+
+    // Join party dialog
+    uiState.partyToJoin?.let { party ->
+        JoinEventPartyDialog(
+            party = party,
+            isJoining = uiState.isJoining,
+            onDismiss = { viewModel.hideJoinDialog() },
+            onJoin = { slotId -> viewModel.joinParty(party.id, slotId) }
         )
     }
 
@@ -127,12 +153,12 @@ fun PartiesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(uiState.parties) { party ->
-                            PartyCard(
+                            EventPartyCard(
                                 party = party,
                                 currentUserId = uiState.currentUserId,
                                 isLeader = uiState.isLeader,
                                 isActionInProgress = uiState.actionInProgress == party.id,
-                                onJoin = { viewModel.joinParty(party.id) },
+                                onJoin = { viewModel.showJoinDialog(party) },
                                 onLeave = { viewModel.leaveParty(party.id) },
                                 onDelete = { viewModel.deleteParty(party.id) }
                             )
@@ -161,20 +187,26 @@ fun PartiesScreen(
 }
 
 @Composable
-fun CreatePartyDialog(
+private fun CreateEventPartyDialog(
     isCreating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (String, String?, Int?) -> Unit
+    onCreate: (String, String?, List<SlotRequest>) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var maxMembers by remember { mutableStateOf("5") }
+    val slotCounts = remember { mutableStateMapOf<PlayerClass, Int>().apply {
+        PlayerClass.entries.forEach { put(it, 0) }
+    }}
+
+    val totalSlots = slotCounts.values.sum()
 
     AlertDialog(
         onDismissRequest = { if (!isCreating) onDismiss() },
         title = { Text(stringResource(R.string.create_party)) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -194,26 +226,83 @@ fun CreatePartyDialog(
                     enabled = !isCreating,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = maxMembers,
-                    onValueChange = { maxMembers = it.filter { c -> c.isDigit() } },
-                    label = { Text(stringResource(R.string.max_members)) },
-                    singleLine = true,
-                    enabled = !isCreating,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Slots por Classe (Total: $totalSlots)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Class slot selection grid
+                PlayerClass.entries.forEach { playerClass ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FilledTonalIconButton(
+                                onClick = {
+                                    val current = slotCounts[playerClass] ?: 0
+                                    if (current > 0) slotCounts[playerClass] = current - 1
+                                },
+                                enabled = !isCreating && (slotCounts[playerClass] ?: 0) > 0,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Text("-", style = MaterialTheme.typography.titleMedium)
+                            }
+                            Text(
+                                text = "${slotCounts[playerClass] ?: 0}",
+                                modifier = Modifier
+                                    .width(32.dp)
+                                    .wrapContentWidth(Alignment.CenterHorizontally),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            FilledTonalIconButton(
+                                onClick = {
+                                    val current = slotCounts[playerClass] ?: 0
+                                    slotCounts[playerClass] = current + 1
+                                },
+                                enabled = !isCreating,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Text("+", style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
+                    }
+                }
+
+                if (totalSlots < 2) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Mínimo de 2 slots necessários",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val max = maxMembers.toIntOrNull()
+                    val slots = slotCounts
+                        .filter { it.value > 0 }
+                        .map { SlotRequest(playerClass = it.key, count = it.value) }
                     val desc = description.trim().ifEmpty { null }
-                    onCreate(name, desc, max)
+                    onCreate(name, desc, slots)
                 },
-                enabled = name.isNotBlank() && !isCreating
+                enabled = name.isNotBlank() && totalSlots >= 2 && !isCreating
             ) {
                 if (isCreating) {
                     CircularProgressIndicator(
@@ -238,7 +327,65 @@ fun CreatePartyDialog(
 }
 
 @Composable
-fun PartyCard(
+private fun JoinEventPartyDialog(
+    party: Party,
+    isJoining: Boolean,
+    onDismiss: () -> Unit,
+    onJoin: (String) -> Unit
+) {
+    // Group available slots by class
+    val availableSlots = party.slots.filter { it.filledBy == null }
+    val slotsByClass = availableSlots.groupBy { it.playerClass }
+
+    AlertDialog(
+        onDismissRequest = { if (!isJoining) onDismiss() },
+        title = { Text("Entrar na Party") },
+        text = {
+            Column {
+                Text(
+                    text = "Escolha uma vaga disponível:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (availableSlots.isEmpty()) {
+                    Text(
+                        text = "Nenhuma vaga disponível",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        slotsByClass.forEach { (playerClass, slots) ->
+                            val className = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
+                            val slotCount = slots.size
+
+                            OutlinedButton(
+                                onClick = { onJoin(slots.first().id) },
+                                enabled = !isJoining,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("$className ($slotCount ${if (slotCount == 1) "vaga" else "vagas"})")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isJoining
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun EventPartyCard(
     party: Party,
     currentUserId: String?,
     isLeader: Boolean,
@@ -247,14 +394,16 @@ fun PartyCard(
     onLeave: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val isMember = party.members.any { it.id == currentUserId }
+    val isMember = party.slots.any { it.filledBy?.id == currentUserId }
     val isCreator = party.createdBy.id == currentUserId
     val canDelete = isCreator || isLeader
+
+    // Group slots by class for display
+    val slotsByClass = party.slots.groupBy { it.playerClass }
 
     val closedText = stringResource(R.string.party_closed)
     val createdByText = stringResource(R.string.created_by_party, party.createdBy.nick)
     val deleteText = stringResource(R.string.delete)
-    val membersCountText = stringResource(R.string.party_members_count, party.members.size, party.maxMembers)
     val leaveText = stringResource(R.string.leave)
     val joinText = stringResource(R.string.join)
     val fullText = stringResource(R.string.party_full)
@@ -334,7 +483,7 @@ fun PartyCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Members count
+            // Slots count
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -346,28 +495,57 @@ fun PartyCard(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-
                 Text(
-                    text = membersCountText,
+                    text = "${party.filledSlots}/${party.totalSlots} vagas preenchidas",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (party.isFull) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // Members list with class chips
-            if (party.members.isNotEmpty()) {
+            // Slots by class display
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(slotsByClass.entries.toList()) { (playerClass, slots) ->
+                    val filled = slots.count { it.filledBy != null }
+                    val total = slots.size
+                    val abbrev = CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name.take(3)
+
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = "$abbrev: $filled/$total",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (filled == total)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier.height(28.dp)
+                    )
+                }
+            }
+
+            // Show filled slot members
+            val filledSlots = party.slots.filter { it.filledBy != null }
+            if (filledSlots.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(party.members) { member ->
-                        val isCurrentUser = member.id == currentUserId
-                        val className = member.playerClass?.name ?: "?"
+                    items(filledSlots) { slot ->
+                        val isCurrentUser = slot.filledBy?.id == currentUserId
+                        val abbrev = CLASS_ABBREVIATIONS[slot.playerClass] ?: slot.playerClass.name.take(3)
                         AssistChip(
                             onClick = {},
                             label = {
                                 Text(
-                                    text = "${member.nick} ($className)",
+                                    text = "${slot.filledBy?.nick} ($abbrev)",
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             },
@@ -386,11 +564,12 @@ fun PartyCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Action button
-            val buttonEnabled = !isActionInProgress && (isMember || !party.isClosed)
+            val hasAvailableSlots = party.slots.any { it.filledBy == null }
+            val buttonEnabled = !isActionInProgress && (isMember || (!party.isClosed && hasAvailableSlots))
             val buttonText = when {
                 isMember -> leaveText
                 party.isClosed -> closedText
-                party.isFull -> fullText
+                !hasAvailableSlots -> fullText
                 else -> joinText
             }
 

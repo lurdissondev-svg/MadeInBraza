@@ -50,6 +50,7 @@ model User {
   participations EventParticipant[]
   createdParties Party[]   @relation("PartyCreator")
   partyMemberships PartyMember[]
+  filledSlots    PartySlot[] @relation("PartySlotFiller")
   swResponses    SWResponse[]
   pilotedBy      SWResponse[] @relation("PilotingFor")
   announcements  Announcement[]
@@ -129,15 +130,26 @@ model Party {
   description String?
   eventId     String?
   event       Event?        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  maxMembers  Int           @default(5)
   isClosed    Boolean       @default(false)
   createdById String
   createdBy   User          @relation("PartyCreator", fields: [createdById], references: [id])
   createdAt   DateTime      @default(now())
   members     PartyMember[]
+  slots       PartySlot[]
   channel     Channel?
 
   @@map("parties")
+}
+
+model PartySlot {
+  id          String       @id @default(uuid())
+  partyId     String
+  party       Party        @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  playerClass PlayerClass
+  filledById  String?
+  filledBy    User?        @relation("PartySlotFiller", fields: [filledById], references: [id])
+
+  @@map("party_slots")
 }
 
 model PartyMember {

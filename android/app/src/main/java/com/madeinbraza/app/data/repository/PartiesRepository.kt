@@ -5,7 +5,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.madeinbraza.app.data.api.BrazaApi
 import com.madeinbraza.app.data.model.CreatePartyRequest
+import com.madeinbraza.app.data.model.JoinPartyRequest
 import com.madeinbraza.app.data.model.Party
+import com.madeinbraza.app.data.model.SlotRequest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -34,12 +36,12 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun createGlobalParty(name: String, description: String?, maxMembers: Int?): Result<Party> {
+    suspend fun createGlobalParty(name: String, description: String?, slots: List<SlotRequest>): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.createGlobalParty(
                 "Bearer $token",
-                CreatePartyRequest(name = name, description = description, maxMembers = maxMembers)
+                CreatePartyRequest(name = name, description = description, slots = slots)
             )
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!.party)
@@ -65,36 +67,18 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun createParty(eventId: String, name: String, description: String?, maxMembers: Int?): Result<Party> {
+    suspend fun createParty(eventId: String, name: String, description: String?, slots: List<SlotRequest>): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.createParty(
                 "Bearer $token",
                 eventId,
-                CreatePartyRequest(name = name, description = description, maxMembers = maxMembers)
+                CreatePartyRequest(name = name, description = description, slots = slots)
             )
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!.party)
             } else {
                 Result.Error(response.errorBody()?.string() ?: "Failed to create party")
-            }
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
-        }
-    }
-
-    suspend fun updateParty(partyId: String, name: String, description: String?, maxMembers: Int?): Result<Party> {
-        val token = getToken() ?: return Result.Error("Not authenticated")
-        return try {
-            val response = api.updateParty(
-                "Bearer $token",
-                partyId,
-                CreatePartyRequest(name = name, description = description, maxMembers = maxMembers)
-            )
-            if (response.isSuccessful && response.body() != null) {
-                Result.Success(response.body()!!.party)
-            } else {
-                Result.Error(response.errorBody()?.string() ?: "Failed to update party")
             }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Network error")
@@ -115,12 +99,12 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun joinParty(partyId: String): Result<Boolean> {
+    suspend fun joinParty(partyId: String, slotId: String): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
-            val response = api.joinParty("Bearer $token", partyId)
+            val response = api.joinParty("Bearer $token", partyId, JoinPartyRequest(slotId = slotId))
             if (response.isSuccessful && response.body() != null) {
-                Result.Success(response.body()!!.isClosed)
+                Result.Success(response.body()!!.party)
             } else {
                 Result.Error(response.errorBody()?.string() ?: "Failed to join party")
             }

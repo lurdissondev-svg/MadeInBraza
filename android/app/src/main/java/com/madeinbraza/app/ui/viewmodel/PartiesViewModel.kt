@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.Party
+import com.madeinbraza.app.data.model.SlotRequest
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.PartiesRepository
 import com.madeinbraza.app.data.repository.Result
@@ -26,7 +27,9 @@ data class PartiesUiState(
     val currentUserId: String? = null,
     val isLeader: Boolean = false,
     val showCreateDialog: Boolean = false,
-    val isCreating: Boolean = false
+    val isCreating: Boolean = false,
+    val partyToJoin: Party? = null,
+    val isJoining: Boolean = false
 )
 
 @HiltViewModel
@@ -103,11 +106,11 @@ class PartiesViewModel @Inject constructor(
         _uiState.update { it.copy(showCreateDialog = false) }
     }
 
-    fun createParty(name: String, description: String?, maxMembers: Int?) {
+    fun createParty(name: String, description: String?, slots: List<SlotRequest>) {
         viewModelScope.launch {
             _uiState.update { it.copy(isCreating = true) }
 
-            when (val result = partiesRepository.createParty(eventId, name, description, maxMembers)) {
+            when (val result = partiesRepository.createParty(eventId, name, description, slots)) {
                 is Result.Success -> {
                     _uiState.update { state ->
                         state.copy(
@@ -124,33 +127,85 @@ class PartiesViewModel @Inject constructor(
         }
     }
 
-    fun joinParty(partyId: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(actionInProgress = partyId) }
+    fun showJoinDialog(party: Party) {
+        _uiState.update { it.copy(partyToJoin = party) }
+    }
 
-            when (val result = partiesRepository.joinParty(partyId)) {
+    fun hideJoinDialog() {
+        _uiState.update { it.copy(partyToJoin = null) }
+    }
+
+    fun joinParty(partyId: String, slotId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isJoining = true, actionInProgress = partyId) }
+
+            when (val result = partiesRepository.joinParty(partyId, slotId)) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(actionInProgress = null) }
-                    loadParties() // Refresh to get updated member list
+                    _uiState.update { state ->
+                        state.copy(
+                            isJoining = false,
+                            actionInProgress = null,
+                            partyToJoin = null,
+                            parties = state.parties.map { party ->
+                                if (party.id == partyId) result.data else party
+                            }
+                        )
+                    }
                 }
                 is Result.Error -> {
-                    _uiState.update { it.copy(actionInProgress = null, error = result.message) }
+                    _uiState.update {
+                        it.copy(
+                            isJoining = false,
+                            actionInProgress = null,
+                            error = result.message
+                        )
+                    }
                 }
             }
         }
     }
 
     fun leaveParty(partyId: String) {
+        val currentUserId = _uiState.value.currentUserId ?: return
+
         viewModelScope.launch {
             _uiState.update { it.copy(actionInProgress = partyId) }
+
+            // Optimistic update: remove user from party slots
+            val previousSlots = _uiState.value.parties.find { it.id == partyId }?.slots
+            _uiState.update { state ->
+                state.copy(
+                    parties = state.parties.map { party ->
+                        if (party.id == partyId) {
+                            party.copy(
+                                slots = party.slots.map { slot ->
+                                    if (slot.filledBy?.id == currentUserId) {
+                                        slot.copy(filledBy = null)
+                                    } else slot
+                                }
+                            )
+                        } else party
+                    }
+                )
+            }
 
             when (val result = partiesRepository.leaveParty(partyId)) {
                 is Result.Success -> {
                     _uiState.update { it.copy(actionInProgress = null) }
-                    loadParties() // Refresh to get updated member list
                 }
                 is Result.Error -> {
-                    _uiState.update { it.copy(actionInProgress = null, error = result.message) }
+                    // Rollback optimistic update
+                    _uiState.update { state ->
+                        state.copy(
+                            actionInProgress = null,
+                            error = result.message,
+                            parties = state.parties.map { party ->
+                                if (party.id == partyId && previousSlots != null) {
+                                    party.copy(slots = previousSlots)
+                                } else party
+                            }
+                        )
+                    }
                 }
             }
         }

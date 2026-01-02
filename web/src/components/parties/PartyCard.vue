@@ -10,30 +10,50 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  join: [id: string]
+  join: [party: Party]
   leave: [id: string]
   delete: [id: string]
 }>()
 
 const isParticipating = computed(() => {
   if (!props.currentUserId) return false
-  return props.party.members.some(m => m.id === props.currentUserId)
+  return props.party.slots.some(s => s.filledBy?.id === props.currentUserId)
 })
 
-const isFull = computed(() => {
-  return props.party.members.length >= props.party.maxMembers
+const totalSlots = computed(() => props.party.slots.length)
+const filledSlots = computed(() => props.party.slots.filter(s => s.filledBy).length)
+
+const isFull = computed(() => filledSlots.value >= totalSlots.value)
+
+const memberCount = computed(() => `${filledSlots.value}/${totalSlots.value}`)
+
+// Group slots by class for display
+const slotsByClass = computed(() => {
+  const groups = new Map<string, { total: number; filled: number; members: { nick: string; id: string }[] }>()
+
+  props.party.slots.forEach(slot => {
+    const existing = groups.get(slot.playerClass) || { total: 0, filled: 0, members: [] }
+    existing.total++
+    if (slot.filledBy) {
+      existing.filled++
+      existing.members.push({ nick: slot.filledBy.nick, id: slot.filledBy.id })
+    }
+    groups.set(slot.playerClass, existing)
+  })
+
+  return Array.from(groups.entries()).map(([playerClass, data]) => ({
+    playerClass,
+    abbr: PlayerClassAbbreviations[playerClass as keyof typeof PlayerClassAbbreviations],
+    ...data
+  }))
 })
 
-const memberCount = computed(() => {
-  return `${props.party.members.length}/${props.party.maxMembers}`
-})
+function handleJoin() {
+  emit('join', props.party)
+}
 
-function handleToggleParticipation() {
-  if (isParticipating.value) {
-    emit('leave', props.party.id)
-  } else {
-    emit('join', props.party.id)
-  }
+function handleLeave() {
+  emit('leave', props.party.id)
 }
 
 function handleDelete() {
@@ -74,29 +94,44 @@ function handleDelete() {
     <!-- Members Progress -->
     <div class="mb-3">
       <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-        <span>Membros</span>
+        <span>Vagas</span>
         <span>{{ memberCount }}</span>
       </div>
       <div class="h-2 bg-dark-600 rounded-full overflow-hidden">
         <div
           class="h-full transition-all duration-300"
           :class="isFull ? 'bg-red-500' : 'bg-primary-500'"
-          :style="{ width: `${(party.members.length / party.maxMembers) * 100}%` }"
+          :style="{ width: `${(filledSlots / totalSlots) * 100}%` }"
         />
       </div>
     </div>
 
-    <!-- Members List -->
-    <div v-if="party.members.length > 0" class="flex flex-wrap gap-1 mb-3">
-      <span
-        v-for="member in party.members"
-        :key="member.id"
-        class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-dark-600 text-gray-300"
-        :class="{ 'bg-primary-500/20 text-primary-400': member.id === currentUserId }"
+    <!-- Slots by Class -->
+    <div class="flex flex-wrap gap-1.5 mb-3">
+      <div
+        v-for="group in slotsByClass"
+        :key="group.playerClass"
+        class="flex items-center gap-1 px-2 py-1 rounded text-xs bg-dark-600"
+        :class="group.filled === group.total ? 'opacity-50' : ''"
       >
-        {{ member.nick }}
-        <span v-if="member.playerClass" class="ml-1 text-gray-500">{{ PlayerClassAbbreviations[member.playerClass] }}</span>
-      </span>
+        <span class="font-medium text-gray-300">{{ group.abbr }}</span>
+        <span class="text-gray-500">{{ group.filled }}/{{ group.total }}</span>
+      </div>
+    </div>
+
+    <!-- Members List (filled slots) -->
+    <div v-if="filledSlots > 0" class="flex flex-wrap gap-1 mb-3">
+      <template v-for="group in slotsByClass" :key="group.playerClass">
+        <span
+          v-for="member in group.members"
+          :key="member.id"
+          class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-dark-600 text-gray-300"
+          :class="{ 'bg-primary-500/20 text-primary-400': member.id === currentUserId }"
+        >
+          {{ member.nick }}
+          <span class="ml-1 text-gray-500">{{ group.abbr }}</span>
+        </span>
+      </template>
     </div>
 
     <!-- Spacer -->
@@ -104,12 +139,19 @@ function handleDelete() {
 
     <!-- Join/Leave Button -->
     <button
-      @click="handleToggleParticipation"
-      class="btn w-full text-sm"
-      :class="isParticipating ? 'btn-secondary' : 'btn-primary'"
-      :disabled="!isParticipating && (isFull || party.isClosed)"
+      v-if="isParticipating"
+      @click="handleLeave"
+      class="btn btn-secondary w-full text-sm"
     >
-      {{ isParticipating ? 'Sair da Party' : (isFull ? 'Party Lotada' : 'Entrar') }}
+      Sair da Party
+    </button>
+    <button
+      v-else
+      @click="handleJoin"
+      class="btn btn-primary w-full text-sm"
+      :disabled="isFull || party.isClosed"
+    >
+      {{ isFull ? 'Party Lotada' : 'Entrar' }}
     </button>
   </div>
 </template>

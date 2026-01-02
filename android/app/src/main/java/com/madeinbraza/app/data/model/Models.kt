@@ -238,40 +238,66 @@ data class PartyMember(
     val joinedAt: String
 )
 
+data class PartySlotUser(
+    val id: String,
+    val nick: String,
+    val playerClass: PlayerClass?
+)
+
+data class PartySlot(
+    val id: String,
+    val playerClass: PlayerClass,
+    val filledBy: PartySlotUser?
+)
+
 data class Party(
     val id: String,
     val name: String,
     val description: String? = null,
-    val maxMembers: Int,
     val isClosed: Boolean,
     val createdAt: String,
     val createdBy: PartyCreator,
-    val members: List<PartyMember>
+    val slots: List<PartySlot>,
+    val members: List<PartyMember> // Backwards compatibility
 ) {
+    val totalSlots: Int
+        get() = slots.size
+
+    val filledSlots: Int
+        get() = slots.count { it.filledBy != null }
+
     val isFull: Boolean
-        get() = members.size >= maxMembers
+        get() = filledSlots >= totalSlots
 
     val availableSlots: Int
-        get() = maxMembers - members.size
+        get() = totalSlots - filledSlots
 }
 
 data class PartiesResponse(
     val parties: List<Party>
 )
 
+data class SlotRequest(
+    val playerClass: PlayerClass,
+    val count: Int
+)
+
 data class CreatePartyRequest(
     val name: String,
     val description: String? = null,
-    val maxMembers: Int?
+    val slots: List<SlotRequest>
 )
 
 data class CreatePartyResponse(
     val party: Party
 )
 
+data class JoinPartyRequest(
+    val slotId: String
+)
+
 data class JoinPartyResponse(
-    val success: Boolean,
-    val isClosed: Boolean
+    val party: Party
 )
 
 // Siege War models
