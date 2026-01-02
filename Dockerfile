@@ -50,5 +50,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
-# Run migrations and start server
-CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx src/index.ts"]
+# Run migrations, sync schema, and start server
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db push --accept-data-loss && npx tsx src/index.ts"]
