@@ -2,7 +2,11 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { AppError } from './errorHandler.js';
+
+const execFileAsync = promisify(execFile);
 
 // Tipos de arquivo permitidos
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -84,7 +88,7 @@ if (!fs.existsSync(AVATARS_DIR)) {
 
 // Tipos permitidos para avatar (imagens incluindo GIF)
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5MB para avatares (GIFs grandes causam lag)
+const MAX_AVATAR_SIZE = 10 * 1024 * 1024; // 10MB - GIFs são comprimidos após upload
 
 // Configuração do storage para avatares
 const avatarStorage = multer.diskStorage({
@@ -139,5 +143,65 @@ export function deleteAvatarFile(avatarUrl: string | null): void {
     }
   } catch (error) {
     console.error('Error deleting avatar file:', error);
+  }
+}
+
+// === GIF Compression (like Discord) ===
+
+// Max dimensions for avatar GIFs (Discord uses 128x128 for animated)
+const MAX_AVATAR_DIMENSION = 256;
+// Target file size in bytes (2MB like Discord)
+const TARGET_GIF_SIZE = 2 * 1024 * 1024;
+
+/**
+ * Compress and optimize a GIF file using gifsicle
+ * Similar to how Discord processes animated avatars
+ */
+export async function optimizeGif(filePath: string): Promise<void> {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext !== '.gif') return;
+
+  try {
+    const stats = fs.statSync(filePath);
+    const originalSize = stats.size;
+
+    // Skip if already small enough
+    if (originalSize <= TARGET_GIF_SIZE) {
+      console.log(`[GIF] Already optimized: ${(originalSize / 1024 / 1024).toFixed(2)}MB`);
+      return;
+    }
+
+    console.log(`[GIF] Optimizing: ${(originalSize / 1024 / 1024).toFixed(2)}MB`);
+
+    // Create temp output file
+    const tempPath = filePath + '.optimized';
+
+    // Use system gifsicle (installed via apk in Docker)
+    // Optimization flags:
+    // --optimize=3: Maximum optimization
+    // --lossy=80: Lossy compression (Discord-like quality)
+    // --resize-fit: Resize to max dimension while keeping aspect ratio
+    // --colors=256: Reduce color palette if needed
+    await execFileAsync('gifsicle', [
+      '--optimize=3',
+      '--lossy=80',
+      `--resize-fit=${MAX_AVATAR_DIMENSION}x${MAX_AVATAR_DIMENSION}`,
+      '--colors=256',
+      '-o', tempPath,
+      filePath
+    ]);
+
+    // Replace original with optimized version
+    fs.unlinkSync(filePath);
+    fs.renameSync(tempPath, filePath);
+
+    const newStats = fs.statSync(filePath);
+    const newSize = newStats.size;
+    const reduction = ((originalSize - newSize) / originalSize * 100).toFixed(1);
+
+    console.log(`[GIF] Optimized: ${(originalSize / 1024 / 1024).toFixed(2)}MB → ${(newSize / 1024 / 1024).toFixed(2)}MB (-${reduction}%)`);
+  } catch (error) {
+    console.error('[GIF] Optimization error:', error);
+    // Don't fail upload if optimization fails - just use original
   }
 }

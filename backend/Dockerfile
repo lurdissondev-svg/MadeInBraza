@@ -2,6 +2,9 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# Install gifsicle for GIF compression (like Discord)
+RUN apk add --no-cache gifsicle
+
 # Install dependencies
 COPY package*.json ./
 RUN npm ci --only=production

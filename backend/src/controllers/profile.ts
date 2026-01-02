@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { getAvatarUrl, deleteAvatarFile } from '../middleware/upload.js';
+import { getAvatarUrl, deleteAvatarFile, optimizeGif } from '../middleware/upload.js';
 import fs from 'fs';
 
 export async function getProfile(
@@ -121,6 +121,11 @@ export async function uploadUserAvatar(
 
     if (!file) {
       throw new AppError(400, 'Arquivo de avatar é obrigatório');
+    }
+
+    // Optimize GIF if it's a GIF file (like Discord does)
+    if (file.mimetype === 'image/gif') {
+      await optimizeGif(file.path);
     }
 
     // Get current user to delete old avatar if exists
