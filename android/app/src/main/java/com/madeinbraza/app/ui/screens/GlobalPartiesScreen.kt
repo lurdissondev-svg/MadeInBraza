@@ -7,12 +7,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -249,7 +250,7 @@ fun CreateGlobalPartyDialog(
                                 enabled = !isCreating && count > 0,
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Filled.Remove, contentDescription = "Diminuir", modifier = Modifier.size(16.dp))
+                                Text("-", style = MaterialTheme.typography.titleMedium)
                             }
                             Text(
                                 text = count.toString(),
@@ -266,7 +267,7 @@ fun CreateGlobalPartyDialog(
                                 enabled = !isCreating && count < 6 && totalSlots < 6,
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Filled.Add, contentDescription = "Aumentar", modifier = Modifier.size(16.dp))
+                                Text("+", style = MaterialTheme.typography.titleMedium)
                             }
                         }
                     }

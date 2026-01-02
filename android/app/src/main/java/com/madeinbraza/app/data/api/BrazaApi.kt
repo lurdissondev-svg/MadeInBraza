@@ -9,6 +9,7 @@ import com.madeinbraza.app.data.model.BannedUsersResponse
 import com.madeinbraza.app.data.model.CreateEventRequest
 import com.madeinbraza.app.data.model.CreatePartyRequest
 import com.madeinbraza.app.data.model.CreatePartyResponse
+import com.madeinbraza.app.data.model.JoinPartyRequest
 import com.madeinbraza.app.data.model.CreateSiegeWarResponse
 import com.madeinbraza.app.data.model.SiegeWarHistoryResponse
 import com.madeinbraza.app.data.model.CurrentSiegeWarResponse
