@@ -156,7 +156,7 @@ async function handleLeave(id: string) {
     <ConfirmModal
       v-model:show="showDeleteModal"
       title="Deletar Party"
-      message="Tem certeza que deseja deletar esta party? Esta acao nao pode ser desfeita."
+      message="Tem certeza que deseja deletar esta party? Esta ação não pode ser desfeita."
       confirm-text="Deletar"
       :danger="true"
       @confirm="confirmDelete"

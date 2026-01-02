@@ -113,12 +113,12 @@ async function handleSubmit() {
 
             <!-- Description -->
             <div>
-              <label for="edit-description" class="label">Descricao</label>
+              <label for="edit-description" class="label">Descrição</label>
               <textarea
                 id="edit-description"
                 v-model="description"
                 class="input min-h-[80px] resize-none"
-                placeholder="Descricao opcional..."
+                placeholder="Descrição opcional..."
                 :disabled="isSubmitting"
                 maxlength="200"
               />
@@ -130,7 +130,7 @@ async function handleSubmit() {
                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                As vagas da party nao podem ser alteradas apos a criacao.
+                As vagas da party não podem ser alteradas após a criação.
               </p>
             </div>
 
