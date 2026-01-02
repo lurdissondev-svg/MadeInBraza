@@ -36,8 +36,9 @@ const formattedDate = computed(() => {
 const isImage = computed(() => {
   if (!props.announcement.mediaUrl) return false
 
-  // Check by mediaType
-  if (props.announcement.mediaType?.startsWith('image/')) return true
+  // Check by mediaType (supports both 'image' and 'image/jpeg' formats)
+  const mediaType = props.announcement.mediaType?.toLowerCase()
+  if (mediaType === 'image' || mediaType?.startsWith('image/')) return true
 
   // Check by file extension as fallback
   const url = props.announcement.mediaUrl.toLowerCase()
@@ -49,8 +50,9 @@ const isImage = computed(() => {
 const isVideo = computed(() => {
   if (!props.announcement.mediaUrl) return false
 
-  // Check by mediaType
-  if (props.announcement.mediaType?.startsWith('video/')) return true
+  // Check by mediaType (supports both 'video' and 'video/mp4' formats)
+  const mediaType = props.announcement.mediaType?.toLowerCase()
+  if (mediaType === 'video' || mediaType?.startsWith('video/')) return true
 
   // Check by file extension as fallback
   const url = props.announcement.mediaUrl.toLowerCase()

@@ -46,9 +46,11 @@ export async function downloadAndSaveMedia(
   }
 
   try {
-    console.log('[UAZAPI Media] Downloading media for message:', messageId);
+    // Remove owner prefix if present (e.g., "556581062401:3EB074786CD363571051CD" -> "3EB074786CD363571051CD")
+    const cleanMessageId = messageId.includes(':') ? messageId.split(':').pop()! : messageId;
+    console.log('[UAZAPI Media] Requesting media for message:', cleanMessageId);
 
-    // Call UAZAPI download endpoint
+    // Call UAZAPI download endpoint to get cached URL
     const response = await fetch(`${UAZAPI_URL}/message/download`, {
       method: 'POST',
       headers: {
@@ -56,7 +58,7 @@ export async function downloadAndSaveMedia(
         'token': UAZAPI_TOKEN,
       },
       body: JSON.stringify({
-        id: messageId,
+        id: cleanMessageId,
       }),
     });
 
@@ -77,10 +79,11 @@ export async function downloadAndSaveMedia(
       return null;
     }
 
-    // Download the file from fileURL
+    // Download the file from UAZAPI's cached URL
+    console.log('[UAZAPI Media] Downloading from:', data.fileURL);
     const fileResponse = await fetch(data.fileURL);
     if (!fileResponse.ok) {
-      console.error('[UAZAPI Media] Failed to download file from URL:', data.fileURL);
+      console.error('[UAZAPI Media] Failed to download file:', fileResponse.status);
       return null;
     }
 
@@ -89,12 +92,12 @@ export async function downloadAndSaveMedia(
     const filename = `${randomUUID()}.${extension}`;
     const filepath = path.join(UPLOADS_DIR, filename);
 
-    // Save to file
+    // Save to local file
     const buffer = Buffer.from(await fileResponse.arrayBuffer());
     fs.writeFileSync(filepath, buffer);
 
     const publicUrl = `${BASE_URL}/uploads/media/${filename}`;
-    console.log('[UAZAPI Media] Saved media to:', publicUrl);
+    console.log('[UAZAPI Media] Saved locally to:', publicUrl);
 
     return { url: publicUrl, mimetype };
   } catch (error) {
