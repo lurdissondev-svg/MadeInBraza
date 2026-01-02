@@ -62,7 +62,7 @@ function close() {
 }
 
 function incrementSlot(playerClass: PlayerClass) {
-  if (slotCounts.value[playerClass] < 10 && totalSlots.value < 50) {
+  if (slotCounts.value[playerClass] < 6 && totalSlots.value < 6) {
     slotCounts.value[playerClass]++
   }
 }
@@ -79,8 +79,8 @@ async function handleSubmit() {
     return
   }
 
-  if (totalSlots.value < 2) {
-    error.value = 'Selecione pelo menos 2 vagas'
+  if (totalSlots.value < 2 || totalSlots.value > 6) {
+    error.value = 'Selecione entre 2 e 6 vagas'
     return
   }
 
@@ -209,7 +209,7 @@ async function handleSubmit() {
                     <button
                       type="button"
                       @click="incrementSlot(playerClass)"
-                      :disabled="isSubmitting || slotCounts[playerClass] >= 10 || totalSlots >= 50"
+                      :disabled="isSubmitting || slotCounts[playerClass] >= 6 || totalSlots >= 6"
                       class="w-6 h-6 flex items-center justify-center rounded bg-dark-500 text-gray-300 hover:bg-dark-400 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

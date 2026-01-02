@@ -259,11 +259,11 @@ fun CreateGlobalPartyDialog(
                             )
                             IconButton(
                                 onClick = {
-                                    if (count < 10 && totalSlots < 50) {
+                                    if (count < 6 && totalSlots < 6) {
                                         slotCounts = slotCounts + (playerClass to count + 1)
                                     }
                                 },
-                                enabled = !isCreating && count < 10 && totalSlots < 50,
+                                enabled = !isCreating && count < 6 && totalSlots < 6,
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(Icons.Filled.Add, contentDescription = "Aumentar", modifier = Modifier.size(16.dp))
@@ -282,7 +282,7 @@ fun CreateGlobalPartyDialog(
                     val desc = description.trim().ifEmpty { null }
                     onCreate(name, desc, slots)
                 },
-                enabled = name.isNotBlank() && totalSlots >= 2 && !isCreating
+                enabled = name.isNotBlank() && totalSlots in 2..6 && !isCreating
             ) {
                 if (isCreating) {
                     CircularProgressIndicator(

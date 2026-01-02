@@ -272,9 +272,11 @@ private fun CreateEventPartyDialog(
                             FilledTonalIconButton(
                                 onClick = {
                                     val current = slotCounts[playerClass] ?: 0
-                                    slotCounts[playerClass] = current + 1
+                                    if (current < 6 && totalSlots < 6) {
+                                        slotCounts[playerClass] = current + 1
+                                    }
                                 },
-                                enabled = !isCreating,
+                                enabled = !isCreating && (slotCounts[playerClass] ?: 0) < 6 && totalSlots < 6,
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Text("+", style = MaterialTheme.typography.titleMedium)
@@ -283,10 +285,10 @@ private fun CreateEventPartyDialog(
                     }
                 }
 
-                if (totalSlots < 2) {
+                if (totalSlots < 2 || totalSlots > 6) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Mínimo de 2 slots necessários",
+                        text = if (totalSlots < 2) "Mínimo de 2 slots" else "Máximo de 6 slots",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -302,7 +304,7 @@ private fun CreateEventPartyDialog(
                     val desc = description.trim().ifEmpty { null }
                     onCreate(name, desc, slots)
                 },
-                enabled = name.isNotBlank() && totalSlots >= 2 && !isCreating
+                enabled = name.isNotBlank() && totalSlots in 2..6 && !isCreating
             ) {
                 if (isCreating) {
                     CircularProgressIndicator(

@@ -124,8 +124,8 @@ export async function createGlobalParty(
       totalSlots += count;
     }
 
-    if (totalSlots < 2 || totalSlots > 50) {
-      throw new AppError(400, 'Total slots must be between 2 and 50');
+    if (totalSlots < 2 || totalSlots > 6) {
+      throw new AppError(400, 'Total slots must be between 2 and 6');
     }
 
     // Get creator's info
@@ -256,8 +256,8 @@ export async function createParty(
       totalSlots += count;
     }
 
-    if (totalSlots < 2 || totalSlots > 50) {
-      throw new AppError(400, 'Total slots must be between 2 and 50');
+    if (totalSlots < 2 || totalSlots > 6) {
+      throw new AppError(400, 'Total slots must be between 2 and 6');
     }
 
     // Get creator's info
