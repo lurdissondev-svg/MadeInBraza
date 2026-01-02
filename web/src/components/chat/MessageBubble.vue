@@ -17,24 +17,24 @@ const avatarUrl = computed(() => {
   return `${baseUrl}${url}`
 })
 
-const bubbleClasses = computed(() => {
+const bubbleBackground = computed(() => {
   if (props.isCurrentUser) {
-    return 'bg-primary-500'
+    return '#9c27b0'  // primary-500 (purple)
   }
   if (isLeader.value) {
-    return 'bg-primary-500/20'
+    return 'rgba(156, 39, 176, 0.2)'  // primary-500/20
   }
-  return 'bg-dark-600'
+  return '#374151'  // dark-600
 })
 
-const textColorClass = computed(() => {
+const textColor = computed(() => {
   if (props.isCurrentUser) {
-    return '!text-white'  // Force white text for own messages
+    return '#ffffff'  // White text for own messages
   }
   if (isLeader.value) {
-    return 'text-gray-100'
+    return '#f3f4f6'  // gray-100
   }
-  return 'text-gray-200'
+  return '#e5e7eb'  // gray-200
 })
 
 // Check if media is an image (by type or file extension)
@@ -138,11 +138,10 @@ function openFullImage() {
     <div
       class="max-w-[280px] rounded-2xl overflow-hidden"
       :class="[
-        bubbleClasses,
-        textColorClass,
         isCurrentUser ? 'rounded-tr-sm' : 'rounded-tl-sm',
         message.mediaUrl ? 'p-1' : 'px-4 py-2'
       ]"
+      :style="{ backgroundColor: bubbleBackground, color: textColor }"
     >
       <!-- Media content -->
       <template v-if="message.mediaUrl">
@@ -173,7 +172,7 @@ function openFullImage() {
           :href="getMediaUrl(message.mediaUrl)"
           target="_blank"
           class="flex items-center gap-2 px-3 py-2 text-sm hover:opacity-80"
-          :class="textColorClass"
+          :style="{ color: textColor }"
         >
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -185,7 +184,7 @@ function openFullImage() {
         <p
           v-if="(isImage || isVideo) && message.fileName"
           class="text-xs px-2 py-1 opacity-70 truncate"
-          :class="textColorClass"
+          :style="{ color: textColor }"
         >
           {{ message.fileName }}
         </p>
@@ -195,7 +194,8 @@ function openFullImage() {
       <p
         v-if="message.content"
         class="whitespace-pre-wrap break-words"
-        :class="[textColorClass, message.mediaUrl ? 'px-3 py-2' : '']"
+        :class="message.mediaUrl ? 'px-3 py-2' : ''"
+        :style="{ color: textColor }"
       >
         {{ message.content }}
       </p>

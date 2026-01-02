@@ -97,6 +97,7 @@ export async function login(
         playerClass: user.playerClass,
         status: user.status,
         role: user.role,
+        avatarUrl: user.avatarUrl,
       },
       token,
     });
@@ -119,6 +120,7 @@ export async function checkStatus(
         playerClass: true,
         status: true,
         role: true,
+        avatarUrl: true,
       },
     });
 

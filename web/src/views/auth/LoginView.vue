@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -22,6 +22,8 @@ async function handleLogin() {
   const success = await authStore.login(nick.value.trim(), password.value, stayLoggedIn.value)
 
   if (success) {
+    // Wait for Vue reactivity to process state changes
+    await nextTick()
     const redirect = route.query.redirect as string
     // Use replace to avoid back button returning to login
     await router.replace(redirect || '/')

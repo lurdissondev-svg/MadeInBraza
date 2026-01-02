@@ -3,17 +3,18 @@ import { ref, computed } from 'vue'
 import type { User } from '@/types'
 import { UserStatus, Role } from '@/types'
 import { authApi } from '@/services/api/auth'
-import { setToken, removeToken, hasToken } from '@/services/api/client'
+import { setToken, removeToken, hasToken, getToken } from '@/services/api/client'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
+  const token = ref<string | null>(getToken()) // Reactive token state
   const loading = ref(false)
   const error = ref<string | null>(null)
   const initialized = ref(false)
 
-  // Getters
-  const isAuthenticated = computed(() => hasToken() && user.value !== null)
+  // Getters - use reactive token ref instead of hasToken()
+  const isAuthenticated = computed(() => !!token.value && user.value !== null)
   const isLeader = computed(() => user.value?.role === Role.LEADER)
   const isPending = computed(() => user.value?.status === UserStatus.PENDING)
   const isApproved = computed(() => user.value?.status === UserStatus.APPROVED)
@@ -27,7 +28,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authApi.login({ nick, password })
       setToken(response.token, stayLoggedIn)
+      token.value = response.token // Update reactive token state
       user.value = response.user
+      initialized.value = true
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao fazer login'
@@ -48,7 +51,9 @@ export const useAuthStore = defineStore('auth', () => {
         playerClass: playerClass as any
       })
       setToken(response.token)
+      token.value = response.token // Update reactive token state
       user.value = response.user
+      initialized.value = true
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao registrar'
@@ -75,6 +80,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       // Token inválido ou expirado
       removeToken()
+      token.value = null // Update reactive token state
       user.value = null
       initialized.value = true
       return false
@@ -85,6 +91,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout() {
     removeToken()
+    token.value = null // Update reactive token state
     user.value = null
     error.value = null
   }

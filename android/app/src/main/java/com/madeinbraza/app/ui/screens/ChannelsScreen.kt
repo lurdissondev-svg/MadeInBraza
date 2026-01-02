@@ -459,42 +459,85 @@ private fun ChannelMessageBubble(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    Column(
+    // Build avatar URL
+    val avatarUrl = message.user.avatarUrl?.let { url ->
+        val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/api/").removeSuffix("/api")
+        "$baseUrl$url"
+    }
+
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
     ) {
-        // Header row (nick, leader tag, time)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        ) {
-            if (!isCurrentUser) {
-                Text(
-                    text = message.user.nick,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isLeader) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                )
-                if (isLeader) {
-                    Spacer(modifier = Modifier.width(4.dp))
+        // Avatar (only for other users, on the left)
+        if (!isCurrentUser) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (isLeader) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.secondary
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (avatarUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(avatarUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = message.user.nick,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
                     Text(
-                        text = leaderTag,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        text = message.user.nick.firstOrNull()?.uppercase() ?: "?",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
             }
-            Text(
-                text = formatMessageTime(message.createdAt),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(modifier = Modifier.width(8.dp))
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Column(
+            horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
+        ) {
+            // Header row (nick, leader tag, time)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            ) {
+                if (!isCurrentUser) {
+                    Text(
+                        text = message.user.nick,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLeader) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                    )
+                    if (isLeader) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = leaderTag,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = formatMessageTime(message.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-        Box(
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
                 .clip(
@@ -592,9 +635,10 @@ private fun ChannelMessageBubble(
                         )
                     }
                 }
-            }
-        }
-    }
+            }  // Close inner Column
+        }  // Close Box
+    }  // Close outer Column
+    }  // Close Row
 }
 
 private fun getFullMediaUrl(mediaUrl: String): String {

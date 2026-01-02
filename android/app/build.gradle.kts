@@ -34,8 +34,8 @@ android {
         applicationId = "com.madeinbraza.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.0.12"
+        versionCode = 14
+        versionName = "1.0.13"
 
         buildConfigField("String", "API_BASE_URL", "\"https://braza.lurdisson.com.br/api/\"")
     }
@@ -103,9 +103,10 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-messaging-ktx")
 
-    // Coil for image/video loading
+    // Coil for image/video/gif loading
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("io.coil-kt:coil-video:2.5.0")
+    implementation("io.coil-kt:coil-gif:2.5.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
