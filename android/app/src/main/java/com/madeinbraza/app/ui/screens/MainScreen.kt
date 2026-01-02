@@ -24,14 +24,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.ui.NotificationNavigation
+import com.madeinbraza.app.ui.viewmodel.MainViewModel
 import com.madeinbraza.app.util.AppUpdate
 
 sealed class BottomNavItem(
     val route: String,
     val title: String,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val unselectedIcon: ImageVector,
+    val leaderOnly: Boolean = false
 ) {
     object Home : BottomNavItem(
         route = "main_home",
@@ -55,7 +58,8 @@ sealed class BottomNavItem(
         route = "main_members",
         title = "Membros",
         selectedIcon = Icons.Filled.Face,
-        unselectedIcon = Icons.Outlined.Face
+        unselectedIcon = Icons.Outlined.Face,
+        leaderOnly = true
     )
     object Profile : BottomNavItem(
         route = "main_profile",
@@ -76,8 +80,12 @@ fun MainScreen(
     onNavigateToMemberProfile: (String) -> Unit,
     onLanguageChanged: () -> Unit = {},
     pendingUpdate: AppUpdate? = null,
-    onUpdateClick: () -> Unit = {}
+    onUpdateClick: () -> Unit = {},
+    viewModel: MainViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val isLeader = uiState.isLeader
+
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -88,7 +96,9 @@ fun MainScreen(
         BottomNavItem.Parties,
         BottomNavItem.Members,
         BottomNavItem.Profile
-    )
+    ).filter { item ->
+        !item.leaderOnly || isLeader
+    }
 
     // FAB state for Home screen
     var homeFabVisible by remember { mutableStateOf(false) }

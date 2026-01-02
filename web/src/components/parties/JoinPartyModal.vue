@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { Party, PartySlot } from '@/types'
-import { PlayerClassNames, PlayerClassAbbreviations } from '@/types'
+import { PlayerClass, PlayerClassNames, PlayerClassAbbreviations } from '@/types'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const props = defineProps<{
@@ -11,11 +11,19 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
-  join: [partyId: string, slotId: string]
+  join: [partyId: string, slotId: string, selectedClass?: string]
 }>()
 
 const selectedSlotId = ref<string | null>(null)
+const selectedClass = ref<PlayerClass | null>(null)
 const isSubmitting = ref(false)
+
+// Check if selected slot is a FREE slot
+const selectedSlotIsFree = computed(() => {
+  if (!props.party || !selectedSlotId.value) return false
+  const slot = props.party.slots.find(s => s.id === selectedSlotId.value)
+  return slot?.playerClass === null
+})
 
 // Group available slots by class (null = FREE slot)
 const availableSlotsByClass = computed(() => {
@@ -43,8 +51,14 @@ const availableSlotsByClass = computed(() => {
 watch(() => props.show, (newValue) => {
   if (newValue) {
     selectedSlotId.value = null
+    selectedClass.value = null
     isSubmitting.value = false
   }
+})
+
+// Reset selected class when slot changes
+watch(selectedSlotId, () => {
+  selectedClass.value = null
 })
 
 function close() {
@@ -55,11 +69,17 @@ function selectSlot(slotId: string) {
   selectedSlotId.value = slotId
 }
 
+const canJoin = computed(() => {
+  if (!selectedSlotId.value) return false
+  if (selectedSlotIsFree.value && !selectedClass.value) return false
+  return true
+})
+
 async function handleJoin() {
   if (!props.party || !selectedSlotId.value) return
 
   isSubmitting.value = true
-  emit('join', props.party.id, selectedSlotId.value)
+  emit('join', props.party.id, selectedSlotId.value, selectedClass.value || undefined)
 }
 </script>
 
@@ -121,7 +141,7 @@ async function handleJoin() {
                       {{ group.isFreeSlot ? 'LIVRE' : PlayerClassAbbreviations[group.playerClass as keyof typeof PlayerClassAbbreviations] }}
                     </div>
                     <span :class="group.isFreeSlot ? 'text-amber-300' : 'text-gray-200'">
-                      {{ group.isFreeSlot ? 'Livre (qualquer classe)' : PlayerClassNames[group.playerClass as keyof typeof PlayerClassNames] }}
+                      {{ group.isFreeSlot ? 'Livre (escolha sua classe)' : PlayerClassNames[group.playerClass as keyof typeof PlayerClassNames] }}
                       <span v-if="group.count > 1" class="text-gray-500">({{ index + 1 }}/{{ group.count }})</span>
                     </span>
                   </div>
@@ -135,6 +155,24 @@ async function handleJoin() {
                   </svg>
                 </button>
               </template>
+            </div>
+
+            <!-- Class selector for FREE slots -->
+            <div v-if="selectedSlotIsFree" class="mt-4 p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
+              <p class="text-sm text-amber-300 mb-3">Escolha qual classe você vai jogar:</p>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  v-for="pc in Object.values(PlayerClass)"
+                  :key="pc"
+                  @click="selectedClass = pc"
+                  class="p-2 rounded-lg text-xs font-medium transition-colors"
+                  :class="selectedClass === pc
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-dark-600 text-gray-300 hover:bg-dark-500'"
+                >
+                  {{ PlayerClassAbbreviations[pc] }}
+                </button>
+              </div>
             </div>
 
             <!-- No slots available -->
@@ -156,7 +194,7 @@ async function handleJoin() {
             <button
               @click="handleJoin"
               class="btn btn-primary flex-1"
-              :disabled="isSubmitting || !selectedSlotId"
+              :disabled="isSubmitting || !canJoin"
             >
               <LoadingSpinner v-if="isSubmitting" size="sm" class="mr-2" />
               {{ isSubmitting ? 'Entrando...' : 'Entrar' }}

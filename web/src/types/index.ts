@@ -271,6 +271,7 @@ export interface PartySlotUser {
 export interface PartySlot {
   id: string
   playerClass: PlayerClass | null // null = "FREE" slot (any class can join)
+  filledAsClass: PlayerClass | null // Class chosen when filling a FREE slot
   filledBy: PartySlotUser | null
 }
 
@@ -303,6 +304,7 @@ export interface CreatePartyRequest {
 
 export interface JoinPartyRequest {
   slotId: string
+  selectedClass?: string // Required for FREE slots
 }
 
 // Siege War

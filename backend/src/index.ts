@@ -31,6 +31,13 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
   lastModified: true,
 }));
 
+// Serve downloads (APK files)
+app.use('/downloads', express.static(path.join(process.cwd(), 'downloads'), {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
+}));
+
 // Serve public files (privacy policy, etc.)
 app.use(express.static(path.join(process.cwd(), 'public')));
 

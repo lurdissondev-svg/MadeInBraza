@@ -81,7 +81,7 @@ fun GlobalPartiesScreen(
             party = party,
             isJoining = uiState.actionInProgress == party.id,
             onDismiss = { viewModel.hideJoinDialog() },
-            onJoin = { slotId -> viewModel.joinParty(party.id, slotId) }
+            onJoin = { slotId, selectedClass -> viewModel.joinParty(party.id, slotId, selectedClass) }
         )
     }
 
@@ -412,9 +412,10 @@ fun JoinPartyDialog(
     party: Party,
     isJoining: Boolean,
     onDismiss: () -> Unit,
-    onJoin: (String) -> Unit
+    onJoin: (String, String?) -> Unit
 ) {
     var selectedSlotId by remember { mutableStateOf<String?>(null) }
+    var selectedClass by remember { mutableStateOf<PlayerClass?>(null) }
 
     // Group available slots by class (null = FREE slot)
     val availableSlotsByClass = remember(party.slots) {
@@ -422,6 +423,20 @@ fun JoinPartyDialog(
             .filter { it.filledBy == null }
             .groupBy { it.playerClass }
     }
+
+    // Check if selected slot is FREE
+    val selectedSlotIsFree = remember(selectedSlotId, party.slots) {
+        selectedSlotId?.let { slotId ->
+            party.slots.find { it.id == slotId }?.playerClass == null
+        } ?: false
+    }
+
+    // Reset selected class when slot changes
+    LaunchedEffect(selectedSlotId) {
+        selectedClass = null
+    }
+
+    val canJoin = selectedSlotId != null && (!selectedSlotIsFree || selectedClass != null)
 
     AlertDialog(
         onDismissRequest = { if (!isJoining) onDismiss() },
@@ -436,7 +451,7 @@ fun JoinPartyDialog(
             }
         },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     text = "Selecione a vaga que deseja ocupar:",
                     style = MaterialTheme.typography.bodyMedium,
@@ -445,7 +460,7 @@ fun JoinPartyDialog(
 
                 availableSlotsByClass.forEach { (playerClass, slots) ->
                     val isFreeSlot = playerClass == null
-                    val displayName = if (isFreeSlot) "Livre" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
+                    val displayName = if (isFreeSlot) "Livre (escolha sua classe)" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
 
                     slots.forEachIndexed { index, slot ->
                         val isSelected = selectedSlotId == slot.id
@@ -496,6 +511,61 @@ fun JoinPartyDialog(
                     }
                 }
 
+                // Class selector for FREE slots
+                if (selectedSlotIsFree) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "Escolha qual classe você vai jogar:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                modifier = Modifier.height(200.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                items(PlayerClass.entries.toList()) { pc ->
+                                    val isClassSelected = selectedClass == pc
+                                    Card(
+                                        onClick = { selectedClass = pc },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isClassSelected)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = CLASS_ABBREVIATIONS[pc] ?: pc.name,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (isClassSelected)
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                else
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (availableSlotsByClass.isEmpty()) {
                     Text(
                         text = "Não há vagas disponíveis nesta party.",
@@ -508,8 +578,8 @@ fun JoinPartyDialog(
         },
         confirmButton = {
             Button(
-                onClick = { selectedSlotId?.let { onJoin(it) } },
-                enabled = selectedSlotId != null && !isJoining
+                onClick = { selectedSlotId?.let { onJoin(it, selectedClass?.name) } },
+                enabled = canJoin && !isJoining
             ) {
                 if (isJoining) {
                     CircularProgressIndicator(
@@ -557,11 +627,22 @@ fun GlobalPartyCard(
     // Group slots by class (null = FREE slot)
     val slotsByClass = remember(party.slots) {
         party.slots.groupBy { it.playerClass }
-            .mapValues { (_, slots) ->
+            .mapValues { (playerClass, slots) ->
                 val filled = slots.count { it.filledBy != null }
                 val total = slots.size
-                val members = slots.mapNotNull { it.filledBy }
-                Triple(filled, total, members)
+                // For FREE slots, include the filledAsClass for display
+                val membersWithClass = slots.mapNotNull { slot ->
+                    slot.filledBy?.let { member ->
+                        // For FREE slots, use filledAsClass if available
+                        val displayClass = if (playerClass == null && slot.filledAsClass != null) {
+                            slot.filledAsClass
+                        } else {
+                            playerClass
+                        }
+                        Triple(member, playerClass, displayClass)
+                    }
+                }
+                Triple(filled, total, membersWithClass)
             }
     }
 
@@ -695,13 +776,18 @@ fun GlobalPartyCard(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val allMembers = slotsByClass.flatMap { (playerClass, data) ->
-                        data.third.map { member -> member to playerClass }
+                    val allMembers = slotsByClass.flatMap { (_, data) ->
+                        data.third // List of Triple(member, originalClass, displayClass)
                     }
-                    items(allMembers) { (member, playerClass) ->
+                    items(allMembers) { (member, originalClass, displayClass) ->
                         val isCurrentUser = member.id == currentUserId
-                        val isFreeSlot = playerClass == null
-                        val abbreviation = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name
+                        val isFreeSlot = originalClass == null
+                        // Show the actual class chosen (filledAsClass) or the slot's class
+                        val abbreviation = if (displayClass != null) {
+                            CLASS_ABBREVIATIONS[displayClass] ?: displayClass.name
+                        } else {
+                            "LIVRE"
+                        }
                         AssistChip(
                             onClick = {},
                             label = {
@@ -713,6 +799,8 @@ fun GlobalPartyCard(
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = if (isCurrentUser)
                                     MaterialTheme.colorScheme.primaryContainer
+                                else if (isFreeSlot)
+                                    MaterialTheme.colorScheme.tertiaryContainer
                                 else
                                     MaterialTheme.colorScheme.surfaceVariant
                             ),

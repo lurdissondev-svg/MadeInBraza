@@ -17,6 +17,7 @@ function transformPartyResponse(party: any) {
     slots: party.slots.map((slot: any) => ({
       id: slot.id,
       playerClass: slot.playerClass,
+      filledAsClass: slot.filledAsClass, // Class chosen when filling a FREE slot
       filledBy: slot.filledBy ? {
         id: slot.filledBy.id,
         nick: slot.filledBy.nick,
@@ -53,6 +54,7 @@ const partySelectFields = {
     select: {
       id: true,
       playerClass: true,
+      filledAsClass: true,
       filledBy: {
         select: {
           id: true,
@@ -176,9 +178,15 @@ export async function createGlobalParty(
     const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
     const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
     if (creatorSlot) {
+      // If FREE slot, creator must select a class - use their profile class as default
+      const filledAsClass = creatorDbClass === null ? creator.playerClass : null;
+
       await prisma.partySlot.update({
         where: { id: creatorSlot.id },
-        data: { filledById: userId },
+        data: {
+          filledById: userId,
+          filledAsClass: filledAsClass,
+        },
       });
 
       // Refetch to get updated data
@@ -325,9 +333,15 @@ export async function createParty(
     const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
     const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
     if (creatorSlot) {
+      // If FREE slot, creator must select a class - use their profile class as default
+      const filledAsClass = creatorDbClass === null ? creator.playerClass : null;
+
       await prisma.partySlot.update({
         where: { id: creatorSlot.id },
-        data: { filledById: userId },
+        data: {
+          filledById: userId,
+          filledAsClass: filledAsClass,
+        },
       });
 
       // Refetch to get updated data
@@ -394,7 +408,7 @@ export async function joinParty(
 ): Promise<void> {
   try {
     const { partyId } = req.params;
-    const { slotId } = req.body;
+    const { slotId, selectedClass } = req.body;
     const userId = req.user!.userId;
 
     if (!slotId) {
@@ -433,10 +447,28 @@ export async function joinParty(
       throw new AppError(400, 'Slot is already filled');
     }
 
+    // For FREE slots (playerClass is null), selectedClass is required
+    const validClasses = [
+      'ASSASSIN', 'BRAWLER', 'ATALANTA', 'PIKEMAN', 'FIGHTER',
+      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
+    ];
+
+    let filledAsClass: string | null = null;
+    if (slot.playerClass === null) {
+      // FREE slot - must select a class
+      if (!selectedClass || !validClasses.includes(selectedClass)) {
+        throw new AppError(400, 'Must select a valid class for FREE slots');
+      }
+      filledAsClass = selectedClass;
+    }
+
     // Fill the slot
     await prisma.partySlot.update({
       where: { id: slotId },
-      data: { filledById: userId },
+      data: {
+        filledById: userId,
+        filledAsClass: filledAsClass,
+      },
     });
 
     // Check if party is now full and close it
@@ -501,10 +533,13 @@ export async function leaveParty(
 
     const wasClosed = party.isClosed;
 
-    // Free the slot
+    // Free the slot (also clear filledAsClass)
     await prisma.partySlot.update({
       where: { id: userSlot.id },
-      data: { filledById: null },
+      data: {
+        filledById: null,
+        filledAsClass: null,
+      },
     });
 
     // Reopen party if it was closed

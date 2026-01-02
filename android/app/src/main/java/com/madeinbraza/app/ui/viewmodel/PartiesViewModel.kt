@@ -135,11 +135,11 @@ class PartiesViewModel @Inject constructor(
         _uiState.update { it.copy(partyToJoin = null) }
     }
 
-    fun joinParty(partyId: String, slotId: String) {
+    fun joinParty(partyId: String, slotId: String, selectedClass: String? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(isJoining = true, actionInProgress = partyId) }
 
-            when (val result = partiesRepository.joinParty(partyId, slotId)) {
+            when (val result = partiesRepository.joinParty(partyId, slotId, selectedClass)) {
                 is Result.Success -> {
                     _uiState.update { state ->
                         state.copy(

@@ -16,13 +16,20 @@ interface NavItem {
   leaderOnly?: boolean
 }
 
-const mainNavItems: NavItem[] = [
+const allMainNavItems: NavItem[] = [
   { name: 'home', route: '/', icon: 'home', label: 'Início' },
   { name: 'siege-war', route: '/siege-war', icon: 'sword', label: 'Siege War' },
   { name: 'parties', route: '/parties', icon: 'users-group', label: 'PTs' },
   { name: 'channels', route: '/channels', icon: 'chat', label: 'Chat' },
-  { name: 'members', route: '/members', icon: 'users', label: 'Membros' }
+  { name: 'members', route: '/members', icon: 'users', label: 'Membros', leaderOnly: true }
 ]
+
+const mainNavItems = computed(() => {
+  return allMainNavItems.filter(item => {
+    if (item.leaderOnly && !authStore.isLeader) return false
+    return true
+  })
+})
 
 // Track if avatar image failed to load
 const avatarError = ref(false)

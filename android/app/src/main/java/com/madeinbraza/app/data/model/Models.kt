@@ -247,6 +247,7 @@ data class PartySlotUser(
 data class PartySlot(
     val id: String,
     val playerClass: PlayerClass?, // null = "FREE" slot (any class can join)
+    val filledAsClass: PlayerClass? = null, // Class chosen when filling a FREE slot
     val filledBy: PartySlotUser?
 )
 
@@ -294,7 +295,8 @@ data class CreatePartyResponse(
 )
 
 data class JoinPartyRequest(
-    val slotId: String
+    val slotId: String,
+    val selectedClass: String? = null // Required for FREE slots
 )
 
 data class JoinPartyResponse(

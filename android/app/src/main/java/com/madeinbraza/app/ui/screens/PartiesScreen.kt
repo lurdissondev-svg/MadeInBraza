@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -92,7 +95,7 @@ fun PartiesScreen(
             party = party,
             isJoining = uiState.isJoining,
             onDismiss = { viewModel.hideJoinDialog() },
-            onJoin = { slotId -> viewModel.joinParty(party.id, slotId) }
+            onJoin = { slotId, selectedClass -> viewModel.joinParty(party.id, slotId, selectedClass) }
         )
     }
 
@@ -440,22 +443,48 @@ private fun JoinEventPartyDialog(
     party: Party,
     isJoining: Boolean,
     onDismiss: () -> Unit,
-    onJoin: (String) -> Unit
+    onJoin: (String, String?) -> Unit
 ) {
+    var selectedSlotId by remember { mutableStateOf<String?>(null) }
+    var selectedClass by remember { mutableStateOf<PlayerClass?>(null) }
+
     // Group available slots by class (null = FREE slot)
     val availableSlots = party.slots.filter { it.filledBy == null }
     val slotsByClass = availableSlots.groupBy { it.playerClass }
 
+    // Check if selected slot is FREE
+    val selectedSlotIsFree = remember(selectedSlotId, party.slots) {
+        selectedSlotId?.let { slotId ->
+            party.slots.find { it.id == slotId }?.playerClass == null
+        } ?: false
+    }
+
+    // Reset selected class when slot changes
+    LaunchedEffect(selectedSlotId) {
+        selectedClass = null
+    }
+
+    val canJoin = selectedSlotId != null && (!selectedSlotIsFree || selectedClass != null)
+
     AlertDialog(
         onDismissRequest = { if (!isJoining) onDismiss() },
-        title = { Text("Entrar na Party") },
-        text = {
+        title = {
             Column {
+                Text("Entrar na Party")
                 Text(
-                    text = "Escolha uma vaga disponível:",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = party.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+            }
+        },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = "Selecione a vaga que deseja ocupar:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
 
                 if (availableSlots.isEmpty()) {
                     Text(
@@ -464,35 +493,132 @@ private fun JoinEventPartyDialog(
                         color = MaterialTheme.colorScheme.error
                     )
                 } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        slotsByClass.forEach { (playerClass, slots) ->
-                            val isFreeSlot = playerClass == null
-                            val className = if (isFreeSlot) "Livre" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
-                            val slotCount = slots.size
+                    slotsByClass.forEach { (playerClass, slots) ->
+                        val isFreeSlot = playerClass == null
+                        val displayName = if (isFreeSlot) "Livre (escolha sua classe)" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
 
-                            OutlinedButton(
-                                onClick = { onJoin(slots.first().id) },
-                                enabled = !isJoining,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = if (isFreeSlot) {
-                                    ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.tertiary
-                                    )
-                                } else {
-                                    ButtonDefaults.outlinedButtonColors()
-                                }
-                            ) {
-                                Text(
-                                    "$className ($slotCount ${if (slotCount == 1) "vaga" else "vagas"})",
-                                    fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal
+                        slots.forEachIndexed { index, slot ->
+                            val isSelected = selectedSlotId == slot.id
+                            Card(
+                                onClick = { selectedSlotId = slot.id },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else if (isFreeSlot)
+                                        MaterialTheme.colorScheme.tertiaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant
                                 )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = displayName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isFreeSlot) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal
+                                    )
+                                    if (slots.size > 1) {
+                                        Text(
+                                            text = "(${index + 1}/${slots.size})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (isSelected) {
+                                        Icon(
+                                            Icons.Filled.Person,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Class selector for FREE slots
+                    if (selectedSlotIsFree) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Escolha qual classe você vai jogar:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    modifier = Modifier.height(200.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    items(PlayerClass.entries.toList()) { pc ->
+                                        val isClassSelected = selectedClass == pc
+                                        Card(
+                                            onClick = { selectedClass = pc },
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (isClassSelected)
+                                                    MaterialTheme.colorScheme.primary
+                                                else
+                                                    MaterialTheme.colorScheme.surfaceVariant
+                                            )
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(8.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = CLASS_ABBREVIATIONS[pc] ?: pc.name,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = if (isClassSelected)
+                                                        MaterialTheme.colorScheme.onPrimary
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         },
-        confirmButton = {},
+        confirmButton = {
+            Button(
+                onClick = { selectedSlotId?.let { onJoin(it, selectedClass?.name) } },
+                enabled = canJoin && !isJoining
+            ) {
+                if (isJoining) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Entrar")
+                }
+            }
+        },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,

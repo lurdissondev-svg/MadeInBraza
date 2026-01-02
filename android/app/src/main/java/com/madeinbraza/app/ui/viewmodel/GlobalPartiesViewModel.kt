@@ -149,11 +149,11 @@ class GlobalPartiesViewModel @Inject constructor(
         _uiState.update { it.copy(partyToJoin = null) }
     }
 
-    fun joinParty(partyId: String, slotId: String) {
+    fun joinParty(partyId: String, slotId: String, selectedClass: String? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(isJoining = true, actionInProgress = partyId) }
 
-            when (val result = partiesRepository.joinParty(partyId, slotId)) {
+            when (val result = partiesRepository.joinParty(partyId, slotId, selectedClass)) {
                 is Result.Success -> {
                     // Update party with the returned data from API
                     _uiState.update { state ->

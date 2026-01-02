@@ -20,8 +20,17 @@ const ProfileView = () => import('@/views/ProfileView.vue')
 const PendingMembersView = () => import('@/views/admin/PendingMembersView.vue')
 const BannedUsersView = () => import('@/views/admin/BannedUsersView.vue')
 const PendingApprovalView = () => import('@/views/PendingApprovalView.vue')
+const DownloadView = () => import('@/views/DownloadView.vue')
 
 const routes: RouteRecordRaw[] = [
+  // Public routes
+  {
+    path: '/download',
+    name: 'download',
+    component: DownloadView,
+    meta: { requiresAuth: false }
+  },
+
   // Auth routes (public)
   {
     path: '/login',

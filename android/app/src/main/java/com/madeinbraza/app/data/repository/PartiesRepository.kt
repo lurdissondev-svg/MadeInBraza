@@ -99,10 +99,10 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun joinParty(partyId: String, slotId: String): Result<Party> {
+    suspend fun joinParty(partyId: String, slotId: String, selectedClass: String? = null): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
-            val response = api.joinParty("Bearer $token", partyId, JoinPartyRequest(slotId = slotId))
+            val response = api.joinParty("Bearer $token", partyId, JoinPartyRequest(slotId = slotId, selectedClass = selectedClass))
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!.party)
             } else {

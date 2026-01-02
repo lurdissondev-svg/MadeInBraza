@@ -35,8 +35,8 @@ function handleJoinClick(party: Party) {
   showJoinModal.value = true
 }
 
-async function handleJoin(partyId: string, slotId: string) {
-  const success = await partiesStore.joinParty(partyId, slotId)
+async function handleJoin(partyId: string, slotId: string, selectedClass?: string) {
+  const success = await partiesStore.joinParty(partyId, slotId, selectedClass)
   if (success) {
     showJoinModal.value = false
     selectedParty.value = null

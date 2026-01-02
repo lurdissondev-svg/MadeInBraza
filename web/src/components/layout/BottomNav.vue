@@ -19,7 +19,7 @@ const navItems: NavItem[] = [
   { name: 'home', route: '/', icon: 'home', label: 'Início' },
   { name: 'siege-war', route: '/siege-war', icon: 'sword', label: 'SW' },
   { name: 'parties', route: '/parties', icon: 'party', label: 'PTs' },
-  { name: 'members', route: '/members', icon: 'users', label: 'Membros' },
+  { name: 'members', route: '/members', icon: 'users', label: 'Membros', leaderOnly: true },
   { name: 'profile', route: '/profile', icon: 'user', label: 'Perfil' }
 ]
 

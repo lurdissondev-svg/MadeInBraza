@@ -29,7 +29,7 @@ const memberCount = computed(() => `${filledSlots.value}/${totalSlots.value}`)
 
 // Group slots by class for display (null = FREE slot)
 const slotsByClass = computed(() => {
-  const groups = new Map<string | null, { total: number; filled: number; members: { nick: string; id: string }[] }>()
+  const groups = new Map<string | null, { total: number; filled: number; members: { nick: string; id: string; classAbbr: string }[] }>()
 
   props.party.slots.forEach(slot => {
     const key = slot.playerClass // null for FREE slots
@@ -37,7 +37,12 @@ const slotsByClass = computed(() => {
     existing.total++
     if (slot.filledBy) {
       existing.filled++
-      existing.members.push({ nick: slot.filledBy.nick, id: slot.filledBy.id })
+      // For FREE slots, show the class they chose (filledAsClass)
+      // For regular slots, show the slot's class
+      const memberClass = slot.playerClass === null && slot.filledAsClass
+        ? PlayerClassAbbreviations[slot.filledAsClass as keyof typeof PlayerClassAbbreviations]
+        : (slot.playerClass ? PlayerClassAbbreviations[slot.playerClass as keyof typeof PlayerClassAbbreviations] : 'LIVRE')
+      existing.members.push({ nick: slot.filledBy.nick, id: slot.filledBy.id, classAbbr: memberClass })
     }
     groups.set(key, existing)
   })
@@ -136,7 +141,7 @@ function handleDelete() {
           ]"
         >
           {{ member.nick }}
-          <span class="ml-1" :class="group.isFreeSlot ? 'text-amber-500/70' : 'text-gray-500'">{{ group.abbr }}</span>
+          <span class="ml-1" :class="group.isFreeSlot ? 'text-amber-500/70' : 'text-gray-500'">{{ member.classAbbr }}</span>
         </span>
       </template>
     </div>
