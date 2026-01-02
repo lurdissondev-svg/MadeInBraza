@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Role } from '@/types'
 import type { ChannelMessage } from '@/types'
 
@@ -10,12 +10,20 @@ const props = defineProps<{
 
 const isLeader = computed(() => props.message.user.role === Role.LEADER)
 
+// Track if avatar image failed to load
+const avatarError = ref(false)
+
 const avatarUrl = computed(() => {
+  if (avatarError.value) return null
   const url = props.message.user.avatarUrl
   if (!url) return null
   const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
   return `${baseUrl}${url}`
 })
+
+function handleAvatarError() {
+  avatarError.value = true
+}
 
 const bubbleBackground = computed(() => {
   if (props.isCurrentUser) {
@@ -108,6 +116,7 @@ function openFullImage() {
           loading="lazy"
           decoding="async"
           class="w-full h-full object-cover"
+          @error="handleAvatarError"
         />
         <span v-else class="text-sm font-bold text-white">
           {{ message.user.nick.charAt(0).toUpperCase() }}

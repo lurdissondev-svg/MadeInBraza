@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMembersStore } from '@/stores/members'
 import MainLayout from '@/components/layout/MainLayout.vue'
@@ -11,6 +11,22 @@ const router = useRouter()
 const membersStore = useMembersStore()
 
 const memberId = computed(() => route.params.id as string)
+
+// Track if avatar image failed to load
+const avatarError = ref(false)
+
+// Get the avatar URL with base URL prepended
+const avatarUrl = computed(() => {
+  if (avatarError.value) return null
+  const url = membersStore.selectedMember?.avatarUrl
+  if (!url) return null
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+  return `${baseUrl}${url}`
+})
+
+function handleAvatarError() {
+  avatarError.value = true
+}
 
 onMounted(() => {
   if (memberId.value) {
@@ -78,10 +94,19 @@ function goBack() {
           <!-- Avatar and Basic Info -->
           <div class="flex items-center gap-4 mb-6">
             <div
-              class="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl"
-              :class="membersStore.selectedMember.role === Role.LEADER ? 'bg-primary-500' : 'bg-dark-500'"
+              class="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl overflow-hidden"
+              :class="avatarUrl ? '' : (membersStore.selectedMember.role === Role.LEADER ? 'bg-primary-500' : 'bg-dark-500')"
             >
-              {{ membersStore.selectedMember.nick.charAt(0).toUpperCase() }}
+              <img
+                v-if="avatarUrl"
+                :src="avatarUrl"
+                alt="Avatar"
+                loading="eager"
+                decoding="async"
+                class="w-full h-full object-cover"
+                @error="handleAvatarError"
+              />
+              <span v-else>{{ membersStore.selectedMember.nick.charAt(0).toUpperCase() }}</span>
             </div>
 
             <div class="flex-1">

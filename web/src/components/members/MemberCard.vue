@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Role, PlayerClass, PlayerClassAbbreviations } from '@/types'
 import type { Member } from '@/types'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
@@ -30,12 +30,20 @@ const isPromoting = computed(() => props.promotingId === props.member.id)
 const isDemoting = computed(() => props.demotingId === props.member.id)
 const isBanning = computed(() => props.banningId === props.member.id)
 
+// Track if avatar image failed to load
+const avatarError = ref(false)
+
 const avatarUrl = computed(() => {
+  if (avatarError.value) return null
   const url = props.member.avatarUrl
   if (!url) return null
   const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
   return `${baseUrl}${url}`
 })
+
+function handleAvatarError() {
+  avatarError.value = true
+}
 </script>
 
 <template>
@@ -57,6 +65,7 @@ const avatarUrl = computed(() => {
           loading="lazy"
           decoding="async"
           class="w-full h-full object-cover"
+          @error="handleAvatarError"
         />
         <span v-else>{{ member.nick.charAt(0).toUpperCase() }}</span>
       </div>

@@ -17,8 +17,12 @@ const showEditProfile = ref(false)
 const showChangePassword = ref(false)
 const avatarInput = ref<HTMLInputElement | null>(null)
 
+// Track if avatar image failed to load
+const avatarError = ref(false)
+
 // Get the avatar URL with base URL prepended
 const avatarUrl = computed(() => {
+  if (avatarError.value) return null
   const url = profileStore.profile?.avatarUrl || authStore.user?.avatarUrl
   if (!url) return null
 
@@ -26,6 +30,10 @@ const avatarUrl = computed(() => {
   const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
   return `${baseUrl}${url}`
 })
+
+function handleAvatarError() {
+  avatarError.value = true
+}
 
 onMounted(() => {
   profileStore.fetchProfile()
@@ -129,6 +137,7 @@ async function handleDeleteAvatar() {
                   loading="eager"
                   decoding="async"
                   class="w-full h-full object-cover"
+                  @error="handleAvatarError"
                 />
                 <span
                   v-else

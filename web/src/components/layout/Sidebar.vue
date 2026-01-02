@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { PlayerClassNames } from '@/types'
@@ -24,14 +24,21 @@ const mainNavItems: NavItem[] = [
   { name: 'members', route: '/members', icon: 'users', label: 'Membros' }
 ]
 
-// Avatar URL with cache busting
+// Track if avatar image failed to load
+const avatarError = ref(false)
+
+// Avatar URL (no cache busting needed - using ETag)
 const avatarUrl = computed(() => {
+  if (avatarError.value) return null
   const url = authStore.user?.avatarUrl
   if (!url) return null
-  // Add timestamp for cache busting
   const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
-  return `${baseUrl}${url}?t=${Date.now()}`
+  return `${baseUrl}${url}`
 })
+
+function handleAvatarError() {
+  avatarError.value = true
+}
 
 const adminNavItems: NavItem[] = [
   { name: 'admin-pending', route: '/admin/pending', icon: 'clock', label: 'Pendentes', leaderOnly: true },
@@ -154,6 +161,7 @@ function handleLogout() {
             loading="lazy"
             decoding="async"
             class="w-full h-full object-cover"
+            @error="handleAvatarError"
           />
           <span
             v-else
