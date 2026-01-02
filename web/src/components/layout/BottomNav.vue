@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { name: 'siege-war', route: '/siege-war', icon: 'sword', label: 'SW' },
   { name: 'parties', route: '/parties', icon: 'party', label: 'PTs' },
   { name: 'members', route: '/members', icon: 'users', label: 'Membros', leaderOnly: true },
+  { name: 'download', route: '/download', icon: 'download', label: 'App' },
   { name: 'profile', route: '/profile', icon: 'user', label: 'Perfil' }
 ]
 
@@ -69,6 +70,10 @@ function navigateTo(path: string) {
 
         <svg v-else-if="item.icon === 'user'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+
+        <svg v-else-if="item.icon === 'download'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
 
         <span class="text-xs mt-1 font-medium">{{ item.label }}</span>

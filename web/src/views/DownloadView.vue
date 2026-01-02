@@ -40,10 +40,10 @@ onMounted(async () => {
       <!-- Card -->
       <div class="bg-dark-800 rounded-2xl shadow-xl overflow-hidden">
         <!-- Header with logo -->
-        <div class="bg-gradient-to-br from-primary-600 to-primary-700 p-8 text-center">
+        <div class="bg-gradient-to-br from-dark-700 to-dark-800 p-8 text-center border-b border-dark-600">
           <img src="/braza_logo.png" alt="Made in Braza" class="w-24 h-24 mx-auto mb-4" />
-          <h1 class="text-2xl font-bold text-white">Made in Braza</h1>
-          <p class="text-primary-200 mt-1">App para Android</p>
+          <h1 class="text-2xl font-bold text-primary-400">Made in Braza</h1>
+          <p class="text-gray-400 mt-1">App para Android</p>
         </div>
 
         <!-- Content -->

@@ -21,7 +21,8 @@ const allMainNavItems: NavItem[] = [
   { name: 'siege-war', route: '/siege-war', icon: 'sword', label: 'Siege War' },
   { name: 'parties', route: '/parties', icon: 'users-group', label: 'PTs' },
   { name: 'channels', route: '/channels', icon: 'chat', label: 'Chat' },
-  { name: 'members', route: '/members', icon: 'users', label: 'Membros', leaderOnly: true }
+  { name: 'members', route: '/members', icon: 'users', label: 'Membros', leaderOnly: true },
+  { name: 'download', route: '/download', icon: 'download', label: 'Download App' }
 ]
 
 const mainNavItems = computed(() => {
@@ -121,6 +122,10 @@ function handleLogout() {
 
           <svg v-else-if="item.icon === 'users'" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+
+          <svg v-else-if="item.icon === 'download'" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
 
           <span class="font-medium">{{ item.label }}</span>
