@@ -246,7 +246,7 @@ data class PartySlotUser(
 
 data class PartySlot(
     val id: String,
-    val playerClass: PlayerClass,
+    val playerClass: PlayerClass?, // null = "FREE" slot (any class can join)
     val filledBy: PartySlotUser?
 )
 
@@ -278,7 +278,7 @@ data class PartiesResponse(
 )
 
 data class SlotRequest(
-    val playerClass: PlayerClass,
+    val playerClass: String, // PlayerClass enum name or "FREE" for any class
     val count: Int
 )
 
@@ -286,7 +286,7 @@ data class CreatePartyRequest(
     val name: String,
     val description: String? = null,
     val slots: List<SlotRequest>,
-    val creatorSlotClass: PlayerClass
+    val creatorSlotClass: String // PlayerClass enum name or "FREE"
 )
 
 data class CreatePartyResponse(

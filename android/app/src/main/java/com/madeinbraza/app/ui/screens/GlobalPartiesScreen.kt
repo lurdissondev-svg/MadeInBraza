@@ -167,23 +167,43 @@ fun GlobalPartiesScreen(
     }
 }
 
+// Slot key type: PlayerClass enum name or "FREE"
+private const val FREE_SLOT = "FREE"
+
+private fun getSlotDisplayName(slotKey: String): String {
+    if (slotKey == FREE_SLOT) return "Livre"
+    return try {
+        CLASS_DISPLAY_NAMES[PlayerClass.valueOf(slotKey)] ?: slotKey
+    } catch (e: IllegalArgumentException) {
+        slotKey
+    }
+}
+
 @Composable
 fun CreateGlobalPartyDialog(
     isCreating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (String, String?, List<SlotRequest>, PlayerClass) -> Unit
+    onCreate: (String, String?, List<SlotRequest>, String) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var slotCounts by remember { mutableStateOf(PlayerClass.entries.associateWith { 0 }) }
-    var creatorSlotClass by remember { mutableStateOf<PlayerClass?>(null) }
+    // Slot counts: PlayerClass.name -> count, plus "FREE" -> count
+    var slotCounts by remember {
+        mutableStateOf(
+            PlayerClass.entries.associate { it.name to 0 } + (FREE_SLOT to 0)
+        )
+    }
+    var creatorSlotClass by remember { mutableStateOf<String?>(null) }
 
     val totalSlots = slotCounts.values.sum()
-    val availableClasses = slotCounts.filter { it.value > 0 }.keys.toList()
+    val availableSlotKeys = slotCounts.filter { it.value > 0 }.keys.toList()
+
+    // All slot options (class names + FREE)
+    val allSlotOptions = remember { PlayerClass.entries.map { it.name } + FREE_SLOT }
 
     // Reset creator class if not available anymore
-    LaunchedEffect(availableClasses) {
-        if (creatorSlotClass != null && creatorSlotClass !in availableClasses) {
+    LaunchedEffect(availableSlotKeys) {
+        if (creatorSlotClass != null && creatorSlotClass !in availableSlotKeys) {
             creatorSlotClass = null
         }
     }
@@ -232,9 +252,10 @@ fun CreateGlobalPartyDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Class slot selectors in a grid
-                PlayerClass.entries.forEach { playerClass ->
-                    val count = slotCounts[playerClass] ?: 0
+                // Class slot selectors including FREE
+                allSlotOptions.forEach { slotKey ->
+                    val count = slotCounts[slotKey] ?: 0
+                    val isFreeSlot = slotKey == FREE_SLOT
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -243,8 +264,10 @@ fun CreateGlobalPartyDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
+                            text = getSlotDisplayName(slotKey),
                             style = MaterialTheme.typography.bodyMedium,
+                            color = if (isFreeSlot) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal,
                             modifier = Modifier.weight(1f)
                         )
                         Row(
@@ -254,7 +277,7 @@ fun CreateGlobalPartyDialog(
                             IconButton(
                                 onClick = {
                                     if (count > 0) {
-                                        slotCounts = slotCounts + (playerClass to count - 1)
+                                        slotCounts = slotCounts + (slotKey to count - 1)
                                     }
                                 },
                                 enabled = !isCreating && count > 0,
@@ -271,7 +294,7 @@ fun CreateGlobalPartyDialog(
                             IconButton(
                                 onClick = {
                                     if (count < 6 && totalSlots < 6) {
-                                        slotCounts = slotCounts + (playerClass to count + 1)
+                                        slotCounts = slotCounts + (slotKey to count + 1)
                                     }
                                 },
                                 enabled = !isCreating && count < 6 && totalSlots < 6,
@@ -283,30 +306,40 @@ fun CreateGlobalPartyDialog(
                     }
                 }
 
+                Text(
+                    text = "* \"Livre\" permite qualquer classe",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
                 // Creator's class selection
-                if (availableClasses.isNotEmpty()) {
+                if (availableSlotKeys.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Sua vaga na Party",
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "Escolha qual classe você vai ocupar",
+                        text = "Escolha qual vaga você vai ocupar",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    availableClasses.forEach { playerClass ->
-                        val isSelected = creatorSlotClass == playerClass
+                    availableSlotKeys.forEach { slotKey ->
+                        val isSelected = creatorSlotClass == slotKey
+                        val isFreeSlot = slotKey == FREE_SLOT
                         Card(
-                            onClick = { creatorSlotClass = playerClass },
+                            onClick = { creatorSlotClass = slotKey },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected)
                                     MaterialTheme.colorScheme.primaryContainer
+                                else if (isFreeSlot)
+                                    MaterialTheme.colorScheme.tertiaryContainer
                                 else
                                     MaterialTheme.colorScheme.surfaceVariant
                             )
@@ -319,8 +352,10 @@ fun CreateGlobalPartyDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = getSlotDisplayName(slotKey),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isFreeSlot) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal
                                 )
                                 if (isSelected) {
                                     Icon(
@@ -381,7 +416,7 @@ fun JoinPartyDialog(
 ) {
     var selectedSlotId by remember { mutableStateOf<String?>(null) }
 
-    // Group available slots by class
+    // Group available slots by class (null = FREE slot)
     val availableSlotsByClass = remember(party.slots) {
         party.slots
             .filter { it.filledBy == null }
@@ -409,6 +444,9 @@ fun JoinPartyDialog(
                 )
 
                 availableSlotsByClass.forEach { (playerClass, slots) ->
+                    val isFreeSlot = playerClass == null
+                    val displayName = if (isFreeSlot) "Livre" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
+
                     slots.forEachIndexed { index, slot ->
                         val isSelected = selectedSlotId == slot.id
                         Card(
@@ -419,6 +457,8 @@ fun JoinPartyDialog(
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected)
                                     MaterialTheme.colorScheme.primaryContainer
+                                else if (isFreeSlot)
+                                    MaterialTheme.colorScheme.tertiaryContainer
                                 else
                                     MaterialTheme.colorScheme.surfaceVariant
                             )
@@ -431,8 +471,10 @@ fun JoinPartyDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isFreeSlot) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal
                                 )
                                 if (slots.size > 1) {
                                     Text(
@@ -512,7 +554,7 @@ fun GlobalPartyCard(
     val joinText = stringResource(R.string.join)
     val fullText = stringResource(R.string.party_full)
 
-    // Group slots by class
+    // Group slots by class (null = FREE slot)
     val slotsByClass = remember(party.slots) {
         party.slots.groupBy { it.playerClass }
             .mapValues { (_, slots) ->
@@ -624,17 +666,21 @@ fun GlobalPartyCard(
             ) {
                 items(slotsByClass.toList()) { (playerClass, data) ->
                     val (filled, total, _) = data
+                    val isFreeSlot = playerClass == null
+                    val abbreviation = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name
                     AssistChip(
                         onClick = {},
                         label = {
                             Text(
-                                text = "${CLASS_ABBREVIATIONS[playerClass]} $filled/$total",
+                                text = "$abbreviation $filled/$total",
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (filled == total)
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            else if (isFreeSlot)
+                                MaterialTheme.colorScheme.tertiaryContainer
                             else
                                 MaterialTheme.colorScheme.surfaceVariant
                         ),
@@ -654,11 +700,13 @@ fun GlobalPartyCard(
                     }
                     items(allMembers) { (member, playerClass) ->
                         val isCurrentUser = member.id == currentUserId
+                        val isFreeSlot = playerClass == null
+                        val abbreviation = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name
                         AssistChip(
                             onClick = {},
                             label = {
                                 Text(
-                                    text = "${member.nick} (${CLASS_ABBREVIATIONS[playerClass]})",
+                                    text = "${member.nick} ($abbreviation)",
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             },

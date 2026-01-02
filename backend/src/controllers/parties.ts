@@ -103,18 +103,19 @@ export async function createGlobalParty(
       throw new AppError(400, 'At least one slot is required');
     }
 
-    // Validate each slot entry: { playerClass: "MAGE", count: 2 }
+    // Validate each slot entry: { playerClass: "MAGE" | "FREE", count: 2 }
     const validClasses = [
       'ASSASSIN', 'BRAWLER', 'ATALANTA', 'PIKEMAN', 'FIGHTER',
-      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
+      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER',
+      'FREE' // FREE = null in database, any class can join
     ];
 
-    // Validate creator's chosen class
+    // Validate creator's chosen class (can be FREE too)
     if (!creatorSlotClass || !validClasses.includes(creatorSlotClass)) {
       throw new AppError(400, 'Creator must choose a valid class slot to occupy');
     }
 
-    const slotEntries: { playerClass: string; count: number }[] = [];
+    const slotEntries: { playerClass: string | null; count: number }[] = [];
     let totalSlots = 0;
     let creatorClassExists = false;
 
@@ -126,7 +127,9 @@ export async function createGlobalParty(
       if (isNaN(count) || count < 1 || count > 10) {
         throw new AppError(400, 'Slot count must be between 1 and 10');
       }
-      slotEntries.push({ playerClass: slot.playerClass, count });
+      // Convert "FREE" to null for database storage
+      const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass;
+      slotEntries.push({ playerClass: dbPlayerClass, count });
       totalSlots += count;
       if (slot.playerClass === creatorSlotClass) {
         creatorClassExists = true;
@@ -169,8 +172,9 @@ export async function createGlobalParty(
       select: partySelectFields,
     });
 
-    // Creator fills the first slot of their chosen class
-    const creatorSlot = party.slots.find(s => s.playerClass === creatorSlotClass);
+    // Creator fills the first slot of their chosen class (FREE matches null)
+    const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
+    const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
     if (creatorSlot) {
       await prisma.partySlot.update({
         where: { id: creatorSlot.id },
@@ -248,18 +252,19 @@ export async function createParty(
       throw new AppError(400, 'At least one slot is required');
     }
 
-    // Validate each slot entry: { playerClass: "MAGE", count: 2 }
+    // Validate each slot entry: { playerClass: "MAGE" | "FREE", count: 2 }
     const validClasses = [
       'ASSASSIN', 'BRAWLER', 'ATALANTA', 'PIKEMAN', 'FIGHTER',
-      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
+      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER',
+      'FREE' // FREE = null in database, any class can join
     ];
 
-    // Validate creator's chosen class
+    // Validate creator's chosen class (can be FREE too)
     if (!creatorSlotClass || !validClasses.includes(creatorSlotClass)) {
       throw new AppError(400, 'Creator must choose a valid class slot to occupy');
     }
 
-    const slotEntries: { playerClass: string; count: number }[] = [];
+    const slotEntries: { playerClass: string | null; count: number }[] = [];
     let totalSlots = 0;
     let creatorClassExists = false;
 
@@ -271,7 +276,9 @@ export async function createParty(
       if (isNaN(count) || count < 1 || count > 10) {
         throw new AppError(400, 'Slot count must be between 1 and 10');
       }
-      slotEntries.push({ playerClass: slot.playerClass, count });
+      // Convert "FREE" to null for database storage
+      const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass;
+      slotEntries.push({ playerClass: dbPlayerClass, count });
       totalSlots += count;
       if (slot.playerClass === creatorSlotClass) {
         creatorClassExists = true;
@@ -314,8 +321,9 @@ export async function createParty(
       select: partySelectFields,
     });
 
-    // Creator fills the first slot of their chosen class
-    const creatorSlot = party.slots.find(s => s.playerClass === creatorSlotClass);
+    // Creator fills the first slot of their chosen class (FREE matches null)
+    const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
+    const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
     if (creatorSlot) {
       await prisma.partySlot.update({
         where: { id: creatorSlot.id },

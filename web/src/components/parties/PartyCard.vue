@@ -27,23 +27,25 @@ const isFull = computed(() => filledSlots.value >= totalSlots.value)
 
 const memberCount = computed(() => `${filledSlots.value}/${totalSlots.value}`)
 
-// Group slots by class for display
+// Group slots by class for display (null = FREE slot)
 const slotsByClass = computed(() => {
-  const groups = new Map<string, { total: number; filled: number; members: { nick: string; id: string }[] }>()
+  const groups = new Map<string | null, { total: number; filled: number; members: { nick: string; id: string }[] }>()
 
   props.party.slots.forEach(slot => {
-    const existing = groups.get(slot.playerClass) || { total: 0, filled: 0, members: [] }
+    const key = slot.playerClass // null for FREE slots
+    const existing = groups.get(key) || { total: 0, filled: 0, members: [] }
     existing.total++
     if (slot.filledBy) {
       existing.filled++
       existing.members.push({ nick: slot.filledBy.nick, id: slot.filledBy.id })
     }
-    groups.set(slot.playerClass, existing)
+    groups.set(key, existing)
   })
 
   return Array.from(groups.entries()).map(([playerClass, data]) => ({
     playerClass,
-    abbr: PlayerClassAbbreviations[playerClass as keyof typeof PlayerClassAbbreviations],
+    isFreeSlot: playerClass === null,
+    abbr: playerClass === null ? 'LIVRE' : PlayerClassAbbreviations[playerClass as keyof typeof PlayerClassAbbreviations],
     ...data
   }))
 })
@@ -110,26 +112,31 @@ function handleDelete() {
     <div class="flex flex-wrap gap-1.5 mb-3">
       <div
         v-for="group in slotsByClass"
-        :key="group.playerClass"
-        class="flex items-center gap-1 px-2 py-1 rounded text-xs bg-dark-600"
-        :class="group.filled === group.total ? 'opacity-50' : ''"
+        :key="group.playerClass ?? 'FREE'"
+        class="flex items-center gap-1 px-2 py-1 rounded text-xs"
+        :class="[
+          group.filled === group.total ? 'opacity-50' : '',
+          group.isFreeSlot ? 'bg-amber-500/20' : 'bg-dark-600'
+        ]"
       >
-        <span class="font-medium text-gray-300">{{ group.abbr }}</span>
-        <span class="text-gray-500">{{ group.filled }}/{{ group.total }}</span>
+        <span class="font-medium" :class="group.isFreeSlot ? 'text-amber-400' : 'text-gray-300'">{{ group.abbr }}</span>
+        <span :class="group.isFreeSlot ? 'text-amber-500/70' : 'text-gray-500'">{{ group.filled }}/{{ group.total }}</span>
       </div>
     </div>
 
     <!-- Members List (filled slots) -->
     <div v-if="filledSlots > 0" class="flex flex-wrap gap-1 mb-3">
-      <template v-for="group in slotsByClass" :key="group.playerClass">
+      <template v-for="group in slotsByClass" :key="group.playerClass ?? 'FREE'">
         <span
           v-for="member in group.members"
           :key="member.id"
-          class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-dark-600 text-gray-300"
-          :class="{ 'bg-primary-500/20 text-primary-400': member.id === currentUserId }"
+          class="inline-flex items-center px-2 py-0.5 rounded text-xs"
+          :class="[
+            member.id === currentUserId ? 'bg-primary-500/20 text-primary-400' : 'bg-dark-600 text-gray-300'
+          ]"
         >
           {{ member.nick }}
-          <span class="ml-1 text-gray-500">{{ group.abbr }}</span>
+          <span class="ml-1" :class="group.isFreeSlot ? 'text-amber-500/70' : 'text-gray-500'">{{ group.abbr }}</span>
         </span>
       </template>
     </div>

@@ -106,7 +106,7 @@ function openFullImage() {
     <!-- Avatar (only for other users) -->
     <div v-if="!isCurrentUser" class="flex-shrink-0">
       <div
-        class="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
+        class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
         :class="avatarUrl ? '' : 'bg-dark-500'"
       >
         <img

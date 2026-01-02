@@ -20,15 +20,28 @@ const name = ref('')
 const description = ref('')
 const isSubmitting = ref(false)
 const error = ref<string | null>(null)
-const creatorSlotClass = ref<PlayerClass | null>(null)
+const creatorSlotClass = ref<PlayerClass | 'FREE' | null>(null)
 
-// Slot counts per class
-const slotCounts = ref<Record<PlayerClass, number>>(
-  Object.values(PlayerClass).reduce((acc, pc) => {
+// Slot counts per class (including FREE)
+type SlotKey = PlayerClass | 'FREE'
+const slotCounts = ref<Record<SlotKey, number>>(
+  [...Object.values(PlayerClass), 'FREE' as const].reduce((acc, pc) => {
     acc[pc] = 0
     return acc
-  }, {} as Record<PlayerClass, number>)
+  }, {} as Record<SlotKey, number>)
 )
+
+// All slot options (classes + FREE)
+const allSlotOptions = computed(() => [
+  ...Object.values(PlayerClass),
+  'FREE' as const
+])
+
+// Display name for slot (including FREE)
+function getSlotDisplayName(slot: SlotKey): string {
+  if (slot === 'FREE') return 'Livre'
+  return PlayerClassNames[slot]
+}
 
 // Computed total slots
 const totalSlots = computed(() => {
@@ -39,15 +52,15 @@ const totalSlots = computed(() => {
 const availableClasses = computed(() => {
   return Object.entries(slotCounts.value)
     .filter(([_, count]) => count > 0)
-    .map(([playerClass]) => playerClass as PlayerClass)
+    .map(([key]) => key as SlotKey)
 })
 
 // Build slots array for API
 const slots = computed<SlotRequest[]>(() => {
   return Object.entries(slotCounts.value)
     .filter(([_, count]) => count > 0)
-    .map(([playerClass, count]) => ({
-      playerClass: playerClass as PlayerClass,
+    .map(([key, count]) => ({
+      playerClass: key as PlayerClass | 'FREE',
       count
     }))
 })
@@ -68,7 +81,7 @@ watch(() => props.show, (newValue) => {
     creatorSlotClass.value = null
     // Reset all slot counts
     Object.keys(slotCounts.value).forEach(key => {
-      slotCounts.value[key as PlayerClass] = 0
+      slotCounts.value[key as SlotKey] = 0
     })
   }
 })
@@ -77,15 +90,15 @@ function close() {
   emit('update:show', false)
 }
 
-function incrementSlot(playerClass: PlayerClass) {
-  if (slotCounts.value[playerClass] < 6 && totalSlots.value < 6) {
-    slotCounts.value[playerClass]++
+function incrementSlot(slotKey: SlotKey) {
+  if (slotCounts.value[slotKey] < 6 && totalSlots.value < 6) {
+    slotCounts.value[slotKey]++
   }
 }
 
-function decrementSlot(playerClass: PlayerClass) {
-  if (slotCounts.value[playerClass] > 0) {
-    slotCounts.value[playerClass]--
+function decrementSlot(slotKey: SlotKey) {
+  if (slotCounts.value[slotKey] > 0) {
+    slotCounts.value[slotKey]--
   }
 }
 
@@ -211,28 +224,33 @@ async function handleSubmit() {
 
               <div class="grid grid-cols-2 gap-2">
                 <div
-                  v-for="playerClass in Object.values(PlayerClass)"
-                  :key="playerClass"
-                  class="flex items-center justify-between p-2 rounded-lg bg-dark-600"
-                  :class="slotCounts[playerClass] > 0 ? 'ring-1 ring-primary-500' : ''"
+                  v-for="slotKey in allSlotOptions"
+                  :key="slotKey"
+                  class="flex items-center justify-between p-2 rounded-lg"
+                  :class="[
+                    slotCounts[slotKey] > 0 ? 'ring-1 ring-primary-500' : '',
+                    slotKey === 'FREE' ? 'bg-amber-900/30' : 'bg-dark-600'
+                  ]"
                 >
-                  <span class="text-sm text-gray-200">{{ PlayerClassNames[playerClass] }}</span>
+                  <span class="text-sm" :class="slotKey === 'FREE' ? 'text-amber-300 font-medium' : 'text-gray-200'">
+                    {{ getSlotDisplayName(slotKey) }}
+                  </span>
                   <div class="flex items-center gap-1">
                     <button
                       type="button"
-                      @click="decrementSlot(playerClass)"
-                      :disabled="isSubmitting || slotCounts[playerClass] === 0"
+                      @click="decrementSlot(slotKey)"
+                      :disabled="isSubmitting || slotCounts[slotKey] === 0"
                       class="w-6 h-6 flex items-center justify-center rounded bg-dark-500 text-gray-300 hover:bg-dark-400 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
                       </svg>
                     </button>
-                    <span class="w-6 text-center text-sm font-medium text-gray-100">{{ slotCounts[playerClass] }}</span>
+                    <span class="w-6 text-center text-sm font-medium text-gray-100">{{ slotCounts[slotKey] }}</span>
                     <button
                       type="button"
-                      @click="incrementSlot(playerClass)"
-                      :disabled="isSubmitting || slotCounts[playerClass] >= 6 || totalSlots >= 6"
+                      @click="incrementSlot(slotKey)"
+                      :disabled="isSubmitting || slotCounts[slotKey] >= 6 || totalSlots >= 6"
                       class="w-6 h-6 flex items-center justify-center rounded bg-dark-500 text-gray-300 hover:bg-dark-400 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,6 +260,7 @@ async function handleSubmit() {
                   </div>
                 </div>
               </div>
+              <p class="text-xs text-amber-400/80 mt-2">* "Livre" permite qualquer classe entrar</p>
             </div>
 
             <!-- Creator's Class Selection -->
@@ -250,17 +269,17 @@ async function handleSubmit() {
               <p class="text-xs text-gray-400 mb-2">Escolha qual classe você vai ocupar</p>
               <div class="flex flex-wrap gap-2">
                 <button
-                  v-for="playerClass in availableClasses"
-                  :key="playerClass"
+                  v-for="slotKey in availableClasses"
+                  :key="slotKey"
                   type="button"
-                  @click="creatorSlotClass = playerClass"
+                  @click="creatorSlotClass = slotKey"
                   :disabled="isSubmitting"
                   class="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                  :class="creatorSlotClass === playerClass
+                  :class="creatorSlotClass === slotKey
                     ? 'bg-primary-500 text-white'
-                    : 'bg-dark-600 text-gray-300 hover:bg-dark-500'"
+                    : slotKey === 'FREE' ? 'bg-amber-900/50 text-amber-300 hover:bg-amber-900/70' : 'bg-dark-600 text-gray-300 hover:bg-dark-500'"
                 >
-                  {{ PlayerClassNames[playerClass] }}
+                  {{ getSlotDisplayName(slotKey) }}
                 </button>
               </div>
             </div>

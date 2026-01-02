@@ -66,7 +66,7 @@ const emit = defineEmits<{
           >
             <!-- Avatar -->
             <div
-              class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+              class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
               :class="'bg-dark-500'"
             >
               {{ member.nick.charAt(0).toUpperCase() }}

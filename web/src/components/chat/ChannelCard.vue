@@ -91,9 +91,6 @@ const typeColors: Record<ChannelType, string> = {
           {{ channel.name }}
         </h4>
         <p class="text-sm text-gray-400">{{ typeLabels[channel.type] }}</p>
-        <p v-if="channel._count?.messages" class="text-xs text-gray-500">
-          {{ channel._count.messages }} mensagens
-        </p>
       </div>
 
       <!-- Members button -->

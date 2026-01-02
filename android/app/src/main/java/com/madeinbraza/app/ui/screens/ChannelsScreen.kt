@@ -243,16 +243,6 @@ private fun ChannelItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                channel._count?.let { count ->
-                    if (count.messages > 0) {
-                        Text(
-                            text = stringResource(R.string.messages_count, count.messages),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
 
             // Members button

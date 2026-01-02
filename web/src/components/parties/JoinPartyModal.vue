@@ -17,22 +17,24 @@ const emit = defineEmits<{
 const selectedSlotId = ref<string | null>(null)
 const isSubmitting = ref(false)
 
-// Group available slots by class
+// Group available slots by class (null = FREE slot)
 const availableSlotsByClass = computed(() => {
   if (!props.party) return []
 
-  const slotsByClass = new Map<string, PartySlot[]>()
+  const slotsByClass = new Map<string | null, PartySlot[]>()
 
   props.party.slots
     .filter(slot => !slot.filledBy)
     .forEach(slot => {
-      const existing = slotsByClass.get(slot.playerClass) || []
+      const key = slot.playerClass // null for FREE slots
+      const existing = slotsByClass.get(key) || []
       existing.push(slot)
-      slotsByClass.set(slot.playerClass, existing)
+      slotsByClass.set(key, existing)
     })
 
   return Array.from(slotsByClass.entries()).map(([playerClass, slots]) => ({
     playerClass,
+    isFreeSlot: playerClass === null,
     slots,
     count: slots.length
   }))
@@ -98,23 +100,28 @@ async function handleJoin() {
 
             <!-- Available Slots by Class -->
             <div class="space-y-2">
-              <template v-for="group in availableSlotsByClass" :key="group.playerClass">
+              <template v-for="group in availableSlotsByClass" :key="group.playerClass ?? 'FREE'">
                 <button
                   v-for="(slot, index) in group.slots"
                   :key="slot.id"
                   @click="selectSlot(slot.id)"
                   class="w-full flex items-center justify-between p-3 rounded-lg transition-colors"
-                  :class="selectedSlotId === slot.id
-                    ? 'bg-primary-500/20 ring-1 ring-primary-500'
-                    : 'bg-dark-600 hover:bg-dark-500'"
+                  :class="[
+                    selectedSlotId === slot.id
+                      ? 'bg-primary-500/20 ring-1 ring-primary-500'
+                      : group.isFreeSlot ? 'bg-amber-500/10 hover:bg-amber-500/20' : 'bg-dark-600 hover:bg-dark-500'
+                  ]"
                   :disabled="isSubmitting"
                 >
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-dark-500 flex items-center justify-center text-xs font-medium text-gray-300">
-                      {{ PlayerClassAbbreviations[group.playerClass as keyof typeof PlayerClassAbbreviations] }}
+                    <div
+                      class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium"
+                      :class="group.isFreeSlot ? 'bg-amber-500/20 text-amber-400' : 'bg-dark-500 text-gray-300'"
+                    >
+                      {{ group.isFreeSlot ? 'LIVRE' : PlayerClassAbbreviations[group.playerClass as keyof typeof PlayerClassAbbreviations] }}
                     </div>
-                    <span class="text-gray-200">
-                      {{ PlayerClassNames[group.playerClass as keyof typeof PlayerClassNames] }}
+                    <span :class="group.isFreeSlot ? 'text-amber-300' : 'text-gray-200'">
+                      {{ group.isFreeSlot ? 'Livre (qualquer classe)' : PlayerClassNames[group.playerClass as keyof typeof PlayerClassNames] }}
                       <span v-if="group.count > 1" class="text-gray-500">({{ index + 1 }}/{{ group.count }})</span>
                     </span>
                   </div>

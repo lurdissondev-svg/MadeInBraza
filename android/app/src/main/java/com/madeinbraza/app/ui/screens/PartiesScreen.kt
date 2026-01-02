@@ -57,6 +57,18 @@ private val CLASS_ABBREVIATIONS = mapOf(
     PlayerClass.ARCHER to "ARC"
 )
 
+// Slot key type: PlayerClass enum name or "FREE"
+private const val FREE_SLOT = "FREE"
+
+private fun getSlotDisplayName(slotKey: String): String {
+    if (slotKey == FREE_SLOT) return "Livre"
+    return try {
+        CLASS_DISPLAY_NAMES[PlayerClass.valueOf(slotKey)] ?: slotKey
+    } catch (e: IllegalArgumentException) {
+        slotKey
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PartiesScreen(
@@ -191,21 +203,27 @@ fun PartiesScreen(
 private fun CreateEventPartyDialog(
     isCreating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (String, String?, List<SlotRequest>, PlayerClass) -> Unit
+    onCreate: (String, String?, List<SlotRequest>, String) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    val slotCounts = remember { mutableStateMapOf<PlayerClass, Int>().apply {
-        PlayerClass.entries.forEach { put(it, 0) }
-    }}
-    var creatorSlotClass by remember { mutableStateOf<PlayerClass?>(null) }
+    // Slot counts: PlayerClass.name -> count, plus "FREE" -> count
+    var slotCounts by remember {
+        mutableStateOf(
+            PlayerClass.entries.associate { it.name to 0 } + (FREE_SLOT to 0)
+        )
+    }
+    var creatorSlotClass by remember { mutableStateOf<String?>(null) }
 
     val totalSlots = slotCounts.values.sum()
-    val availableClasses = slotCounts.filter { it.value > 0 }.keys.toList()
+    val availableSlotKeys = slotCounts.filter { it.value > 0 }.keys.toList()
+
+    // All slot options (class names + FREE)
+    val allSlotOptions = remember { PlayerClass.entries.map { it.name } + FREE_SLOT }
 
     // Reset creator class if not available anymore
-    LaunchedEffect(availableClasses) {
-        if (creatorSlotClass != null && creatorSlotClass !in availableClasses) {
+    LaunchedEffect(availableSlotKeys) {
+        if (creatorSlotClass != null && creatorSlotClass !in availableSlotKeys) {
             creatorSlotClass = null
         }
     }
@@ -238,15 +256,28 @@ private fun CreateEventPartyDialog(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Slots por Classe (Total: $totalSlots)",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Vagas por Classe",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "Total: $totalSlots",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Class slot selection grid
-                PlayerClass.entries.forEach { playerClass ->
+                // Class slot selection grid including FREE
+                allSlotOptions.forEach { slotKey ->
+                    val count = slotCounts[slotKey] ?: 0
+                    val isFreeSlot = slotKey == FREE_SLOT
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -255,38 +286,40 @@ private fun CreateEventPartyDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
+                            text = getSlotDisplayName(slotKey),
                             style = MaterialTheme.typography.bodyMedium,
+                            color = if (isFreeSlot) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal,
                             modifier = Modifier.weight(1f)
                         )
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            FilledTonalIconButton(
+                            IconButton(
                                 onClick = {
-                                    val current = slotCounts[playerClass] ?: 0
-                                    if (current > 0) slotCounts[playerClass] = current - 1
+                                    if (count > 0) {
+                                        slotCounts = slotCounts + (slotKey to count - 1)
+                                    }
                                 },
-                                enabled = !isCreating && (slotCounts[playerClass] ?: 0) > 0,
+                                enabled = !isCreating && count > 0,
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Text("-", style = MaterialTheme.typography.titleMedium)
                             }
                             Text(
-                                text = "${slotCounts[playerClass] ?: 0}",
-                                modifier = Modifier
-                                    .width(32.dp)
-                                    .wrapContentWidth(Alignment.CenterHorizontally),
-                                style = MaterialTheme.typography.bodyLarge
+                                text = count.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.width(24.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
-                            FilledTonalIconButton(
+                            IconButton(
                                 onClick = {
-                                    val current = slotCounts[playerClass] ?: 0
-                                    if (current < 6 && totalSlots < 6) {
-                                        slotCounts[playerClass] = current + 1
+                                    if (count < 6 && totalSlots < 6) {
+                                        slotCounts = slotCounts + (slotKey to count + 1)
                                     }
                                 },
-                                enabled = !isCreating && (slotCounts[playerClass] ?: 0) < 6 && totalSlots < 6,
+                                enabled = !isCreating && count < 6 && totalSlots < 6,
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Text("+", style = MaterialTheme.typography.titleMedium)
@@ -295,31 +328,40 @@ private fun CreateEventPartyDialog(
                     }
                 }
 
+                Text(
+                    text = "* \"Livre\" permite qualquer classe",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
                 // Creator's class selection
-                if (availableClasses.isNotEmpty()) {
+                if (availableSlotKeys.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Sua vaga na Party",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "Escolha qual classe você vai ocupar",
+                        text = "Escolha qual vaga você vai ocupar",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    availableClasses.forEach { playerClass ->
-                        val isSelected = creatorSlotClass == playerClass
+                    availableSlotKeys.forEach { slotKey ->
+                        val isSelected = creatorSlotClass == slotKey
+                        val isFreeSlot = slotKey == FREE_SLOT
                         Card(
-                            onClick = { creatorSlotClass = playerClass },
+                            onClick = { creatorSlotClass = slotKey },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected)
                                     MaterialTheme.colorScheme.primaryContainer
+                                else if (isFreeSlot)
+                                    MaterialTheme.colorScheme.tertiaryContainer
                                 else
                                     MaterialTheme.colorScheme.surfaceVariant
                             )
@@ -332,8 +374,10 @@ private fun CreateEventPartyDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = getSlotDisplayName(slotKey),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isFreeSlot) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal
                                 )
                                 if (isSelected) {
                                     Icon(
@@ -398,7 +442,7 @@ private fun JoinEventPartyDialog(
     onDismiss: () -> Unit,
     onJoin: (String) -> Unit
 ) {
-    // Group available slots by class
+    // Group available slots by class (null = FREE slot)
     val availableSlots = party.slots.filter { it.filledBy == null }
     val slotsByClass = availableSlots.groupBy { it.playerClass }
 
@@ -422,15 +466,26 @@ private fun JoinEventPartyDialog(
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         slotsByClass.forEach { (playerClass, slots) ->
-                            val className = CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
+                            val isFreeSlot = playerClass == null
+                            val className = if (isFreeSlot) "Livre" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
                             val slotCount = slots.size
 
                             OutlinedButton(
                                 onClick = { onJoin(slots.first().id) },
                                 enabled = !isJoining,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = if (isFreeSlot) {
+                                    ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.tertiary
+                                    )
+                                } else {
+                                    ButtonDefaults.outlinedButtonColors()
+                                }
                             ) {
-                                Text("$className ($slotCount ${if (slotCount == 1) "vaga" else "vagas"})")
+                                Text(
+                                    "$className ($slotCount ${if (slotCount == 1) "vaga" else "vagas"})",
+                                    fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal
+                                )
                             }
                         }
                     }
@@ -463,7 +518,7 @@ private fun EventPartyCard(
     val isCreator = party.createdBy.id == currentUserId
     val canDelete = isCreator || isLeader
 
-    // Group slots by class for display
+    // Group slots by class for display (null = FREE slot)
     val slotsByClass = party.slots.groupBy { it.playerClass }
 
     val closedText = stringResource(R.string.party_closed)
@@ -575,7 +630,8 @@ private fun EventPartyCard(
                 items(slotsByClass.entries.toList()) { (playerClass, slots) ->
                     val filled = slots.count { it.filledBy != null }
                     val total = slots.size
-                    val abbrev = CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name.take(3)
+                    val isFreeSlot = playerClass == null
+                    val abbrev = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name.take(3)
 
                     AssistChip(
                         onClick = {},
@@ -588,6 +644,8 @@ private fun EventPartyCard(
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (filled == total)
                                 MaterialTheme.colorScheme.primaryContainer
+                            else if (isFreeSlot)
+                                MaterialTheme.colorScheme.tertiaryContainer
                             else
                                 MaterialTheme.colorScheme.surfaceVariant
                         ),
@@ -605,7 +663,8 @@ private fun EventPartyCard(
                 ) {
                     items(filledSlots) { slot ->
                         val isCurrentUser = slot.filledBy?.id == currentUserId
-                        val abbrev = CLASS_ABBREVIATIONS[slot.playerClass] ?: slot.playerClass.name.take(3)
+                        val isFreeSlot = slot.playerClass == null
+                        val abbrev = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[slot.playerClass] ?: slot.playerClass.name.take(3)
                         AssistChip(
                             onClick = {},
                             label = {

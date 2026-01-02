@@ -270,7 +270,7 @@ export interface PartySlotUser {
 
 export interface PartySlot {
   id: string
-  playerClass: PlayerClass
+  playerClass: PlayerClass | null // null = "FREE" slot (any class can join)
   filledBy: PartySlotUser | null
 }
 
@@ -290,7 +290,7 @@ export interface PartiesResponse {
 }
 
 export interface SlotRequest {
-  playerClass: PlayerClass
+  playerClass: PlayerClass | 'FREE' // 'FREE' = any class can join
   count: number
 }
 
@@ -298,7 +298,7 @@ export interface CreatePartyRequest {
   name: string
   description?: string | null
   slots: SlotRequest[]
-  creatorSlotClass: PlayerClass
+  creatorSlotClass: PlayerClass | 'FREE'
 }
 
 export interface JoinPartyRequest {
