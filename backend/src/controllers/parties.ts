@@ -376,7 +376,48 @@ export async function joinParty(
       ).catch(err => console.error('Failed to send party full notification:', err));
     }
 
-    res.json({ success: true, isClosed: newMemberCount >= party.maxMembers });
+    // Fetch and return the updated party
+    const updatedParty = await prisma.party.findUnique({
+      where: { id: partyId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        maxMembers: true,
+        isClosed: true,
+        createdAt: true,
+        eventId: true,
+        createdBy: {
+          select: {
+            id: true,
+            nick: true,
+          },
+        },
+        members: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                nick: true,
+                playerClass: true,
+              },
+            },
+            joinedAt: true,
+          },
+        },
+      },
+    });
+
+    // Transform to flatten members
+    const transformedParty = {
+      ...updatedParty,
+      members: updatedParty!.members.map(m => ({
+        ...m.user,
+        joinedAt: m.joinedAt,
+      })),
+    };
+
+    res.json({ party: transformedParty });
   } catch (err) {
     next(err);
   }
@@ -423,7 +464,48 @@ export async function leaveParty(
       });
     }
 
-    res.json({ success: true });
+    // Fetch and return the updated party
+    const updatedParty = await prisma.party.findUnique({
+      where: { id: partyId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        maxMembers: true,
+        isClosed: true,
+        createdAt: true,
+        eventId: true,
+        createdBy: {
+          select: {
+            id: true,
+            nick: true,
+          },
+        },
+        members: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                nick: true,
+                playerClass: true,
+              },
+            },
+            joinedAt: true,
+          },
+        },
+      },
+    });
+
+    // Transform to flatten members
+    const transformedParty = {
+      ...updatedParty,
+      members: updatedParty!.members.map(m => ({
+        ...m.user,
+        joinedAt: m.joinedAt,
+      })),
+    };
+
+    res.json({ party: transformedParty });
   } catch (err) {
     next(err);
   }
