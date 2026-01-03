@@ -28,13 +28,17 @@ export async function getChannels(req: Request, res: Response): Promise<void> {
     const partyIds = user.partyMemberships.map((p) => p.partyId);
 
     // Build channel filter based on user role and memberships
+    // Leaders have access to ALL party channels
     const channels = await prisma.channel.findMany({
       where: {
         OR: [
           { type: ChannelType.GENERAL },
           ...(userRole === 'LEADER' ? [{ type: ChannelType.LEADERS }] : []),
           { type: ChannelType.EVENT, eventId: { in: eventIds } },
-          { type: ChannelType.PARTY, partyId: { in: partyIds } },
+          ...(userRole === 'LEADER'
+            ? [{ type: ChannelType.PARTY }]  // Leaders see ALL party channels
+            : [{ type: ChannelType.PARTY, partyId: { in: partyIds } }]  // Others see only their parties
+          ),
         ],
       },
       include: {
@@ -419,13 +423,23 @@ export async function getChannelMembers(req: Request, res: Response): Promise<vo
         break;
 
       case ChannelType.PARTY:
-        // Party members
+        // Party members + all leaders
         const isPartyMember = channel.party?.members.some(m => m.user.id === userId);
         if (!isPartyMember && userRole !== 'LEADER') {
           res.status(403).json({ error: 'Sem acesso a este canal' });
           return;
         }
-        members = channel.party?.members.map(m => m.user) || [];
+        // Get party members
+        const partyMembers = channel.party?.members.map(m => m.user) || [];
+        // Get all leaders and merge with party members
+        const partyLeaders = await prisma.user.findMany({
+          where: { status: 'APPROVED', role: 'LEADER' },
+          select: { id: true, nick: true, playerClass: true, role: true },
+        });
+        // Merge without duplicates
+        const memberIds = new Set(partyMembers.map(m => m.id));
+        const uniqueLeaders = partyLeaders.filter(l => !memberIds.has(l.id));
+        members = [...partyMembers, ...uniqueLeaders];
         break;
     }
 
@@ -567,6 +581,8 @@ function checkChannelAccess(
     case ChannelType.EVENT:
       return (channel.event?.participants?.length ?? 0) > 0;
     case ChannelType.PARTY:
+      // Leaders have access to ALL party channels
+      if (userRole === 'LEADER') return true;
       return (channel.party?.members?.length ?? 0) > 0;
     default:
       return false;
