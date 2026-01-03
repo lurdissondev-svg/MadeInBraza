@@ -19,6 +19,13 @@ services:
       UAZAPI_TOKEN: ${UAZAPI_TOKEN}
       UAZAPI_AVISOS_GROUP_ID: 120363247580405853@g.us
       BASE_URL: https://braza.app.br
+      # Email Configuration (Gmail SMTP)
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_SECURE: ${EMAIL_SECURE}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
       # Nginx Proxy
       VIRTUAL_HOST: braza.app.br
       VIRTUAL_PORT: 3000

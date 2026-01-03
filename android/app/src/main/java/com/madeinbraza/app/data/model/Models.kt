@@ -467,6 +467,7 @@ data class Channel(
     val partyId: String? = null,
     val party: ChannelParty? = null,
     val createdAt: String,
+    val lastReadAt: String? = null,  // Server-side read tracking
     val _count: ChannelMessageCount? = null
 )
 

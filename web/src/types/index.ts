@@ -445,6 +445,7 @@ export interface Channel {
   partyId: string | null
   party: ChannelParty | null
   createdAt: string
+  lastReadAt: string | null  // Server-side read tracking
   _count?: { messages: number }
 }
 

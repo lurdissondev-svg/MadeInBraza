@@ -254,26 +254,27 @@ class ChannelRepository @Inject constructor(
         }
     }
 
-    // Unread messages tracking
-    private fun lastReadKey(channelId: String) = longPreferencesKey("last_read_$channelId")
-
-    suspend fun getLastReadTimestamp(channelId: String): Long {
-        return dataStore.data.map { it[lastReadKey(channelId)] ?: 0L }.first()
-    }
-
-    suspend fun setLastReadTimestamp(channelId: String, timestamp: Long) {
-        dataStore.edit { prefs ->
-            prefs[lastReadKey(channelId)] = timestamp
+    // Mark channel as read on server
+    suspend fun markAsRead(channelId: String): Result<Boolean> {
+        val token = getToken() ?: return Result.Error("Not authenticated")
+        return try {
+            val response = api.markChannelAsRead("Bearer $token", channelId)
+            if (response.isSuccessful) {
+                Result.Success(true)
+            } else {
+                Result.Error(response.errorBody()?.string() ?: "Failed to mark as read")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Network error")
         }
     }
 
     /**
-     * Get unread count with optimized fetching.
-     * Only fetches recent messages to reduce server load.
+     * Get unread count using server-side lastReadAt from channel data.
      */
-    suspend fun getUnreadCount(channelId: String): Int {
+    suspend fun getUnreadCount(channelId: String, lastReadAt: String?): Int {
         val token = getToken() ?: return 0
-        val lastRead = getLastReadTimestamp(channelId)
+        val lastRead = if (lastReadAt != null) parseTimestamp(lastReadAt) else 0L
 
         // If never read, don't fetch - assume 0 or indicate "new"
         if (lastRead == 0L) return 0

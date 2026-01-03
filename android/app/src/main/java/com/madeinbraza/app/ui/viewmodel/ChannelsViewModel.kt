@@ -122,7 +122,8 @@ class ChannelsViewModel @Inject constructor(
             val channels = _channelsState.value.channels
             val counts = mutableMapOf<String, Int>()
             channels.forEach { channel ->
-                counts[channel.id] = channelRepository.getUnreadCount(channel.id)
+                // Use server-side lastReadAt for cross-platform sync
+                counts[channel.id] = channelRepository.getUnreadCount(channel.id, channel.lastReadAt)
             }
             _channelsState.update { it.copy(unreadCounts = counts) }
         }
@@ -175,10 +176,26 @@ class ChannelsViewModel @Inject constructor(
 
     private fun markChannelAsRead(channelId: String) {
         viewModelScope.launch {
-            channelRepository.setLastReadTimestamp(channelId, System.currentTimeMillis())
+            // Mark as read on server for cross-platform sync
+            channelRepository.markAsRead(channelId)
             // Update the unread count to 0 for this channel
             _channelsState.update { state ->
                 state.copy(unreadCounts = state.unreadCounts + (channelId to 0))
+            }
+            // Update channel's lastReadAt in the channels list
+            _channelsState.update { state ->
+                state.copy(
+                    channels = state.channels.map { channel ->
+                        if (channel.id == channelId) {
+                            channel.copy(lastReadAt = java.text.SimpleDateFormat(
+                                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                                java.util.Locale.getDefault()
+                            ).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }.format(java.util.Date()))
+                        } else channel
+                    }
+                )
             }
         }
     }

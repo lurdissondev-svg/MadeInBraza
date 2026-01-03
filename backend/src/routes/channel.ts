@@ -10,6 +10,7 @@ import {
   getChannelMembers,
   deleteMessage,
   editMessage,
+  markChannelAsRead,
 } from '../controllers/channel.js';
 
 const router = Router();
@@ -35,10 +36,8 @@ router.post('/:channelId/messages/media', uploadMedia, sendMediaMessage);
 // GET /channels/:channelId/members - Get channel members
 router.get('/:channelId/members', getChannelMembers);
 
-// POST /channels/:channelId/read - Mark channel as read (stub - no-op for now)
-router.post('/:channelId/read', (_req, res) => {
-  res.json({ success: true });
-});
+// POST /channels/:channelId/read - Mark channel as read
+router.post('/:channelId/read', markChannelAsRead);
 
 // DELETE /channels/:channelId/messages/:messageId - Delete own message
 router.delete('/:channelId/messages/:messageId', deleteMessage);

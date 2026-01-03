@@ -45,14 +45,56 @@ export async function getChannels(req: Request, res: Response): Promise<void> {
         event: { select: { id: true, title: true } },
         party: { select: { id: true, name: true } },
         _count: { select: { messages: true } },
+        readStatus: {
+          where: { userId },
+          select: { lastReadAt: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(channels);
+    // Transform to include lastReadAt at top level
+    const channelsWithReadStatus = channels.map(channel => ({
+      ...channel,
+      lastReadAt: channel.readStatus[0]?.lastReadAt || null,
+      readStatus: undefined, // Remove the nested array
+    }));
+
+    res.json(channelsWithReadStatus);
   } catch (error) {
     console.error('Error fetching channels:', error);
     res.status(500).json({ error: 'Erro ao buscar canais' });
+  }
+}
+
+// Mark channel as read
+export async function markChannelAsRead(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const { channelId } = req.params;
+
+    // Upsert the read status
+    await prisma.channelReadStatus.upsert({
+      where: {
+        channelId_userId: {
+          channelId,
+          userId,
+        },
+      },
+      update: {
+        lastReadAt: new Date(),
+      },
+      create: {
+        channelId,
+        userId,
+        lastReadAt: new Date(),
+      },
+    });
+
+    res.json({ success: true, lastReadAt: new Date().toISOString() });
+  } catch (error) {
+    console.error('Error marking channel as read:', error);
+    res.status(500).json({ error: 'Erro ao marcar como lido' });
   }
 }
 

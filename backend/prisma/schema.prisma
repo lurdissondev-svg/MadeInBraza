@@ -59,6 +59,7 @@ model User {
   pilotedBy      SWResponse[] @relation("PilotingFor")
   announcements  Announcement[]
   passwordResetTokens PasswordResetToken[]
+  channelReadStatus ChannelReadStatus[]
 
   @@map("users")
 }
@@ -84,17 +85,31 @@ enum ChannelType {
 }
 
 model Channel {
-  id        String      @id @default(uuid())
-  type      ChannelType
-  name      String
-  eventId   String?     @unique // Para channels de evento (1:1)
-  event     Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  partyId   String?     @unique // Para channels de party (1:1)
-  party     Party?      @relation(fields: [partyId], references: [id], onDelete: Cascade)
-  createdAt DateTime    @default(now())
-  messages  Message[]
+  id          String      @id @default(uuid())
+  type        ChannelType
+  name        String
+  eventId     String?     @unique // Para channels de evento (1:1)
+  event       Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  partyId     String?     @unique // Para channels de party (1:1)
+  party       Party?      @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  messages    Message[]
+  readStatus  ChannelReadStatus[]
 
   @@map("channels")
+}
+
+// Track when a user last read a channel (for cross-platform sync)
+model ChannelReadStatus {
+  id         String   @id @default(uuid())
+  channelId  String
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime @default(now())
+
+  @@unique([channelId, userId])
+  @@map("channel_read_status")
 }
 
 model Message {

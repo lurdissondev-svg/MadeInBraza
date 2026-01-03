@@ -392,6 +392,12 @@ interface BrazaApi {
         @Body request: EditMessageRequest
     ): Response<ChannelMessage>
 
+    @POST("channels/{channelId}/read")
+    suspend fun markChannelAsRead(
+        @Header("Authorization") token: String,
+        @Path("channelId") channelId: String
+    ): Response<SuccessResponse>
+
     // Announcement endpoints
     @GET("announcements")
     suspend fun getAnnouncements(

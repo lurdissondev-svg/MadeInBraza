@@ -3,9 +3,6 @@ import { ref, computed } from 'vue'
 import type { Channel, ChannelMessage, ChannelMember } from '@/types'
 import { channelsApi } from '@/services/api/channels'
 
-// localStorage keys
-const LAST_READ_PREFIX = 'braza_last_read_'
-
 export const useChannelsStore = defineStore('channels', () => {
   // State
   const channels = ref<Channel[]>([])
@@ -22,15 +19,13 @@ export const useChannelsStore = defineStore('channels', () => {
   const uploading = ref(false)
   const error = ref<string | null>(null)
 
-  // Helper: Get last read timestamp for a channel
+  // Helper: Get last read timestamp for a channel (from server data)
   function getLastReadTimestamp(channelId: string): number {
-    const stored = localStorage.getItem(LAST_READ_PREFIX + channelId)
-    return stored ? parseInt(stored, 10) : 0
-  }
-
-  // Helper: Set last read timestamp for a channel
-  function setLastReadTimestamp(channelId: string, timestamp: number) {
-    localStorage.setItem(LAST_READ_PREFIX + channelId, timestamp.toString())
+    const channel = channels.value.find(c => c.id === channelId)
+    if (channel?.lastReadAt) {
+      return new Date(channel.lastReadAt).getTime()
+    }
+    return 0
   }
 
   // Computed: Total unread count across all channels
@@ -68,14 +63,14 @@ export const useChannelsStore = defineStore('channels', () => {
     }
   }
 
-  // Calculate unread counts for all channels
+  // Calculate unread counts for all channels (using server-side lastReadAt)
   async function calculateAllUnreadCounts(): Promise<void> {
     const counts: Record<string, number> = {}
 
     for (const channel of channels.value) {
       try {
         const channelMessages = await channelsApi.getChannelMessages(channel.id)
-        const lastRead = getLastReadTimestamp(channel.id)
+        const lastRead = channel.lastReadAt ? new Date(channel.lastReadAt).getTime() : 0
 
         // Count messages created after last read timestamp
         const unreadCount = channelMessages.filter(msg => {
@@ -95,8 +90,9 @@ export const useChannelsStore = defineStore('channels', () => {
   // Calculate unread count for a single channel
   async function calculateUnreadCount(channelId: string): Promise<number> {
     try {
+      const channel = channels.value.find(c => c.id === channelId)
       const channelMessages = await channelsApi.getChannelMessages(channelId)
-      const lastRead = getLastReadTimestamp(channelId)
+      const lastRead = channel?.lastReadAt ? new Date(channel.lastReadAt).getTime() : 0
 
       const unreadCount = channelMessages.filter(msg => {
         const msgTime = new Date(msg.createdAt).getTime()
@@ -160,12 +156,20 @@ export const useChannelsStore = defineStore('channels', () => {
         }
       }
 
-      // Mark as read: update last read timestamp to now
-      const now = Date.now()
-      setLastReadTimestamp(channelId, now)
-
-      // Call API (even if stub) and reset unread count
+      // Mark as read on server and update local state
       await channelsApi.markAsRead(channelId)
+
+      // Update the channel's lastReadAt in local state
+      const channelIndex = channels.value.findIndex(c => c.id === channelId)
+      const channelToUpdate = channels.value[channelIndex]
+      if (channelIndex !== -1 && channelToUpdate) {
+        channelToUpdate.lastReadAt = new Date().toISOString()
+      }
+      if (currentChannel.value) {
+        currentChannel.value.lastReadAt = new Date().toISOString()
+      }
+
+      // Reset unread count
       unreadCounts.value[channelId] = 0
 
       return true
