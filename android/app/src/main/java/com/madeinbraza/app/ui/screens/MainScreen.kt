@@ -66,7 +66,8 @@ sealed class BottomNavItem(
         route = "main_members",
         title = "Membros",
         selectedIcon = Icons.Filled.Face,
-        unselectedIcon = Icons.Outlined.Face
+        unselectedIcon = Icons.Outlined.Face,
+        leaderOnly = true
     )
     object Profile : BottomNavItem(
         route = "main_profile",
