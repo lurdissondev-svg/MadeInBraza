@@ -426,7 +426,7 @@ private fun FormHeader(siegeWar: SiegeWar) {
     }
 
     Surface(
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.primaryContainer,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -437,7 +437,7 @@ private fun FormHeader(siegeWar: SiegeWar) {
             Text(
                 text = eventDate,
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = Color.White,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -446,11 +446,11 @@ private fun FormHeader(siegeWar: SiegeWar) {
                 label = { Text(if (siegeWar.isActive) "ATIVO" else "FECHADO") },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = if (siegeWar.isActive)
-                        MaterialTheme.colorScheme.onPrimary
+                        Color.White
                     else
                         MaterialTheme.colorScheme.error,
                     labelColor = if (siegeWar.isActive)
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.primaryContainer
                     else
                         MaterialTheme.colorScheme.onError
                 )
