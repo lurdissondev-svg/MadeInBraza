@@ -194,8 +194,8 @@ function handleSubmit() {
               :key="pc"
               type="button"
               @click="selectedSharedClass = pc"
-              class="px-3 py-1.5 rounded-lg text-sm transition-colors"
-              :class="selectedSharedClass === pc ? 'bg-primary-500 text-white' : 'bg-dark-600 text-gray-300 hover:bg-dark-500'"
+              class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border-2"
+              :class="selectedSharedClass === pc ? 'bg-primary-600 text-gray-100 border-primary-400' : 'bg-dark-600 text-gray-300 border-transparent hover:bg-dark-500'"
               :disabled="!isActive"
             >
               {{ PlayerClassAbbreviations[pc] }}
@@ -244,8 +244,8 @@ function handleSubmit() {
           :key="pc"
           type="button"
           @click="selectedPreferredClass = pc"
-          class="px-3 py-1.5 rounded-lg text-sm transition-colors"
-          :class="selectedPreferredClass === pc ? 'bg-primary-500 text-white' : 'bg-dark-600 text-gray-300 hover:bg-dark-500'"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border-2"
+          :class="selectedPreferredClass === pc ? 'bg-primary-600 text-gray-100 border-primary-400' : 'bg-dark-600 text-gray-300 border-transparent hover:bg-dark-500'"
           :disabled="!isActive"
         >
           {{ PlayerClassAbbreviations[pc] }}

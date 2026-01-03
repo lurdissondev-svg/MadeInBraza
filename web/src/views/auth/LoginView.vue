@@ -106,7 +106,7 @@ function goToForgotPassword() {
         <input
           type="checkbox"
           v-model="stayLoggedIn"
-          class="w-5 h-5 rounded border-gray-600 bg-transparent text-white focus:ring-white focus:ring-offset-0 accent-white"
+          class="checkbox-custom"
         />
         <span class="text-white text-sm">Manter conectado</span>
       </label>
@@ -185,5 +185,42 @@ function goToForgotPassword() {
   top: 0;
   font-size: 0.75rem;
   color: white;
+}
+
+/* Custom Checkbox - roxo quando marcado */
+.checkbox-custom {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.25rem;
+  border: 2px solid #666;
+  background-color: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.checkbox-custom:checked {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+.checkbox-custom:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-custom:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
 }
 </style>
