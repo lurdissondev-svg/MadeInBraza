@@ -6,7 +6,7 @@ enum class PlayerClass {
 }
 
 enum class UserStatus {
-    PENDING, APPROVED, BANNED
+    PENDING, APPROVED, BANNED, REJECTED
 }
 
 enum class Role {

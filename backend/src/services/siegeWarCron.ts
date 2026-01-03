@@ -166,6 +166,27 @@ async function closeExpiredSiegeWars(): Promise<void> {
   }
 }
 
+// Delete rejected users after 7 days
+async function cleanupRejectedUsers(): Promise<void> {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const deleted = await prisma.user.deleteMany({
+      where: {
+        status: 'REJECTED',
+        rejectedAt: { lt: sevenDaysAgo },
+      },
+    });
+
+    if (deleted.count > 0) {
+      console.log(`[UserCron] Deleted ${deleted.count} rejected users (after 7 days)`);
+    }
+  } catch (error) {
+    console.error('[UserCron] Error cleaning up rejected users:', error);
+  }
+}
+
 export function startSiegeWarCron(): void {
   // Run every Monday at 00:00 (midnight, Brazil time) - Create SW for next Sunday
   // Cron: minute hour day-of-month month day-of-week
@@ -203,11 +224,20 @@ export function startSiegeWarCron(): void {
     timezone: 'America/Sao_Paulo',
   });
 
+  // Clean up rejected users daily at 3:00 AM
+  cron.schedule('0 3 * * *', () => {
+    console.log('[UserCron] Running rejected users cleanup...');
+    cleanupRejectedUsers();
+  }, {
+    timezone: 'America/Sao_Paulo',
+  });
+
   console.log('[SiegeWarCron] Cron jobs scheduled:');
   console.log('  - Weekly SW creation: Every Monday at 00:00 (America/Sao_Paulo)');
   console.log('  - Thursday notification: Every Thursday at 10:00 AM (America/Sao_Paulo)');
   console.log('  - Saturday reminder: Every Saturday at 8:00 PM (for Sunday SW)');
   console.log('  - Expired SW cleanup: Every hour');
+  console.log('  - Rejected users cleanup: Every day at 3:00 AM');
 }
 
 // Export for manual creation (by leaders)

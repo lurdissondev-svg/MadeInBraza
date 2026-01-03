@@ -16,7 +16,8 @@ export enum PlayerClass {
 export enum UserStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
-  BANNED = 'BANNED'
+  BANNED = 'BANNED',
+  REJECTED = 'REJECTED'
 }
 
 export enum Role {

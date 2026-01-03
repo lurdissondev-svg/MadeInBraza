@@ -11,6 +11,7 @@ enum UserStatus {
   PENDING
   APPROVED
   BANNED
+  REJECTED
 }
 
 enum Role {
@@ -46,6 +47,7 @@ model User {
   updatedAt    DateTime    @updatedAt
   approvedBy   String?
   approvedAt   DateTime?
+  rejectedAt   DateTime?   // Data de rejeição (conta será deletada 7 dias depois)
   messages     Message[]
   createdEvents Event[]    @relation("EventCreator")
   participations EventParticipant[]

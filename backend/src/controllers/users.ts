@@ -109,9 +109,27 @@ export async function rejectUser(
       throw new AppError(400, 'Usuário não está pendente');
     }
 
-    await prisma.user.delete({ where: { id } });
+    // Marca como rejeitado em vez de deletar imediatamente
+    // A conta será deletada automaticamente após 7 dias
+    const updated = await prisma.user.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        rejectedAt: new Date(),
+      },
+      select: {
+        id: true,
+        nick: true,
+        status: true,
+        rejectedAt: true,
+      },
+    });
 
-    res.json({ success: true, message: 'Usuário rejeitado' });
+    res.json({
+      success: true,
+      message: 'Usuário rejeitado. A conta será excluída em 7 dias caso não entre em contato com a liderança.',
+      user: updated
+    });
   } catch (err) {
     next(err);
   }

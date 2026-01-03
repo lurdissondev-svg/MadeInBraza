@@ -91,6 +91,24 @@ export async function login(
       throw new AppError(403, 'Sua conta foi banida');
     }
 
+    if (user.status === 'REJECTED') {
+      // Calculate days remaining until account deletion
+      const rejectedAt = user.rejectedAt;
+      if (rejectedAt) {
+        const deleteDate = new Date(rejectedAt);
+        deleteDate.setDate(deleteDate.getDate() + 7);
+        const daysRemaining = Math.ceil((deleteDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+        if (daysRemaining > 0) {
+          throw new AppError(403, `Sua solicitação foi rejeitada. Você tem ${daysRemaining} dia(s) para entrar em contato com a liderança. Após isso, sua conta será excluída.`);
+        } else {
+          throw new AppError(403, 'Sua solicitação foi rejeitada e sua conta será excluída em breve.');
+        }
+      } else {
+        throw new AppError(403, 'Sua solicitação foi rejeitada. Entre em contato com a liderança para mais informações.');
+      }
+    }
+
     const validPassword = await bcrypt.compare(password, user.passwordHash);
     if (!validPassword) {
       throw new AppError(401, 'Nick ou senha incorretos');
