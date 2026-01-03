@@ -88,7 +88,7 @@ if (!fs.existsSync(AVATARS_DIR)) {
 
 // Tipos permitidos para avatar (imagens incluindo GIF)
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_AVATAR_SIZE = 10 * 1024 * 1024; // 10MB - GIFs são comprimidos após upload
+const MAX_AVATAR_SIZE = 50 * 1024 * 1024; // 50MB - GIFs são comprimidos após upload
 
 // Configuração do storage para avatares
 const avatarStorage = multer.diskStorage({
