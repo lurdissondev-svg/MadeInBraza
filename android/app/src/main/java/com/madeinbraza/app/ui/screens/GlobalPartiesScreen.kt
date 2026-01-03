@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +71,7 @@ fun GlobalPartiesScreen(
     if (uiState.showCreateDialog) {
         CreateGlobalPartyDialog(
             isCreating = uiState.isCreating,
+            canSkipJoining = uiState.canSkipJoining,
             onDismiss = { viewModel.hideCreateDialog() },
             onCreate = { name, description, slots, creatorSlotClass -> viewModel.createParty(name, description, slots, creatorSlotClass) }
         )
@@ -182,8 +184,9 @@ private fun getSlotDisplayName(slotKey: String): String {
 @Composable
 fun CreateGlobalPartyDialog(
     isCreating: Boolean,
+    canSkipJoining: Boolean = false,
     onDismiss: () -> Unit,
-    onCreate: (String, String?, List<SlotRequest>, String) -> Unit
+    onCreate: (String, String?, List<SlotRequest>, String?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -194,6 +197,7 @@ fun CreateGlobalPartyDialog(
         )
     }
     var creatorSlotClass by remember { mutableStateOf<String?>(null) }
+    var skipJoining by remember { mutableStateOf(false) }
 
     val totalSlots = slotCounts.values.sum()
     val availableSlotKeys = slotCounts.filter { it.value > 0 }.keys.toList()
@@ -201,12 +205,18 @@ fun CreateGlobalPartyDialog(
     // All slot options (class names + FREE)
     val allSlotOptions = remember { PlayerClass.entries.map { it.name } + FREE_SLOT }
 
-    // Reset creator class if not available anymore
-    LaunchedEffect(availableSlotKeys) {
-        if (creatorSlotClass != null && creatorSlotClass !in availableSlotKeys) {
+    // Reset creator class if not available anymore or if skipping
+    LaunchedEffect(availableSlotKeys, skipJoining) {
+        if (skipJoining) {
+            creatorSlotClass = null
+        } else if (creatorSlotClass != null && creatorSlotClass !in availableSlotKeys) {
             creatorSlotClass = null
         }
     }
+
+    // Validation: can create if skipping (and has permission) OR if selected a slot
+    val canCreate = name.isNotBlank() && totalSlots in 2..6 &&
+        (skipJoining || creatorSlotClass != null) && !isCreating
 
     AlertDialog(
         onDismissRequest = { if (!isCreating) onDismiss() },
@@ -313,8 +323,49 @@ fun CreateGlobalPartyDialog(
                     modifier = Modifier.padding(top = 4.dp)
                 )
 
-                // Creator's class selection
-                if (availableSlotKeys.isNotEmpty()) {
+                // Option to skip joining (only for LEADER/COUNSELOR)
+                if (canSkipJoining && availableSlotKeys.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        onClick = { skipJoining = !skipJoining },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (skipJoining)
+                                MaterialTheme.colorScheme.secondaryContainer
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Não participar da Party",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Criar apenas para outros membros",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Checkbox(
+                                checked = skipJoining,
+                                onCheckedChange = { skipJoining = it },
+                                enabled = !isCreating
+                            )
+                        }
+                    }
+                }
+
+                // Creator's class selection (only show if not skipping)
+                if (availableSlotKeys.isNotEmpty() && !skipJoining) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Sua vaga na Party",
@@ -378,9 +429,10 @@ fun CreateGlobalPartyDialog(
                         .filter { it.value > 0 }
                         .map { SlotRequest(playerClass = it.key, count = it.value) }
                     val desc = description.trim().ifEmpty { null }
-                    onCreate(name, desc, slots, creatorSlotClass!!)
+                    // Pass null if skipping joining, otherwise pass the selected class
+                    onCreate(name, desc, slots, if (skipJoining) null else creatorSlotClass)
                 },
-                enabled = name.isNotBlank() && totalSlots in 2..6 && creatorSlotClass != null && !isCreating
+                enabled = canCreate
             ) {
                 if (isCreating) {
                     CircularProgressIndicator(

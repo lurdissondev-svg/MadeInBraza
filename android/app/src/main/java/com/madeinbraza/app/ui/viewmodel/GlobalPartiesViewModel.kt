@@ -24,6 +24,8 @@ data class GlobalPartiesUiState(
     val actionInProgress: String? = null,
     val currentUserId: String? = null,
     val isLeader: Boolean = false,
+    val isCounselor: Boolean = false,
+    val canSkipJoining: Boolean = false, // LEADER or COUNSELOR can create party without joining
     val showCreateDialog: Boolean = false,
     val isCreating: Boolean = false,
     val partyToJoin: Party? = null,
@@ -49,10 +51,14 @@ class GlobalPartiesViewModel @Inject constructor(
     private fun loadUserInfo() {
         // First try cached user to avoid API call
         authRepository.getCachedUser()?.let { user ->
+            val isLeader = user.role.name == "LEADER"
+            val isCounselor = user.role.name == "COUNSELOR"
             _uiState.update {
                 it.copy(
                     currentUserId = user.id,
-                    isLeader = user.role.name == "LEADER"
+                    isLeader = isLeader,
+                    isCounselor = isCounselor,
+                    canSkipJoining = isLeader || isCounselor
                 )
             }
             return
@@ -62,10 +68,14 @@ class GlobalPartiesViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = authRepository.checkStatus()) {
                 is Result.Success -> {
+                    val isLeader = result.data.role.name == "LEADER"
+                    val isCounselor = result.data.role.name == "COUNSELOR"
                     _uiState.update {
                         it.copy(
                             currentUserId = result.data.id,
-                            isLeader = result.data.role.name == "LEADER"
+                            isLeader = isLeader,
+                            isCounselor = isCounselor,
+                            canSkipJoining = isLeader || isCounselor
                         )
                     }
                 }
@@ -120,7 +130,7 @@ class GlobalPartiesViewModel @Inject constructor(
         _uiState.update { it.copy(showCreateDialog = false) }
     }
 
-    fun createParty(name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: String) {
+    fun createParty(name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: String?) {
         viewModelScope.launch {
             _uiState.update { it.copy(isCreating = true) }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { usePartiesStore } from '@/stores/parties'
+import { useAuthStore } from '@/stores/auth'
 import { PlayerClass, PlayerClassNames } from '@/types'
 import type { SlotRequest } from '@/types'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
@@ -15,12 +16,14 @@ const emit = defineEmits<{
 }>()
 
 const partiesStore = usePartiesStore()
+const authStore = useAuthStore()
 
 const name = ref('')
 const description = ref('')
 const isSubmitting = ref(false)
 const error = ref<string | null>(null)
 const creatorSlotClass = ref<PlayerClass | 'FREE' | null>(null)
+const skipJoining = ref(false)
 
 // Slot counts per class (including FREE)
 type SlotKey = PlayerClass | 'FREE'
@@ -65,9 +68,11 @@ const slots = computed<SlotRequest[]>(() => {
     }))
 })
 
-// Reset creator slot class if their chosen class is no longer available
-watch(availableClasses, (newClasses) => {
-  if (creatorSlotClass.value && !newClasses.includes(creatorSlotClass.value)) {
+// Reset creator slot class if their chosen class is no longer available or if skipping
+watch([availableClasses, skipJoining], ([newClasses, isSkipping]) => {
+  if (isSkipping) {
+    creatorSlotClass.value = null
+  } else if (creatorSlotClass.value && !newClasses.includes(creatorSlotClass.value)) {
     creatorSlotClass.value = null
   }
 })
@@ -79,6 +84,7 @@ watch(() => props.show, (newValue) => {
     description.value = ''
     error.value = null
     creatorSlotClass.value = null
+    skipJoining.value = false
     // Reset all slot counts
     Object.keys(slotCounts.value).forEach(key => {
       slotCounts.value[key as SlotKey] = 0
@@ -113,7 +119,8 @@ async function handleSubmit() {
     return
   }
 
-  if (!creatorSlotClass.value) {
+  // Validate: either skipping (and has permission) or selected a slot
+  if (!skipJoining.value && !creatorSlotClass.value) {
     error.value = 'Selecione sua classe na party'
     return
   }
@@ -123,20 +130,22 @@ async function handleSubmit() {
 
   try {
     let success: boolean
+    // Pass null if skipping, otherwise pass the selected class
+    const slotClass = skipJoining.value ? null : creatorSlotClass.value
 
     if (props.eventId) {
       success = await partiesStore.createEventParty(props.eventId, {
         name: name.value.trim(),
         description: description.value.trim() || null,
         slots: slots.value,
-        creatorSlotClass: creatorSlotClass.value
+        creatorSlotClass: slotClass ?? undefined
       })
     } else {
       success = await partiesStore.createGlobalParty({
         name: name.value.trim(),
         description: description.value.trim() || null,
         slots: slots.value,
-        creatorSlotClass: creatorSlotClass.value
+        creatorSlotClass: slotClass ?? undefined
       })
     }
 
@@ -263,8 +272,28 @@ async function handleSubmit() {
               <p class="text-xs text-amber-400/80 mt-2">* "Livre" permite qualquer classe entrar</p>
             </div>
 
-            <!-- Creator's Class Selection -->
-            <div v-if="availableClasses.length > 0">
+            <!-- Skip Joining Option (only for LEADER/COUNSELOR) -->
+            <div v-if="authStore.canSkipJoining && availableClasses.length > 0">
+              <label
+                @click="skipJoining = !skipJoining"
+                class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                :class="skipJoining ? 'bg-secondary-900/40 ring-1 ring-secondary-500' : 'bg-dark-600 hover:bg-dark-500'"
+              >
+                <input
+                  type="checkbox"
+                  v-model="skipJoining"
+                  :disabled="isSubmitting"
+                  class="w-4 h-4 rounded border-dark-400 text-secondary-500 focus:ring-secondary-500"
+                />
+                <div>
+                  <span class="text-sm font-medium text-gray-200">Não participar da Party</span>
+                  <p class="text-xs text-gray-400">Criar apenas para outros membros</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Creator's Class Selection (only show if not skipping) -->
+            <div v-if="availableClasses.length > 0 && !skipJoining">
               <label class="label">Sua vaga na Party *</label>
               <p class="text-xs text-gray-400 mb-2">Escolha qual classe você vai ocupar</p>
               <div class="flex flex-wrap gap-2">
@@ -297,7 +326,7 @@ async function handleSubmit() {
               <button
                 type="submit"
                 class="btn btn-primary flex-1"
-                :disabled="isSubmitting || !name.trim() || totalSlots < 2 || !creatorSlotClass"
+                :disabled="isSubmitting || !name.trim() || totalSlots < 2 || (!skipJoining && !creatorSlotClass)"
               >
                 <LoadingSpinner v-if="isSubmitting" size="sm" class="mr-2" />
                 {{ isSubmitting ? 'Criando...' : 'Criar Party' }}

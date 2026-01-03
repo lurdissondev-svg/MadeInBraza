@@ -113,8 +113,21 @@ export async function createGlobalParty(
       'FREE' // FREE = null in database, any class can join
     ];
 
-    // Validate creator's chosen class (can be FREE too)
-    if (!creatorSlotClass || !validClasses.includes(creatorSlotClass)) {
+    // Get creator's info (including role)
+    const creator = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { nick: true, playerClass: true, role: true },
+    });
+
+    if (!creator) {
+      throw new AppError(404, 'User not found');
+    }
+
+    // Leaders and Counselors can create parties without joining
+    const canSkipJoining = creator.role === 'LEADER' || creator.role === 'COUNSELOR';
+
+    // Validate creator's chosen class (can be FREE too) - only required for non-privileged users
+    if (!canSkipJoining && (!creatorSlotClass || !validClasses.includes(creatorSlotClass))) {
       throw new AppError(400, 'Creator must choose a valid class slot to occupy');
     }
 
@@ -134,27 +147,18 @@ export async function createGlobalParty(
       const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass as PlayerClass;
       slotEntries.push({ playerClass: dbPlayerClass, count });
       totalSlots += count;
-      if (slot.playerClass === creatorSlotClass) {
+      if (creatorSlotClass && slot.playerClass === creatorSlotClass) {
         creatorClassExists = true;
       }
     }
 
-    if (!creatorClassExists) {
+    // Only validate creatorClassExists if creatorSlotClass was provided
+    if (creatorSlotClass && !creatorClassExists) {
       throw new AppError(400, 'Creator must choose a class that exists in the party slots');
     }
 
     if (totalSlots < 2 || totalSlots > 6) {
       throw new AppError(400, 'Total slots must be between 2 and 6');
-    }
-
-    // Get creator's info
-    const creator = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { nick: true, playerClass: true },
-    });
-
-    if (!creator) {
-      throw new AppError(404, 'User not found');
     }
 
     // Create party with slots
@@ -175,35 +179,43 @@ export async function createGlobalParty(
       select: partySelectFields,
     });
 
-    // Creator fills the first slot of their chosen class (FREE matches null)
-    const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
-    const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
-    if (creatorSlot) {
-      // If FREE slot, creator must select a class - use their profile class as default
-      const filledAsClass = creatorDbClass === null ? creator.playerClass : null;
+    // Only fill a slot if creatorSlotClass was provided
+    if (creatorSlotClass) {
+      // Creator fills the first slot of their chosen class (FREE matches null)
+      const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
+      const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
+      if (creatorSlot) {
+        // If FREE slot, creator must select a class - use their profile class as default
+        const filledAsClass = creatorDbClass === null ? creator.playerClass : null;
 
-      await prisma.partySlot.update({
-        where: { id: creatorSlot.id },
-        data: {
-          filledById: userId,
-          filledAsClass: filledAsClass,
-        },
-      });
+        await prisma.partySlot.update({
+          where: { id: creatorSlot.id },
+          data: {
+            filledById: userId,
+            filledAsClass: filledAsClass,
+          },
+        });
 
-      // Refetch to get updated data
-      const updatedParty = await prisma.party.findUnique({
-        where: { id: party.id },
-        select: partySelectFields,
-      });
+        // Refetch to get updated data
+        const updatedParty = await prisma.party.findUnique({
+          where: { id: party.id },
+          select: partySelectFields,
+        });
 
-      // Create party channel for chat
-      createPartyChannel(party.id, party.name)
-        .catch(err => console.error('Failed to create party channel:', err));
+        // Create party channel for chat
+        createPartyChannel(party.id, party.name)
+          .catch(err => console.error('Failed to create party channel:', err));
 
-      res.status(201).json({ party: transformPartyResponse(updatedParty) });
-    } else {
-      res.status(201).json({ party: transformPartyResponse(party) });
+        res.status(201).json({ party: transformPartyResponse(updatedParty) });
+        return;
+      }
     }
+
+    // Create party channel for chat (even if creator didn't join)
+    createPartyChannel(party.id, party.name)
+      .catch(err => console.error('Failed to create party channel:', err));
+
+    res.status(201).json({ party: transformPartyResponse(party) });
   } catch (err) {
     next(err);
   }
@@ -268,8 +280,21 @@ export async function createParty(
       'FREE' // FREE = null in database, any class can join
     ];
 
-    // Validate creator's chosen class (can be FREE too)
-    if (!creatorSlotClass || !validClasses.includes(creatorSlotClass)) {
+    // Get creator's info (including role)
+    const creator = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { nick: true, playerClass: true, role: true },
+    });
+
+    if (!creator) {
+      throw new AppError(404, 'User not found');
+    }
+
+    // Leaders and Counselors can create parties without joining
+    const canSkipJoining = creator.role === 'LEADER' || creator.role === 'COUNSELOR';
+
+    // Validate creator's chosen class (can be FREE too) - only required for non-privileged users
+    if (!canSkipJoining && (!creatorSlotClass || !validClasses.includes(creatorSlotClass))) {
       throw new AppError(400, 'Creator must choose a valid class slot to occupy');
     }
 
@@ -289,27 +314,18 @@ export async function createParty(
       const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass as PlayerClass;
       slotEntries.push({ playerClass: dbPlayerClass, count });
       totalSlots += count;
-      if (slot.playerClass === creatorSlotClass) {
+      if (creatorSlotClass && slot.playerClass === creatorSlotClass) {
         creatorClassExists = true;
       }
     }
 
-    if (!creatorClassExists) {
+    // Only validate creatorClassExists if creatorSlotClass was provided
+    if (creatorSlotClass && !creatorClassExists) {
       throw new AppError(400, 'Creator must choose a class that exists in the party slots');
     }
 
     if (totalSlots < 2 || totalSlots > 6) {
       throw new AppError(400, 'Total slots must be between 2 and 6');
-    }
-
-    // Get creator's info
-    const creator = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { nick: true, playerClass: true },
-    });
-
-    if (!creator) {
-      throw new AppError(404, 'User not found');
     }
 
     // Create party with slots
@@ -330,35 +346,43 @@ export async function createParty(
       select: partySelectFields,
     });
 
-    // Creator fills the first slot of their chosen class (FREE matches null)
-    const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
-    const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
-    if (creatorSlot) {
-      // If FREE slot, creator must select a class - use their profile class as default
-      const filledAsClass = creatorDbClass === null ? creator.playerClass : null;
+    // Only fill a slot if creatorSlotClass was provided
+    if (creatorSlotClass) {
+      // Creator fills the first slot of their chosen class (FREE matches null)
+      const creatorDbClass = creatorSlotClass === 'FREE' ? null : creatorSlotClass;
+      const creatorSlot = party.slots.find(s => s.playerClass === creatorDbClass);
+      if (creatorSlot) {
+        // If FREE slot, creator must select a class - use their profile class as default
+        const filledAsClass = creatorDbClass === null ? creator.playerClass : null;
 
-      await prisma.partySlot.update({
-        where: { id: creatorSlot.id },
-        data: {
-          filledById: userId,
-          filledAsClass: filledAsClass,
-        },
-      });
+        await prisma.partySlot.update({
+          where: { id: creatorSlot.id },
+          data: {
+            filledById: userId,
+            filledAsClass: filledAsClass,
+          },
+        });
 
-      // Refetch to get updated data
-      const updatedParty = await prisma.party.findUnique({
-        where: { id: party.id },
-        select: partySelectFields,
-      });
+        // Refetch to get updated data
+        const updatedParty = await prisma.party.findUnique({
+          where: { id: party.id },
+          select: partySelectFields,
+        });
 
-      // Create party channel for chat
-      createPartyChannel(party.id, party.name)
-        .catch(err => console.error('Failed to create party channel:', err));
+        // Create party channel for chat
+        createPartyChannel(party.id, party.name)
+          .catch(err => console.error('Failed to create party channel:', err));
 
-      res.status(201).json({ party: transformPartyResponse(updatedParty) });
-    } else {
-      res.status(201).json({ party: transformPartyResponse(party) });
+        res.status(201).json({ party: transformPartyResponse(updatedParty) });
+        return;
+      }
     }
+
+    // Create party channel for chat (even if creator didn't join)
+    createPartyChannel(party.id, party.name)
+      .catch(err => console.error('Failed to create party channel:', err));
+
+    res.status(201).json({ party: transformPartyResponse(party) });
   } catch (err) {
     next(err);
   }
@@ -390,8 +414,8 @@ export async function updateParty(
       select: { role: true },
     });
 
-    if (party.createdById !== userId && user?.role !== 'LEADER') {
-      throw new AppError(403, 'Only the party creator or a leader can edit this party');
+    if (party.createdById !== userId && user?.role !== 'LEADER' && user?.role !== 'COUNSELOR') {
+      throw new AppError(403, 'Only the party creator, a leader or a counselor can edit this party');
     }
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -438,8 +462,8 @@ export async function deleteParty(
       select: { role: true },
     });
 
-    if (party.createdById !== userId && user?.role !== 'LEADER') {
-      throw new AppError(403, 'Only the party creator or a leader can delete this party');
+    if (party.createdById !== userId && user?.role !== 'LEADER' && user?.role !== 'COUNSELOR') {
+      throw new AppError(403, 'Only the party creator, a leader or a counselor can delete this party');
     }
 
     await prisma.party.delete({ where: { id: partyId } });

@@ -36,7 +36,7 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun createGlobalParty(name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: String): Result<Party> {
+    suspend fun createGlobalParty(name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: String?): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.createGlobalParty(
@@ -67,7 +67,7 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun createParty(eventId: String, name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: String): Result<Party> {
+    suspend fun createParty(eventId: String, name: String, description: String?, slots: List<SlotRequest>, creatorSlotClass: String?): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.createParty(

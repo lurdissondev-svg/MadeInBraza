@@ -16,6 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters - use reactive token ref instead of hasToken()
   const isAuthenticated = computed(() => !!token.value && user.value !== null)
   const isLeader = computed(() => user.value?.role === Role.LEADER)
+  const isCounselor = computed(() => user.value?.role === Role.COUNSELOR)
+  const canSkipJoining = computed(() => user.value?.role === Role.LEADER || user.value?.role === Role.COUNSELOR)
   const isPending = computed(() => user.value?.status === UserStatus.PENDING)
   const isApproved = computed(() => user.value?.status === UserStatus.APPROVED)
   const isBanned = computed(() => user.value?.status === UserStatus.BANNED)
@@ -110,6 +112,8 @@ export const useAuthStore = defineStore('auth', () => {
     // Getters
     isAuthenticated,
     isLeader,
+    isCounselor,
+    canSkipJoining,
     isPending,
     isApproved,
     isBanned,

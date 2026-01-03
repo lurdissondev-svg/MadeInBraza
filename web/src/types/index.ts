@@ -22,6 +22,7 @@ export enum UserStatus {
 
 export enum Role {
   LEADER = 'LEADER',
+  COUNSELOR = 'COUNSELOR',
   MEMBER = 'MEMBER'
 }
 
@@ -303,7 +304,7 @@ export interface CreatePartyRequest {
   name: string
   description?: string | null
   slots: SlotRequest[]
-  creatorSlotClass: PlayerClass | 'FREE'
+  creatorSlotClass?: PlayerClass | 'FREE' | null // Optional for LEADER/COUNSELOR
 }
 
 export interface JoinPartyRequest {

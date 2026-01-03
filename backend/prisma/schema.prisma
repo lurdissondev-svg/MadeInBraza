@@ -16,6 +16,7 @@ enum UserStatus {
 
 enum Role {
   LEADER
+  COUNSELOR
   MEMBER
 }
 

@@ -10,7 +10,7 @@ enum class UserStatus {
 }
 
 enum class Role {
-    LEADER, MEMBER
+    LEADER, COUNSELOR, MEMBER
 }
 
 data class User(
@@ -289,7 +289,7 @@ data class CreatePartyRequest(
     val name: String,
     val description: String? = null,
     val slots: List<SlotRequest>,
-    val creatorSlotClass: String // PlayerClass enum name or "FREE"
+    val creatorSlotClass: String? = null // PlayerClass enum name or "FREE" - optional for LEADER/COUNSELOR
 )
 
 data class CreatePartyResponse(
