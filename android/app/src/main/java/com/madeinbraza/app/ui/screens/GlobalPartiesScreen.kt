@@ -460,7 +460,7 @@ fun JoinPartyDialog(
 
                 availableSlotsByClass.forEach { (playerClass, slots) ->
                     val isFreeSlot = playerClass == null
-                    val displayName = if (isFreeSlot) "Livre (escolha sua classe)" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
+                    val displayName = if (isFreeSlot) "Livre (escolha sua classe)" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass!!.name
 
                     slots.forEachIndexed { index, slot ->
                         val isSelected = selectedSlotId == slot.id
@@ -748,7 +748,7 @@ fun GlobalPartyCard(
                 items(slotsByClass.toList()) { (playerClass, data) ->
                     val (filled, total, _) = data
                     val isFreeSlot = playerClass == null
-                    val abbreviation = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name
+                    val abbreviation = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass!!.name
                     AssistChip(
                         onClick = {},
                         label = {

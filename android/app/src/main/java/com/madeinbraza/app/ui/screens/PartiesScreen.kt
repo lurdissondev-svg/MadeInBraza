@@ -495,7 +495,7 @@ private fun JoinEventPartyDialog(
                 } else {
                     slotsByClass.forEach { (playerClass, slots) ->
                         val isFreeSlot = playerClass == null
-                        val displayName = if (isFreeSlot) "Livre (escolha sua classe)" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass.name
+                        val displayName = if (isFreeSlot) "Livre (escolha sua classe)" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass!!.name
 
                         slots.forEachIndexed { index, slot ->
                             val isSelected = selectedSlotId == slot.id
@@ -757,7 +757,7 @@ private fun EventPartyCard(
                     val filled = slots.count { it.filledBy != null }
                     val total = slots.size
                     val isFreeSlot = playerClass == null
-                    val abbrev = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass.name.take(3)
+                    val abbrev = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[playerClass] ?: playerClass!!.name.take(3)
 
                     AssistChip(
                         onClick = {},
@@ -790,7 +790,7 @@ private fun EventPartyCard(
                     items(filledSlots) { slot ->
                         val isCurrentUser = slot.filledBy?.id == currentUserId
                         val isFreeSlot = slot.playerClass == null
-                        val abbrev = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[slot.playerClass] ?: slot.playerClass.name.take(3)
+                        val abbrev = if (isFreeSlot) "LIVRE" else CLASS_ABBREVIATIONS[slot.playerClass] ?: slot.playerClass!!.name.take(3)
                         AssistChip(
                             onClick = {},
                             label = {
