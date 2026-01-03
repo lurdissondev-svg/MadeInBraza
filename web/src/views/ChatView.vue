@@ -21,6 +21,17 @@ const channelId = computed(() => route.params.id as string)
 
 const currentUserId = computed(() => authStore.user?.id)
 
+// Get first unread message ID for separator
+const firstUnreadId = computed(() => channelsStore.firstUnreadMessageId)
+
+// Count unread messages for display
+const unreadCount = computed(() => {
+  if (!firstUnreadId.value) return 0
+  const firstUnreadIndex = channelsStore.messages.findIndex(m => m.id === firstUnreadId.value)
+  if (firstUnreadIndex === -1) return 0
+  return channelsStore.messages.length - firstUnreadIndex
+})
+
 onMounted(async () => {
   if (channelId.value) {
     // Find or fetch channel info
@@ -148,15 +159,27 @@ async function handleEditMessage(messageId: string, content: string) {
 
       <!-- Messages list -->
       <template v-else>
-        <MessageBubble
-          v-for="message in channelsStore.messages"
-          :key="message.id"
-          :message="message"
-          :is-current-user="message.user.id === currentUserId"
-          :is-current-user-leader="authStore.isLeader"
-          @delete="handleDeleteMessage"
-          @edit="handleEditMessage"
-        />
+        <template v-for="message in channelsStore.messages" :key="message.id">
+          <!-- Unread messages separator -->
+          <div
+            v-if="message.id === firstUnreadId && unreadCount > 0"
+            class="flex items-center gap-3 my-4"
+          >
+            <div class="flex-1 h-px bg-red-500/50"></div>
+            <span class="text-red-400 text-sm font-medium px-3 py-1 bg-red-500/10 rounded-full">
+              {{ unreadCount }} {{ unreadCount === 1 ? 'mensagem não lida' : 'mensagens não lidas' }}
+            </span>
+            <div class="flex-1 h-px bg-red-500/50"></div>
+          </div>
+
+          <MessageBubble
+            :message="message"
+            :is-current-user="message.user.id === currentUserId"
+            :is-current-user-leader="authStore.isLeader"
+            @delete="handleDeleteMessage"
+            @edit="handleEditMessage"
+          />
+        </template>
       </template>
     </div>
 
