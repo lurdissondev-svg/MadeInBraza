@@ -257,7 +257,7 @@ function openFullImage() {
 
           <!-- Message -->
           <p class="text-gray-400 text-center text-sm mb-6">
-            Tem certeza que deseja excluir esta mensagem? Esta acao nao pode ser desfeita.
+            Tem certeza que deseja excluir esta mensagem? Esta ação não pode ser desfeita.
           </p>
 
           <!-- Buttons -->
