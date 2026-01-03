@@ -6,6 +6,7 @@ import type { ChannelMessage } from '@/types'
 const props = defineProps<{
   message: ChannelMessage
   isCurrentUser: boolean
+  isCurrentUserLeader: boolean
 }>()
 
 const emit = defineEmits<{
@@ -14,6 +15,15 @@ const emit = defineEmits<{
 }>()
 
 const isLeader = computed(() => props.message.user.role === Role.LEADER)
+
+// Can delete: own message OR current user is leader
+const canDelete = computed(() => props.isCurrentUser || props.isCurrentUserLeader)
+
+// Can edit: only own messages
+const canEdit = computed(() => props.isCurrentUser)
+
+// Show actions menu if can do anything
+const canShowActions = computed(() => canDelete.value || canEdit.value)
 
 // Edit mode state
 const isEditing = ref(false)
@@ -189,8 +199,8 @@ function openFullImage() {
         <span v-if="message.editedAt" class="text-xs text-gray-500 italic">
           (editado)
         </span>
-        <!-- Actions menu for own messages -->
-        <div v-if="isCurrentUser && !isEditing" class="relative ml-auto">
+        <!-- Actions menu (own messages or leader can delete others) -->
+        <div v-if="canShowActions && !isEditing" class="relative ml-auto">
           <button
             @click="showActions = !showActions"
             class="p-1 hover:bg-dark-500 rounded transition-colors"
@@ -205,7 +215,7 @@ function openFullImage() {
             class="absolute right-0 mt-1 w-32 bg-dark-600 border border-dark-500 rounded-lg shadow-lg z-10"
           >
             <button
-              v-if="message.content"
+              v-if="canEdit && message.content"
               @click="startEdit"
               class="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-dark-500 flex items-center gap-2"
             >
@@ -215,6 +225,7 @@ function openFullImage() {
               Editar
             </button>
             <button
+              v-if="canDelete"
               @click="openDeleteModal"
               class="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-dark-500 flex items-center gap-2"
             >

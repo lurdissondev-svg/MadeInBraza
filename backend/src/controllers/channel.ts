@@ -436,7 +436,7 @@ export async function getChannelMembers(req: Request, res: Response): Promise<vo
   }
 }
 
-// Delete own message
+// Delete message (own or others if leader)
 export async function deleteMessage(req: Request, res: Response): Promise<void> {
   try {
     const userId = req.user!.userId;
@@ -458,9 +458,17 @@ export async function deleteMessage(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Only the message owner can delete
-    if (message.userId !== userId) {
-      res.status(403).json({ error: 'Você só pode excluir suas próprias mensagens' });
+    // Check if user can delete: owner or leader
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    const isOwner = message.userId === userId;
+    const isLeader = currentUser?.role === 'LEADER';
+
+    if (!isOwner && !isLeader) {
+      res.status(403).json({ error: 'Você não tem permissão para excluir esta mensagem' });
       return;
     }
 

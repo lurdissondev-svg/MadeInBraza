@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.Channel
 import com.madeinbraza.app.data.model.ChannelMember
 import com.madeinbraza.app.data.model.ChannelMessage
+import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.ChannelRepository
 import com.madeinbraza.app.data.repository.Result
@@ -32,6 +33,7 @@ data class ChannelChatUiState(
     val channel: Channel? = null,
     val messages: List<ChannelMessage> = emptyList(),
     val currentUserId: String? = null,
+    val isCurrentUserLeader: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isSending: Boolean = false,
@@ -76,7 +78,10 @@ class ChannelsViewModel @Inject constructor(
     private fun loadUserInfo() {
         // First try cached user to avoid API call
         authRepository.getCachedUser()?.let { user ->
-            _chatState.update { it.copy(currentUserId = user.id) }
+            _chatState.update { it.copy(
+                currentUserId = user.id,
+                isCurrentUserLeader = user.role == Role.LEADER
+            ) }
             return
         }
 
@@ -84,7 +89,10 @@ class ChannelsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = authRepository.checkStatus()) {
                 is Result.Success -> {
-                    _chatState.update { it.copy(currentUserId = result.data.id) }
+                    _chatState.update { it.copy(
+                        currentUserId = result.data.id,
+                        isCurrentUserLeader = result.data.role == Role.LEADER
+                    ) }
                 }
                 is Result.Error -> {
                     // Silently fail

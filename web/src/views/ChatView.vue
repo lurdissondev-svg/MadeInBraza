@@ -153,6 +153,7 @@ async function handleEditMessage(messageId: string, content: string) {
           :key="message.id"
           :message="message"
           :is-current-user="message.user.id === currentUserId"
+          :is-current-user-leader="authStore.isLeader"
           @delete="handleDeleteMessage"
           @edit="handleEditMessage"
         />

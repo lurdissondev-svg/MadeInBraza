@@ -404,6 +404,7 @@ private fun ChannelChatContent(
                                 ChannelMessageBubble(
                                     message = message,
                                     isCurrentUser = isCurrentUser,
+                                    isCurrentUserLeader = uiState.isCurrentUserLeader,
                                     onDelete = { viewModel.deleteMessage(message.id) },
                                     onEdit = { newContent -> viewModel.editMessage(message.id, newContent) }
                                 )
@@ -437,6 +438,7 @@ private fun ChannelChatContent(
 private fun ChannelMessageBubble(
     message: ChannelMessage,
     isCurrentUser: Boolean = false,
+    isCurrentUserLeader: Boolean = false,
     onDelete: () -> Unit = {},
     onEdit: (String) -> Unit = {}
 ) {
@@ -449,8 +451,12 @@ private fun ChannelMessageBubble(
     var isEditing by remember { mutableStateOf(false) }
     var editText by remember(message.content) { mutableStateOf(message.content ?: "") }
 
-    // Can edit/delete only text messages (not media-only)
-    val canEditDelete = isCurrentUser && !message.content.isNullOrBlank()
+    // Can edit only own text messages
+    val canEdit = isCurrentUser && !message.content.isNullOrBlank()
+    // Can delete own messages or any message if leader
+    val canDelete = isCurrentUser || isCurrentUserLeader
+    // Show actions menu if can do anything
+    val canShowActions = canEdit || canDelete
 
     // Bubble colors based on message sender
     val bubbleColor = when {
@@ -553,7 +559,7 @@ private fun ChannelMessageBubble(
                     )
                     .background(bubbleColor)
                     .then(
-                        if (canEditDelete) {
+                        if (canShowActions) {
                             Modifier.combinedClickable(
                                 onClick = {},
                                 onLongClick = { showActionsMenu = true }
@@ -723,30 +729,34 @@ private fun ChannelMessageBubble(
                     expanded = showActionsMenu,
                     onDismissRequest = { showActionsMenu = false }
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Editar") },
-                        onClick = {
-                            showActionsMenu = false
-                            isEditing = true
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Excluir", color = MaterialTheme.colorScheme.error) },
-                        onClick = {
-                            showActionsMenu = false
-                            onDelete()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    )
+                    if (canEdit) {
+                        DropdownMenuItem(
+                            text = { Text("Editar") },
+                            onClick = {
+                                showActionsMenu = false
+                                isEditing = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                            }
+                        )
+                    }
+                    if (canDelete) {
+                        DropdownMenuItem(
+                            text = { Text("Excluir", color = MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                showActionsMenu = false
+                                onDelete()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        )
+                    }
                 }
             }  // Close Box
         }  // Close outer Column
