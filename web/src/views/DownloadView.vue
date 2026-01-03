@@ -52,8 +52,8 @@ onMounted(async () => {
           <div class="text-center">
             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-500/20 text-primary-400">
               <span v-if="isLoading" class="animate-pulse">Carregando...</span>
-              <span v-else-if="version">Versao {{ version }}</span>
-              <span v-else>Ultima versao</span>
+              <span v-else-if="version">Versão {{ version }}</span>
+              <span v-else>Última versão</span>
             </span>
           </div>
 
@@ -63,7 +63,7 @@ onMounted(async () => {
               <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
-              <span>Chat em tempo real com o cla</span>
+              <span>Chat em tempo real com o clã</span>
             </div>
             <div class="flex items-center gap-3 text-gray-300">
               <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -75,13 +75,13 @@ onMounted(async () => {
               <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
-              <span>Criacao de parties por classes</span>
+              <span>Criação de parties por classes</span>
             </div>
             <div class="flex items-center gap-3 text-gray-300">
               <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
-              <span>Notificacoes push</span>
+              <span>Notificações push</span>
             </div>
           </div>
 
@@ -121,7 +121,7 @@ onMounted(async () => {
             <ol class="list-decimal list-inside space-y-1">
               <li>Baixe o arquivo APK</li>
               <li>Abra o arquivo no seu Android</li>
-              <li>Permita a instalacao de fontes desconhecidas</li>
+              <li>Permita a instalação de fontes desconhecidas</li>
               <li>Instale e aproveite!</li>
             </ol>
           </div>
@@ -130,7 +130,7 @@ onMounted(async () => {
         <!-- Footer -->
         <div class="bg-dark-700 px-6 py-4 text-center">
           <a href="/web/login" class="text-primary-400 hover:text-primary-300 text-sm">
-            Ja tem conta? Acessar pelo navegador
+            Já tem conta? Acessar pelo navegador
           </a>
         </div>
       </div>

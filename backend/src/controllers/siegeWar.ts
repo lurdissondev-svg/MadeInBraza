@@ -326,16 +326,27 @@ export async function createSiegeWar(
       data: { isActive: false },
     });
 
-    // Calculate week dates (Thursday to Sunday)
+    // Calculate week dates - same logic as cron
     const now = new Date();
     const dayOfWeek = now.getDay();
-    const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
+
+    // Find next Sunday (0 = Sunday)
+    let daysUntilSunday = (7 - dayOfWeek) % 7;
+    if (daysUntilSunday === 0) {
+      // If it's Sunday, use today
+      daysUntilSunday = 0;
+    }
+
+    const eventDate = new Date(now);
+    eventDate.setDate(now.getDate() + daysUntilSunday);
+    eventDate.setHours(0, 0, 0, 0);
+
+    // weekStart = when form opens (now)
     const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() + daysUntilThursday);
     weekStart.setHours(0, 0, 0, 0);
 
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 3); // Sunday
+    // weekEnd = event day (Sunday end of day)
+    const weekEnd = new Date(eventDate);
     weekEnd.setHours(23, 59, 59, 999);
 
     const siegeWar = await prisma.siegeWar.create({
