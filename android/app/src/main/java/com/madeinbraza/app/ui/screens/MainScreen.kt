@@ -9,11 +9,13 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -41,6 +43,12 @@ sealed class BottomNavItem(
         title = "Home",
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
+    )
+    object SiegeWar : BottomNavItem(
+        route = "main_siege_war",
+        title = "SW",
+        selectedIcon = Icons.Filled.Info,
+        unselectedIcon = Icons.Outlined.Info
     )
     object Channels : BottomNavItem(
         route = "main_channels",
@@ -92,6 +100,7 @@ fun MainScreen(
 
     val bottomNavItems = listOf(
         BottomNavItem.Home,
+        BottomNavItem.SiegeWar,
         BottomNavItem.Channels,
         BottomNavItem.Parties,
         BottomNavItem.Members,
@@ -112,12 +121,7 @@ fun MainScreen(
                 "events" -> BottomNavItem.Home.route // Events are now in Home tab
                 "parties" -> BottomNavItem.Parties.route
                 "home" -> BottomNavItem.Home.route
-                "siege_war" -> {
-                    // Navigate to Siege War screen (external navigation)
-                    onNavigateToSiegeWar()
-                    onNotificationHandled()
-                    return@LaunchedEffect
-                }
+                "siege_war" -> BottomNavItem.SiegeWar.route
                 else -> BottomNavItem.Home.route
             }
 
@@ -196,6 +200,12 @@ fun MainScreen(
                     },
                     pendingUpdate = pendingUpdate,
                     onUpdateClick = onUpdateClick
+                )
+            }
+
+            composable(BottomNavItem.SiegeWar.route) {
+                SiegeWarScreen(
+                    onNavigateBack = { /* No-op in bottom nav */ }
                 )
             }
 
