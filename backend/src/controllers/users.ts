@@ -223,13 +223,63 @@ export async function demoteUser(
       throw new AppError(404, 'Usuário não encontrado');
     }
 
-    if (user.role !== 'LEADER') {
-      throw new AppError(400, 'Usuário não é líder');
+    if (user.role !== 'LEADER' && user.role !== 'COUNSELOR') {
+      throw new AppError(400, 'Usuário não é líder nem conselheiro');
     }
 
     const updated = await prisma.user.update({
       where: { id },
       data: { role: 'MEMBER' },
+      select: {
+        id: true,
+        nick: true,
+        role: true,
+      },
+    });
+
+    res.json({ user: updated });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Update user role (LEADER, COUNSELOR, or MEMBER)
+export async function updateUserRole(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    // Validate role
+    const validRoles = ['LEADER', 'COUNSELOR', 'MEMBER'];
+    if (!role || !validRoles.includes(role)) {
+      throw new AppError(400, 'Cargo inválido. Use: LEADER, COUNSELOR ou MEMBER');
+    }
+
+    // Cannot change your own role
+    if (id === req.user!.userId) {
+      throw new AppError(400, 'Você não pode alterar seu próprio cargo');
+    }
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new AppError(404, 'Usuário não encontrado');
+    }
+
+    if (user.status !== 'APPROVED') {
+      throw new AppError(400, 'Usuário precisa estar aprovado primeiro');
+    }
+
+    if (user.role === role) {
+      throw new AppError(400, `Usuário já é ${role === 'LEADER' ? 'líder' : role === 'COUNSELOR' ? 'conselheiro' : 'membro'}`);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role },
       select: {
         id: true,
         nick: true,

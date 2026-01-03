@@ -21,6 +21,7 @@ export const useMembersStore = defineStore('members', () => {
   // Action loading states
   const promotingId = ref<string | null>(null)
   const demotingId = ref<string | null>(null)
+  const updatingRoleId = ref<string | null>(null)
   const banningId = ref<string | null>(null)
   const unbanningId = ref<string | null>(null)
   const approvingId = ref<string | null>(null)
@@ -34,9 +35,11 @@ export const useMembersStore = defineStore('members', () => {
 
   const sortedMembers = computed(() => {
     return [...members.value].sort((a, b) => {
-      // Leaders first
-      if (a.role === Role.LEADER && b.role !== Role.LEADER) return -1
-      if (a.role !== Role.LEADER && b.role === Role.LEADER) return 1
+      // Leaders first, then counselors, then members
+      const roleOrder = { [Role.LEADER]: 0, [Role.COUNSELOR]: 1, [Role.MEMBER]: 2 }
+      const orderA = roleOrder[a.role] ?? 2
+      const orderB = roleOrder[b.role] ?? 2
+      if (orderA !== orderB) return orderA - orderB
       // Then by nick
       return a.nick.localeCompare(b.nick)
     })
@@ -44,6 +47,10 @@ export const useMembersStore = defineStore('members', () => {
 
   const leaderCount = computed(() =>
     members.value.filter(m => m.role === Role.LEADER).length
+  )
+
+  const counselorCount = computed(() =>
+    members.value.filter(m => m.role === Role.COUNSELOR).length
   )
 
   const memberCount = computed(() =>
@@ -185,6 +192,27 @@ export const useMembersStore = defineStore('members', () => {
     }
   }
 
+  async function updateMemberRole(memberId: string, role: Role): Promise<boolean> {
+    updatingRoleId.value = memberId
+    error.value = null
+    try {
+      const newRole = await membersApi.updateMemberRole(memberId, role)
+      // Update local state
+      const member = members.value.find(m => m.id === memberId)
+      if (member) {
+        member.role = newRole
+      }
+      return true
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      error.value = err.response?.data?.message || 'Erro ao atualizar cargo'
+      console.error('Error updating member role:', e)
+      return false
+    } finally {
+      updatingRoleId.value = null
+    }
+  }
+
   async function banMember(memberId: string): Promise<boolean> {
     banningId.value = memberId
     error.value = null
@@ -241,6 +269,7 @@ export const useMembersStore = defineStore('members', () => {
     error,
     promotingId,
     demotingId,
+    updatingRoleId,
     banningId,
     unbanningId,
     approvingId,
@@ -251,6 +280,7 @@ export const useMembersStore = defineStore('members', () => {
     currentUserId,
     sortedMembers,
     leaderCount,
+    counselorCount,
     memberCount,
     pendingCount,
 
@@ -263,6 +293,7 @@ export const useMembersStore = defineStore('members', () => {
     rejectUser,
     promoteMember,
     demoteMember,
+    updateMemberRole,
     banMember,
     unbanUser,
     clearError,

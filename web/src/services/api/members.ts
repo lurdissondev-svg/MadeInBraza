@@ -1,5 +1,6 @@
 import apiClient from './client'
 import type { Member, MemberProfile, PendingUser, BannedUser } from '@/types'
+import { Role } from '@/types'
 
 interface MembersResponse {
   members: Member[]
@@ -15,6 +16,10 @@ interface PendingUsersResponse {
 
 interface BannedUsersResponse {
   users: BannedUser[]
+}
+
+interface UpdateRoleResponse {
+  user: { id: string; nick: string; role: Role }
 }
 
 export const membersApi = {
@@ -62,13 +67,19 @@ export const membersApi = {
     await apiClient.post(`/users/${userId}/unban`)
   },
 
-  // Promote member to leader
+  // Promote member to leader (legacy)
   async promoteMember(memberId: string): Promise<void> {
     await apiClient.post(`/users/${memberId}/promote`)
   },
 
-  // Demote leader to member
+  // Demote leader to member (legacy)
   async demoteMember(memberId: string): Promise<void> {
     await apiClient.post(`/users/${memberId}/demote`)
+  },
+
+  // Update member role (LEADER, COUNSELOR, or MEMBER)
+  async updateMemberRole(memberId: string, role: Role): Promise<Role> {
+    const response = await apiClient.put<UpdateRoleResponse>(`/users/${memberId}/role`, { role })
+    return response.data.user.role
   }
 }

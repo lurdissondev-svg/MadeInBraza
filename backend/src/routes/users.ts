@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMembers, getPendingUsers, approveUser, rejectUser, banUser, promoteUser, demoteUser, getBannedUsers, unbanUser, getUserProfile } from '../controllers/users.js';
+import { getMembers, getPendingUsers, approveUser, rejectUser, banUser, promoteUser, demoteUser, getBannedUsers, unbanUser, getUserProfile, updateUserRole } from '../controllers/users.js';
 import { authenticate, requireApproved, requireLeader } from '../middleware/auth.js';
 
 export const usersRouter = Router();
@@ -20,3 +20,4 @@ usersRouter.post('/:id/ban', requireLeader, banUser);
 usersRouter.post('/:id/unban', requireLeader, unbanUser);
 usersRouter.post('/:id/promote', requireLeader, promoteUser);
 usersRouter.post('/:id/demote', requireLeader, demoteUser);
+usersRouter.put('/:id/role', requireLeader, updateUserRole);

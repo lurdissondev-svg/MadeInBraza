@@ -8,12 +8,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +26,16 @@ import com.madeinbraza.app.data.model.Member
 import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.ui.viewmodel.MembersViewModel
 
+// Helper function to get role display name
+@Composable
+fun getRoleName(role: Role): String {
+    return when (role) {
+        Role.LEADER -> stringResource(R.string.leader)
+        Role.COUNSELOR -> stringResource(R.string.counselor)
+        Role.MEMBER -> stringResource(R.string.member)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MembersScreen(
@@ -33,8 +45,7 @@ fun MembersScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var memberToBan by remember { mutableStateOf<Member?>(null) }
-    var memberToPromote by remember { mutableStateOf<Member?>(null) }
-    var memberToDemote by remember { mutableStateOf<Member?>(null) }
+    var memberToUpdateRole by remember { mutableStateOf<Pair<Member, Role>?>(null) }
 
     // Show success message when ban is successful
     LaunchedEffect(uiState.banSuccess) {
@@ -43,38 +54,32 @@ fun MembersScreen(
         }
     }
 
-    // Show success message when promote is successful
-    LaunchedEffect(uiState.promoteSuccess) {
-        if (uiState.promoteSuccess) {
-            viewModel.clearPromoteSuccess()
+    // Show success message when role update is successful
+    LaunchedEffect(uiState.updateRoleSuccess) {
+        if (uiState.updateRoleSuccess) {
+            viewModel.clearUpdateRoleSuccess()
         }
     }
 
-    // Show success message when demote is successful
-    LaunchedEffect(uiState.demoteSuccess) {
-        if (uiState.demoteSuccess) {
-            viewModel.clearDemoteSuccess()
-        }
-    }
-
-    // Promote confirmation dialog
-    memberToPromote?.let { member ->
+    // Role change confirmation dialog
+    memberToUpdateRole?.let { (member, newRole) ->
+        val roleNameStr = getRoleName(newRole)
         AlertDialog(
-            onDismissRequest = { memberToPromote = null },
-            title = { Text(stringResource(R.string.promote_leader)) },
-            text = { Text(stringResource(R.string.promote_confirm, member.nick)) },
+            onDismissRequest = { memberToUpdateRole = null },
+            title = { Text(stringResource(R.string.change_role_title, roleNameStr)) },
+            text = { Text(stringResource(R.string.change_role_confirm, member.nick, roleNameStr)) },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.promoteMember(member.id)
-                        memberToPromote = null
+                        viewModel.updateMemberRole(member.id, newRole)
+                        memberToUpdateRole = null
                     }
                 ) {
-                    Text(stringResource(R.string.promote))
+                    Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { memberToPromote = null }) {
+                TextButton(onClick = { memberToUpdateRole = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -102,33 +107,6 @@ fun MembersScreen(
             },
             dismissButton = {
                 TextButton(onClick = { memberToBan = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    // Demote confirmation dialog
-    memberToDemote?.let { member ->
-        AlertDialog(
-            onDismissRequest = { memberToDemote = null },
-            title = { Text(stringResource(R.string.demote_leader)) },
-            text = { Text(stringResource(R.string.demote_confirm, member.nick)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.demoteMember(member.id)
-                        memberToDemote = null
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Text(stringResource(R.string.demote))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { memberToDemote = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -186,11 +164,9 @@ fun MembersScreen(
                                 isCurrentUserLeader = uiState.isLeader,
                                 currentUserId = uiState.currentUser?.id,
                                 isBanning = uiState.isBanning == member.id,
-                                isPromoting = uiState.isPromoting == member.id,
-                                isDemoting = uiState.isDemoting == member.id,
+                                isUpdatingRole = uiState.isUpdatingRole == member.id,
                                 onBanClick = { memberToBan = member },
-                                onPromoteClick = { memberToPromote = member },
-                                onDemoteClick = { memberToDemote = member },
+                                onRoleChange = { newRole -> memberToUpdateRole = member to newRole },
                                 onMemberClick = { onNavigateToMemberProfile(member.id) }
                             )
                         }
@@ -223,18 +199,26 @@ fun MemberCard(
     isCurrentUserLeader: Boolean,
     currentUserId: String?,
     isBanning: Boolean,
-    isPromoting: Boolean,
-    isDemoting: Boolean,
+    isUpdatingRole: Boolean,
     onBanClick: () -> Unit,
-    onPromoteClick: () -> Unit,
-    onDemoteClick: () -> Unit,
+    onRoleChange: (Role) -> Unit,
     onMemberClick: () -> Unit
 ) {
     val isLeader = member.role == Role.LEADER
+    val isCounselor = member.role == Role.COUNSELOR
     val isSelf = member.id == currentUserId
+    val canChangeRole = isCurrentUserLeader && !isSelf
     val canBan = isCurrentUserLeader && !isLeader && !isSelf
-    val canPromote = isCurrentUserLeader && !isLeader && !isSelf
-    val canDemote = isCurrentUserLeader && isLeader && !isSelf
+
+    // Role dropdown state
+    var showRoleMenu by remember { mutableStateOf(false) }
+
+    // Role emoji and color
+    val (roleEmoji, roleColor) = when (member.role) {
+        Role.LEADER -> "👑" to MaterialTheme.colorScheme.primary
+        Role.COUNSELOR -> "⭐" to Color(0xFFFFA000) // Amber
+        Role.MEMBER -> "" to MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Card(
         modifier = Modifier
@@ -242,7 +226,6 @@ fun MemberCard(
             .clickable { onMemberClick() },
         colors = CardDefaults.cardColors()
     ) {
-        val leaderText = stringResource(R.string.leader)
         val youText = "(${stringResource(R.string.you)})"
 
         Row(
@@ -256,12 +239,13 @@ fun MemberCard(
                     Text(
                         text = member.nick,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = roleColor
                     )
-                    if (isLeader) {
+                    if (roleEmoji.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "👑",
+                            text = roleEmoji,
                             fontSize = 16.sp
                         )
                     }
@@ -284,55 +268,106 @@ fun MemberCard(
                 )
             }
 
-            if (canPromote || canBan || canDemote) {
+            if (canChangeRole || canBan) {
                 Row {
-                    val promoteText = stringResource(R.string.promote)
-                    val demoteText = stringResource(R.string.demote)
                     val banText = stringResource(R.string.ban)
+                    val changeRoleText = stringResource(R.string.change_role)
 
-                    if (canPromote) {
-                        IconButton(
-                            onClick = onPromoteClick,
-                            enabled = !isPromoting
-                        ) {
-                            if (isPromoting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Outlined.Star,
-                                    contentDescription = promoteText,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                    // Role change button with dropdown
+                    if (canChangeRole) {
+                        Box {
+                            IconButton(
+                                onClick = { showRoleMenu = true },
+                                enabled = !isUpdatingRole && !isBanning
+                            ) {
+                                if (isUpdatingRole) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Filled.Person,
+                                            contentDescription = changeRoleText,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Icon(
+                                            Icons.Filled.KeyboardArrowDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Role dropdown menu
+                            DropdownMenu(
+                                expanded = showRoleMenu,
+                                onDismissRequest = { showRoleMenu = false }
+                            ) {
+                                // Leader option
+                                if (!isLeader) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("👑 ", fontSize = 14.sp)
+                                                Text(
+                                                    stringResource(R.string.leader),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            showRoleMenu = false
+                                            onRoleChange(Role.LEADER)
+                                        }
+                                    )
+                                }
+                                // Counselor option
+                                if (!isCounselor) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("⭐ ", fontSize = 14.sp)
+                                                Text(
+                                                    stringResource(R.string.counselor),
+                                                    color = Color(0xFFFFA000)
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            showRoleMenu = false
+                                            onRoleChange(Role.COUNSELOR)
+                                        }
+                                    )
+                                }
+                                // Member option
+                                if (member.role != Role.MEMBER) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("👤 ", fontSize = 14.sp)
+                                                Text(stringResource(R.string.member))
+                                            }
+                                        },
+                                        onClick = {
+                                            showRoleMenu = false
+                                            onRoleChange(Role.MEMBER)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
-                    if (canDemote) {
-                        IconButton(
-                            onClick = onDemoteClick,
-                            enabled = !isDemoting
-                        ) {
-                            if (isDemoting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = demoteText,
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                        }
-                    }
+
+                    // Ban button
                     if (canBan) {
                         IconButton(
                             onClick = onBanClick,
-                            enabled = !isBanning
+                            enabled = !isBanning && !isUpdatingRole
                         ) {
                             if (isBanning) {
                                 CircularProgressIndicator(
@@ -350,11 +385,12 @@ fun MemberCard(
                     }
                 }
             } else {
+                // Show role badge for non-leaders
                 AssistChip(
                     onClick = {},
                     label = {
                         Text(
-                            text = if (isLeader) leaderText else stringResource(R.string.member),
+                            text = getRoleName(member.role),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }

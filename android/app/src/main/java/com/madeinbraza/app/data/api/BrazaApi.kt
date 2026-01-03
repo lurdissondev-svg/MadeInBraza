@@ -24,6 +24,8 @@ import com.madeinbraza.app.data.model.PartiesResponse
 import com.madeinbraza.app.data.model.ProfileResponse
 import com.madeinbraza.app.data.model.UpdateProfileRequest
 import com.madeinbraza.app.data.model.UpdateProfileResponse
+import com.madeinbraza.app.data.model.UpdateUserRoleRequest
+import com.madeinbraza.app.data.model.UpdateUserRoleResponse
 import com.madeinbraza.app.data.model.MessagesResponse
 import com.madeinbraza.app.data.model.PendingUsersResponse
 import com.madeinbraza.app.data.model.RegisterRequest
@@ -151,6 +153,13 @@ interface BrazaApi {
         @Header("Authorization") token: String,
         @Path("id") userId: String
     ): Response<ApproveUserResponse>
+
+    @PUT("users/{id}/role")
+    suspend fun updateUserRole(
+        @Header("Authorization") token: String,
+        @Path("id") userId: String,
+        @Body request: UpdateUserRoleRequest
+    ): Response<UpdateUserRoleResponse>
 
     @GET("users/banned")
     suspend fun getBannedUsers(@Header("Authorization") token: String): Response<BannedUsersResponse>

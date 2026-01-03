@@ -7,6 +7,8 @@ import com.madeinbraza.app.data.api.BrazaApi
 import com.madeinbraza.app.data.model.BannedUser
 import com.madeinbraza.app.data.model.Member
 import com.madeinbraza.app.data.model.MemberProfile
+import com.madeinbraza.app.data.model.Role
+import com.madeinbraza.app.data.model.UpdateUserRoleRequest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -74,6 +76,22 @@ class MembersRepository @Inject constructor(
                 Result.Success(Unit)
             } else {
                 val errorMessage = parseErrorMessage(response.errorBody()?.string()) ?: "Falha ao rebaixar membro"
+                Result.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Result.Error("Erro de conexão. Verifique sua internet.")
+        }
+    }
+
+    suspend fun updateMemberRole(memberId: String, role: Role): Result<Role> {
+        val token = getToken() ?: return Result.Error("Não autenticado")
+        return try {
+            val request = UpdateUserRoleRequest(role = role.name)
+            val response = api.updateUserRole("Bearer $token", memberId, request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!.user.role)
+            } else {
+                val errorMessage = parseErrorMessage(response.errorBody()?.string()) ?: "Falha ao alterar cargo"
                 Result.Error(errorMessage)
             }
         } catch (e: Exception) {

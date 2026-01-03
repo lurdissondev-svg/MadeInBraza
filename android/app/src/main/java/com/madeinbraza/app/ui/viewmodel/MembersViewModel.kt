@@ -25,10 +25,12 @@ data class MembersUiState(
     val isBanning: String? = null, // ID of member being banned
     val isPromoting: String? = null, // ID of member being promoted
     val isDemoting: String? = null, // ID of member being demoted
+    val isUpdatingRole: String? = null, // ID of member whose role is being updated
     val error: String? = null,
     val banSuccess: Boolean = false,
     val promoteSuccess: Boolean = false,
-    val demoteSuccess: Boolean = false
+    val demoteSuccess: Boolean = false,
+    val updateRoleSuccess: Boolean = false
 ) {
     val isLeader: Boolean get() = currentUser?.role == Role.LEADER
 }
@@ -171,6 +173,33 @@ class MembersViewModel @Inject constructor(
 
     fun clearDemoteSuccess() {
         _uiState.update { it.copy(demoteSuccess = false) }
+    }
+
+    fun updateMemberRole(memberId: String, role: Role) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingRole = memberId, error = null) }
+
+            when (val result = membersRepository.updateMemberRole(memberId, role)) {
+                is Result.Success -> {
+                    // Update local state with new role
+                    val updatedMembers = _uiState.value.members.map { member ->
+                        if (member.id == memberId) {
+                            member.copy(role = result.data)
+                        } else {
+                            member
+                        }
+                    }
+                    _uiState.update { it.copy(isUpdatingRole = null, updateRoleSuccess = true, members = updatedMembers) }
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(isUpdatingRole = null, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun clearUpdateRoleSuccess() {
+        _uiState.update { it.copy(updateRoleSuccess = false) }
     }
 
     fun clearError() {

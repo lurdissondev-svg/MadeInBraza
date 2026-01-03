@@ -7,6 +7,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import MemberCard from '@/components/members/MemberCard.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import type { Member } from '@/types'
+import { Role } from '@/types'
 
 const router = useRouter()
 const membersStore = useMembersStore()
@@ -14,6 +15,7 @@ const membersStore = useMembersStore()
 const memberToPromote = ref<Member | null>(null)
 const memberToDemote = ref<Member | null>(null)
 const memberToBan = ref<Member | null>(null)
+const memberToUpdateRole = ref<{ member: Member; role: Role } | null>(null)
 
 onMounted(() => {
   membersStore.fetchMembers()
@@ -43,6 +45,25 @@ async function handleBan() {
     memberToBan.value = null
   }
 }
+
+function handleUpdateRole(member: Member, role: Role) {
+  memberToUpdateRole.value = { member, role }
+}
+
+async function confirmUpdateRole() {
+  if (memberToUpdateRole.value) {
+    await membersStore.updateMemberRole(memberToUpdateRole.value.member.id, memberToUpdateRole.value.role)
+    memberToUpdateRole.value = null
+  }
+}
+
+function getRoleName(role: Role): string {
+  switch (role) {
+    case Role.LEADER: return 'Líder'
+    case Role.COUNSELOR: return 'Conselheiro'
+    default: return 'Membro'
+  }
+}
 </script>
 
 <template>
@@ -57,10 +78,14 @@ async function handleBan() {
       </div>
 
       <!-- Stats -->
-      <div class="flex gap-4 text-sm">
+      <div class="flex flex-wrap gap-4 text-sm">
         <div class="flex items-center gap-2">
           <span class="text-primary-400">👑 {{ membersStore.leaderCount }}</span>
           <span class="text-gray-500">líderes</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400">⭐ {{ membersStore.counselorCount }}</span>
+          <span class="text-gray-500">conselheiros</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-gray-300">{{ membersStore.memberCount }}</span>
@@ -102,10 +127,12 @@ async function handleBan() {
           :current-user-id="membersStore.currentUserId"
           :promoting-id="membersStore.promotingId"
           :demoting-id="membersStore.demotingId"
+          :updating-role-id="membersStore.updatingRoleId"
           :banning-id="membersStore.banningId"
           @click="handleMemberClick(member)"
           @promote="memberToPromote = member"
           @demote="memberToDemote = member"
+          @update-role="(role) => handleUpdateRole(member, role)"
           @ban="memberToBan = member"
         />
       </div>
@@ -120,7 +147,7 @@ async function handleBan() {
       <button @click="membersStore.clearError()" class="ml-4 font-bold">OK</button>
     </div>
 
-    <!-- Promote Dialog -->
+    <!-- Promote Dialog (legacy) -->
     <ConfirmDialog
       v-if="memberToPromote"
       title="Promover a Líder"
@@ -130,7 +157,7 @@ async function handleBan() {
       @cancel="memberToPromote = null"
     />
 
-    <!-- Demote Dialog -->
+    <!-- Demote Dialog (legacy) -->
     <ConfirmDialog
       v-if="memberToDemote"
       title="Rebaixar para Membro"
@@ -138,6 +165,16 @@ async function handleBan() {
       confirm-text="Rebaixar"
       @confirm="handleDemote"
       @cancel="memberToDemote = null"
+    />
+
+    <!-- Update Role Dialog -->
+    <ConfirmDialog
+      v-if="memberToUpdateRole"
+      :title="`Alterar cargo para ${getRoleName(memberToUpdateRole.role)}`"
+      :message="`Tem certeza que deseja alterar o cargo de ${memberToUpdateRole.member.nick} para ${getRoleName(memberToUpdateRole.role)}?`"
+      confirm-text="Confirmar"
+      @confirm="confirmUpdateRole"
+      @cancel="memberToUpdateRole = null"
     />
 
     <!-- Ban Dialog -->

@@ -211,6 +211,15 @@ data class BannedUsersResponse(
     val users: List<BannedUser>
 )
 
+// Role update models
+data class UpdateUserRoleRequest(
+    val role: String // "LEADER", "COUNSELOR", or "MEMBER"
+)
+
+data class UpdateUserRoleResponse(
+    val user: User
+)
+
 // Member profile models
 data class MemberProfile(
     val id: String,
