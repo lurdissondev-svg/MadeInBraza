@@ -20,14 +20,12 @@ data class LoginUiState(
     val error: String? = null,
     val loginSuccess: Boolean = false,
     val userStatus: String = "",
-    // Forgot password states
+    // Forgot password states (email recovery only)
     val showForgotPasswordDialog: Boolean = false,
     val forgotPasswordNick: String = "",
     val forgotPasswordLoading: Boolean = false,
     val forgotPasswordError: String? = null,
-    val forgotPasswordSuccess: String? = null,
-    val newPassword: String? = null,
-    val useEmailRecovery: Boolean = true  // Default to email recovery
+    val forgotPasswordSuccess: String? = null
 )
 
 @HiltViewModel
@@ -85,9 +83,7 @@ class LoginViewModel @Inject constructor(
                 showForgotPasswordDialog = true,
                 forgotPasswordNick = it.nick,
                 forgotPasswordError = null,
-                forgotPasswordSuccess = null,
-                newPassword = null,
-                useEmailRecovery = true
+                forgotPasswordSuccess = null
             )
         }
     }
@@ -98,26 +94,13 @@ class LoginViewModel @Inject constructor(
                 showForgotPasswordDialog = false,
                 forgotPasswordNick = "",
                 forgotPasswordError = null,
-                forgotPasswordSuccess = null,
-                newPassword = null,
-                useEmailRecovery = true
+                forgotPasswordSuccess = null
             )
         }
     }
 
     fun updateForgotPasswordNick(nick: String) {
         _uiState.update { it.copy(forgotPasswordNick = nick, forgotPasswordError = null) }
-    }
-
-    fun toggleRecoveryMethod() {
-        _uiState.update {
-            it.copy(
-                useEmailRecovery = !it.useEmailRecovery,
-                forgotPasswordError = null,
-                forgotPasswordSuccess = null,
-                newPassword = null
-            )
-        }
     }
 
     fun requestPasswordReset() {
@@ -129,46 +112,22 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(forgotPasswordLoading = true, forgotPasswordError = null) }
 
-            if (_uiState.value.useEmailRecovery) {
-                // Email recovery: sends reset link to email
-                when (val result = authRepository.requestPasswordReset(_uiState.value.forgotPasswordNick)) {
-                    is Result.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                forgotPasswordLoading = false,
-                                forgotPasswordSuccess = result.data.message,
-                                newPassword = null
-                            )
-                        }
-                    }
-                    is Result.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                forgotPasswordLoading = false,
-                                forgotPasswordError = result.message
-                            )
-                        }
+            // Email recovery only (secure method)
+            when (val result = authRepository.requestPasswordReset(_uiState.value.forgotPasswordNick)) {
+                is Result.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            forgotPasswordLoading = false,
+                            forgotPasswordSuccess = result.data.message
+                        )
                     }
                 }
-            } else {
-                // Legacy recovery: generates new password
-                when (val result = authRepository.forgotPassword(_uiState.value.forgotPasswordNick)) {
-                    is Result.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                forgotPasswordLoading = false,
-                                forgotPasswordSuccess = result.data.message,
-                                newPassword = result.data.newPassword
-                            )
-                        }
-                    }
-                    is Result.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                forgotPasswordLoading = false,
-                                forgotPasswordError = result.message
-                            )
-                        }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            forgotPasswordLoading = false,
+                            forgotPasswordError = result.message
+                        )
                     }
                 }
             }

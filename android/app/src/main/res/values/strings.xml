@@ -43,8 +43,8 @@
     <string name="forgot_password_description">Digite seu nick para gerar uma nova senha automaticamente.</string>
     <string name="new_password_generated">Sua nova senha é:</string>
     <string name="copy_password_hint">Toque e segure para copiar</string>
-    <string name="email_recovery_toggle">Recuperar por email</string>
     <string name="email_recovery_description">Enviaremos um link de recuperacao para o email cadastrado na sua conta.</string>
+    <string name="check_email_hint">O link expira em 1 hora</string>
 
     <!-- Register Screen -->
     <string name="register">CADASTRO</string>

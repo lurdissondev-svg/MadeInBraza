@@ -3,18 +3,15 @@ package com.madeinbraza.app.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.madeinbraza.app.R
@@ -163,9 +160,6 @@ fun LoginScreen(
             isLoading = uiState.forgotPasswordLoading,
             error = uiState.forgotPasswordError,
             successMessage = uiState.forgotPasswordSuccess,
-            newPassword = uiState.newPassword,
-            useEmailRecovery = uiState.useEmailRecovery,
-            onToggleRecoveryMethod = { viewModel.toggleRecoveryMethod() },
             onDismiss = { viewModel.hideForgotPasswordDialog() },
             onConfirm = { viewModel.requestPasswordReset() }
         )
@@ -179,9 +173,6 @@ private fun ForgotPasswordDialog(
     isLoading: Boolean,
     error: String?,
     successMessage: String?,
-    newPassword: String?,
-    useEmailRecovery: Boolean,
-    onToggleRecoveryMethod: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -196,72 +187,22 @@ private fun ForgotPasswordDialog(
         text = {
             Column {
                 if (successMessage != null) {
-                    // Success state
+                    // Success state - email sent
                     Text(
                         text = successMessage,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    if (newPassword != null) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.new_password_generated),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        SelectionContainer {
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            ) {
-                                Text(
-                                    text = newPassword,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(16.dp),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.copy_password_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    // Recovery method toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.email_recovery_toggle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Switch(
-                            checked = useEmailRecovery,
-                            onCheckedChange = { onToggleRecoveryMethod() },
-                            enabled = !isLoading,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Description based on method
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = if (useEmailRecovery) {
-                            stringResource(R.string.email_recovery_description)
-                        } else {
-                            stringResource(R.string.forgot_password_description)
-                        },
+                        text = stringResource(R.string.check_email_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    // Input form - email recovery only
+                    Text(
+                        text = stringResource(R.string.email_recovery_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
