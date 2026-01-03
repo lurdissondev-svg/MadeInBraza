@@ -34,6 +34,7 @@ import coil.compose.AsyncImage
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -635,6 +636,17 @@ fun ProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(stringResource(R.string.approve_members))
+                                if (uiState.pendingCount > 0) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Badge(
+                                        containerColor = Color(0xFFFFC107) // Yellow
+                                    ) {
+                                        Text(
+                                            text = if (uiState.pendingCount > 99) "99+" else uiState.pendingCount.toString(),
+                                            color = Color.Black
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))

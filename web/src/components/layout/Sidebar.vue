@@ -3,17 +3,23 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChannelsStore } from '@/stores/channels'
+import { useMembersStore } from '@/stores/members'
 import { PlayerClassNames } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const channelsStore = useChannelsStore()
+const membersStore = useMembersStore()
 
-// Load channels to get unread counts
+// Load channels to get unread counts, and pending users for leaders
 onMounted(() => {
   if (channelsStore.channels.length === 0) {
     channelsStore.fetchChannels()
+  }
+  // Load pending users count for leaders
+  if (authStore.isLeader) {
+    membersStore.fetchPendingUsers()
   }
 })
 
@@ -165,9 +171,18 @@ function handleLogout() {
               ? 'bg-primary-500/20 text-primary-400'
               : 'text-gray-300 hover:bg-dark-700 hover:text-gray-100'"
           >
-            <svg v-if="item.icon === 'clock'" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <div v-if="item.icon === 'clock'" class="relative flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <!-- Pending badge -->
+              <div
+                v-if="membersStore.pendingCount > 0"
+                class="absolute -top-2 -right-2 min-w-4 h-4 px-1 rounded-full bg-yellow-500 text-dark-900 text-[10px] font-bold flex items-center justify-center"
+              >
+                {{ membersStore.pendingCount > 99 ? '99+' : membersStore.pendingCount }}
+              </div>
+            </div>
 
             <svg v-else-if="item.icon === 'ban'" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />

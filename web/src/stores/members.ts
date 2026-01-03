@@ -50,6 +50,8 @@ export const useMembersStore = defineStore('members', () => {
     members.value.filter(m => m.role === Role.MEMBER).length
   )
 
+  const pendingCount = computed(() => pendingUsers.value.length)
+
   // Actions
   async function fetchMembers() {
     loading.value = true
@@ -250,6 +252,7 @@ export const useMembersStore = defineStore('members', () => {
     sortedMembers,
     leaderCount,
     memberCount,
+    pendingCount,
 
     // Actions
     fetchMembers,

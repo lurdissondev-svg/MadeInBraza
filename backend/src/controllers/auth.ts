@@ -7,6 +7,7 @@ import { generateToken } from '../utils/jwt.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { PlayerClass } from '@prisma/client';
 import { sendPasswordResetEmail, isEmailConfigured } from '../utils/email.js';
+import { notifyLeaders } from '../services/notification.js';
 
 const registerSchema = z.object({
   nick: z.string().min(3).max(20),
@@ -66,6 +67,15 @@ export async function register(
       nick: user.nick,
       role: user.role,
       status: user.status,
+    });
+
+    // Notify leaders about new pending user
+    notifyLeaders(
+      'Nova solicitação de entrada',
+      `${nick} está aguardando aprovação para entrar na guilda`,
+      { type: 'pending_approval', userId: user.id }
+    ).catch((err) => {
+      console.error('[register] Failed to notify leaders:', err);
     });
 
     res.status(201).json({ user, token });

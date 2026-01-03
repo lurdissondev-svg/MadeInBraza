@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.Profile
+import com.madeinbraza.app.data.model.Role
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.ProfileRepository
+import com.madeinbraza.app.data.repository.UsersRepository
 import com.madeinbraza.app.data.repository.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,13 +28,15 @@ data class ProfileUiState(
     val passwordChangeSuccess: Boolean = false,
     val isUploadingAvatar: Boolean = false,
     val isDeletingAvatar: Boolean = false,
-    val avatarSuccess: Boolean = false
+    val avatarSuccess: Boolean = false,
+    val pendingCount: Int = 0
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val repository: ProfileRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val usersRepository: UsersRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -40,6 +44,21 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadProfile()
+    }
+
+    private fun loadPendingCount() {
+        viewModelScope.launch {
+            when (val result = usersRepository.getPendingUsers()) {
+                is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        pendingCount = result.data.size
+                    )
+                }
+                is Result.Error -> {
+                    // Silently fail - pending count is not critical
+                }
+            }
+        }
     }
 
     fun loadProfile() {
@@ -51,6 +70,10 @@ class ProfileViewModel @Inject constructor(
                         profile = result.data,
                         isLoading = false
                     )
+                    // Load pending count for leaders
+                    if (result.data.role == Role.LEADER) {
+                        loadPendingCount()
+                    }
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(

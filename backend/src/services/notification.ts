@@ -1,4 +1,4 @@
-import { PrismaClient, UserStatus } from '@prisma/client';
+import { PrismaClient, UserStatus, Role } from '@prisma/client';
 import { sendNotificationToMultiple } from './firebase';
 
 const prisma = new PrismaClient();
@@ -139,5 +139,35 @@ export async function notifyUsers(
   console.log(`[notifyUsers] Sending to ${tokens.length} tokens:`, { title, body });
   const result = await sendNotificationToMultiple(tokens, { title, body, data });
   console.log(`[notifyUsers] Result:`, result);
+  return result;
+}
+
+export async function notifyLeaders(
+  title: string,
+  body: string,
+  data?: Record<string, string>
+): Promise<{ success: number; failure: number }> {
+  const leaders = await prisma.user.findMany({
+    where: {
+      role: Role.LEADER,
+      status: UserStatus.APPROVED,
+      fcmToken: { not: null },
+    },
+    select: { fcmToken: true },
+  });
+
+  const tokens = leaders
+    .map((l) => l.fcmToken)
+    .filter((t): t is string => t !== null);
+
+  console.log(`[notifyLeaders] Found ${tokens.length} leader tokens`);
+
+  if (tokens.length === 0) {
+    return { success: 0, failure: 0 };
+  }
+
+  console.log(`[notifyLeaders] Sending:`, { title, body });
+  const result = await sendNotificationToMultiple(tokens, { title, body, data });
+  console.log(`[notifyLeaders] Result:`, result);
   return result;
 }

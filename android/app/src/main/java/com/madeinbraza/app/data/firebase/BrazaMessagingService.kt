@@ -31,6 +31,7 @@ class BrazaMessagingService : FirebaseMessagingService() {
         const val TYPE_PARTY = "party"
         const val TYPE_SIEGE_WAR = "siege_war"
         const val TYPE_APP_UPDATE = "app_update"
+        const val TYPE_PENDING_APPROVAL = "pending_approval"
     }
 
     override fun onNewToken(token: String) {
@@ -53,6 +54,7 @@ class BrazaMessagingService : FirebaseMessagingService() {
             TYPE_PARTY -> handlePartyNotification(data)
             TYPE_SIEGE_WAR -> handleSiegeWarNotification(data)
             TYPE_APP_UPDATE -> handleAppUpdateNotification(data)
+            TYPE_PENDING_APPROVAL -> handlePendingApprovalNotification(data)
             else -> handleGeneralNotification(message)
         }
     }
@@ -230,6 +232,37 @@ class BrazaMessagingService : FirebaseMessagingService() {
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify("app_update".hashCode(), notificationBuilder.build())
+    }
+
+    private fun handlePendingApprovalNotification(data: Map<String, String>) {
+        val title = data["title"] ?: "Nova solicitação de entrada"
+        val body = data["body"] ?: "Um novo usuário aguarda aprovação"
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("navigateTo", "pending_members")
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            "pending_approval".hashCode(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_GENERAL)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_SOCIAL)
+            .setColor(Color.parseColor("#FFC107")) // Yellow color for pending
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
     }
 
     private fun handleGeneralNotification(message: RemoteMessage) {
