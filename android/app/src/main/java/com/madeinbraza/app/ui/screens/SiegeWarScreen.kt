@@ -806,7 +806,6 @@ private fun LeaderPanel(
                     SummaryChip("Conf.", s.confirmed, MaterialTheme.colorScheme.primary)
                     SummaryChip("Comp.", s.shared, MaterialTheme.colorScheme.secondary)
                     SummaryChip("Pilot", s.pilots, MaterialTheme.colorScheme.tertiary)
-                    SummaryChip("Aus.", s.absent, MaterialTheme.colorScheme.error)
                 }
             }
 
@@ -1152,7 +1151,6 @@ private fun HistoryItemCard(siegeWar: SiegeWarHistoryItem) {
                         SummaryChip("Conf.", siegeWar.summary.confirmed, MaterialTheme.colorScheme.primary)
                         SummaryChip("Comp.", siegeWar.summary.shared, MaterialTheme.colorScheme.secondary)
                         SummaryChip("Pilot", siegeWar.summary.pilots, MaterialTheme.colorScheme.tertiary)
-                        SummaryChip("Aus.", siegeWar.summary.absent, MaterialTheme.colorScheme.error)
                     }
                 }
             }

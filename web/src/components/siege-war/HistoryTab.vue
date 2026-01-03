@@ -120,10 +120,6 @@ function getResponseIcon(type: SWResponseType): string {
               <span class="text-lg font-bold text-cyan-400">{{ sw.summary.pilots }}</span>
               <span class="text-xs text-gray-400 ml-1">Pilot</span>
             </div>
-            <div class="text-center">
-              <span class="text-lg font-bold text-red-400">{{ sw.summary.absent }}</span>
-              <span class="text-xs text-gray-400 ml-1">Aus.</span>
-            </div>
           </div>
         </button>
 

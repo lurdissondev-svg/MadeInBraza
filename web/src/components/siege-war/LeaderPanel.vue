@@ -63,7 +63,7 @@ function handleClose() {
     </div>
 
     <!-- Summary -->
-    <div v-if="summary" class="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-6">
+    <div v-if="summary" class="grid grid-cols-5 gap-4 mb-6">
       <div class="text-center">
         <p class="text-2xl font-bold text-gray-100">{{ summary.total }}</p>
         <p class="text-xs text-gray-400">Total</p>
@@ -83,10 +83,6 @@ function handleClose() {
       <div class="text-center">
         <p class="text-2xl font-bold text-cyan-400">{{ summary.pilots }}</p>
         <p class="text-xs text-gray-400">Pilot</p>
-      </div>
-      <div class="text-center">
-        <p class="text-2xl font-bold text-red-400">{{ summary.absent }}</p>
-        <p class="text-xs text-gray-400">Aus.</p>
       </div>
     </div>
 
