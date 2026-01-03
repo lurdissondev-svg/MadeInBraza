@@ -12,7 +12,7 @@ const registerSchema = z.object({
   nick: z.string().min(3).max(20),
   password: z.string().min(6),
   playerClass: z.nativeEnum(PlayerClass),
-  email: z.string().email().optional(),
+  email: z.string().email(),
 });
 
 const loginSchema = z.object({
@@ -48,7 +48,7 @@ export async function register(
         nick,
         passwordHash,
         playerClass,
-        email: email || null,
+        email,
       },
       select: {
         id: true,

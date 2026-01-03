@@ -25,7 +25,7 @@ const passwordsMatch = computed(() => {
 })
 
 const isEmailValid = computed(() => {
-  if (!email.value) return true // Email is optional
+  if (!email.value) return false // Email is required
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email.value)
 })
@@ -47,7 +47,7 @@ async function handleRegister() {
     nick.value.trim(),
     password.value,
     selectedClass.value,
-    email.value.trim() || undefined
+    email.value.trim()
   )
 
   if (success) {
@@ -95,9 +95,9 @@ function goToLogin() {
             <p class="mt-1 text-xs text-gray-500">Minimo 3 caracteres</p>
           </div>
 
-          <!-- Email Field (Optional) -->
+          <!-- Email Field (Required) -->
           <div>
-            <label for="email" class="label">Email (opcional)</label>
+            <label for="email" class="label">Email</label>
             <input
               id="email"
               v-model="email"
@@ -107,7 +107,7 @@ function goToLogin() {
               class="input"
               :class="{ 'input-error': email && !isEmailValid }"
             />
-            <p class="mt-1 text-xs text-gray-500">Para recuperar senha se esquecer</p>
+            <p class="mt-1 text-xs text-gray-500">Obrigatorio para recuperar senha</p>
             <p v-if="email && !isEmailValid" class="mt-1 text-xs text-red-400">
               Email invalido
             </p>

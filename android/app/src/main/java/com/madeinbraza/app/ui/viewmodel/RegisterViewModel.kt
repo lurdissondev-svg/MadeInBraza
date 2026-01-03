@@ -60,6 +60,11 @@ class RegisterViewModel @Inject constructor(
             return
         }
 
+        if (state.email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(state.email).matches()) {
+            _uiState.update { it.copy(error = "Digite um email valido") }
+            return
+        }
+
         if (state.selectedClass == null) {
             _uiState.update { it.copy(error = "Selecione uma classe") }
             return
@@ -68,7 +73,7 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val email = state.email.trim().takeIf { it.isNotEmpty() }
+            val email = state.email.trim()
             when (val result = authRepository.register(state.nick, state.password, state.selectedClass, email)) {
                 is Result.Success -> {
                     // Register FCM token for push notifications

@@ -50,8 +50,8 @@
     <string name="register">CADASTRO</string>
     <string name="select_class">Selecione sua Classe</string>
     <string name="class_label">Classe</string>
-    <string name="email_optional">Email (opcional)</string>
-    <string name="email_recovery_hint">Para recuperar senha por email</string>
+    <string name="email_required">Email</string>
+    <string name="email_required_hint">Obrigatorio para recuperar senha</string>
 
     <!-- Waiting Screen -->
     <string name="waiting_approval">Aguardando Aprovação</string>
