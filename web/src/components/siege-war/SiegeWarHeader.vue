@@ -19,11 +19,11 @@ function formatDate(weekEnd: string): string {
 </script>
 
 <template>
-  <div class="bg-primary-700 rounded-xl p-6 mb-6">
+  <div class="bg-purple-800 rounded-xl p-6 mb-6">
     <h2 class="text-2xl font-bold text-white mb-3">{{ formatDate(siegeWar.weekEnd) }}</h2>
     <span
       class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-      :class="siegeWar.isActive ? 'bg-primary-500/30 text-primary-100 border border-primary-400' : 'bg-red-500 text-white'"
+      :class="siegeWar.isActive ? 'bg-white/20 text-white border border-white/50' : 'bg-red-500 text-white'"
     >
       {{ siegeWar.isActive ? 'ATIVO' : 'FECHADO' }}
     </span>
