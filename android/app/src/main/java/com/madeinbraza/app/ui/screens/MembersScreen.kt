@@ -240,13 +240,7 @@ fun MemberCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onMemberClick() },
-        colors = if (isLeader) {
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        } else {
-            CardDefaults.cardColors()
-        }
+        colors = CardDefaults.cardColors()
     ) {
         val leaderText = stringResource(R.string.leader)
         val youText = "(${stringResource(R.string.you)})"

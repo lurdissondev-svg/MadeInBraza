@@ -465,10 +465,7 @@ private fun ChannelMessageBubble(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (isLeader) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.secondary
-                    ),
+                    .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
             ) {
                 if (avatarUrl != null) {
@@ -486,7 +483,7 @@ private fun ChannelMessageBubble(
                         text = message.user.nick.firstOrNull()?.uppercase() ?: "?",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -746,10 +743,7 @@ private fun MemberItem(member: ChannelMember) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isLeader)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -763,13 +757,13 @@ private fun MemberItem(member: ChannelMember) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = member.nick.firstOrNull()?.uppercase() ?: "?",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -782,10 +776,7 @@ private fun MemberItem(member: ChannelMember) {
                         text = member.nick,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isLeader)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (isLeader) {
                         Spacer(modifier = Modifier.width(8.dp))
@@ -801,10 +792,7 @@ private fun MemberItem(member: ChannelMember) {
                 Text(
                     text = member.playerClass,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isLeader)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
         }

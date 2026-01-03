@@ -80,13 +80,7 @@ fun MemberProfileScreen(
                     ) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = if (isLeader) {
-                                CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            } else {
-                                CardDefaults.cardColors()
-                            }
+                            colors = CardDefaults.cardColors()
                         ) {
                             Column(
                                 modifier = Modifier

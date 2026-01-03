@@ -346,10 +346,10 @@ fun ProfileScreen(
                                             modifier = Modifier
                                                 .size(100.dp)
                                                 .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                                .background(MaterialTheme.colorScheme.surface)
                                                 .border(
                                                     width = 2.dp,
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    color = MaterialTheme.colorScheme.surface,
                                                     shape = CircleShape
                                                 )
                                                 .clickable(

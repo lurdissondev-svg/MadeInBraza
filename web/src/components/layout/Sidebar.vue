@@ -165,7 +165,7 @@ function handleLogout() {
     <div class="p-4 border-t border-dark-600">
       <div class="flex items-center gap-3 mb-3">
         <div class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
-             :class="avatarUrl ? '' : (authStore.isLeader ? 'bg-primary-500' : 'bg-primary-500/20')">
+             :class="avatarUrl ? '' : 'bg-dark-600'">
           <img
             v-if="avatarUrl"
             :src="avatarUrl"
@@ -177,8 +177,7 @@ function handleLogout() {
           />
           <span
             v-else
-            class="font-semibold"
-            :class="authStore.isLeader ? 'text-white' : 'text-primary-400'"
+            class="font-semibold text-white"
           >
             {{ authStore.user?.nick?.charAt(0).toUpperCase() }}
           </span>

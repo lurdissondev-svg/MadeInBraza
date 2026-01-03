@@ -128,7 +128,7 @@ async function handleDeleteAvatar() {
               <!-- Avatar image or placeholder -->
               <div
                 class="w-32 h-32 rounded-full flex items-center justify-center overflow-hidden"
-                :class="avatarUrl ? '' : (authStore.isLeader ? 'bg-primary-500' : 'bg-primary-500/20')"
+                :class="avatarUrl ? '' : 'bg-dark-600'"
               >
                 <img
                   v-if="avatarUrl"
@@ -141,8 +141,7 @@ async function handleDeleteAvatar() {
                 />
                 <span
                   v-else
-                  class="text-5xl font-bold"
-                  :class="authStore.isLeader ? 'text-white' : 'text-primary-400'"
+                  class="text-5xl font-bold text-white"
                 >
                   {{ authStore.user?.nick?.charAt(0).toUpperCase() }}
                 </span>
