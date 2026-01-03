@@ -41,7 +41,7 @@ const emit = defineEmits<{
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4">
+      <div class="flex-1 overflow-y-auto p-4 pb-20">
         <!-- Loading -->
         <div v-if="loading" class="flex justify-center py-8">
           <LoadingSpinner />
