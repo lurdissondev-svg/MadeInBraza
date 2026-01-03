@@ -285,6 +285,47 @@ class ChannelsViewModel @Inject constructor(
         }
     }
 
+    fun deleteMessage(messageId: String) {
+        val channelId = currentChannelId ?: return
+
+        viewModelScope.launch {
+            when (channelRepository.deleteMessage(channelId, messageId)) {
+                is Result.Success -> {
+                    _chatState.update { state ->
+                        state.copy(
+                            messages = state.messages.filter { it.id != messageId }
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _chatState.update { it.copy(error = "Erro ao excluir mensagem") }
+                }
+            }
+        }
+    }
+
+    fun editMessage(messageId: String, content: String) {
+        val channelId = currentChannelId ?: return
+        if (content.isBlank()) return
+
+        viewModelScope.launch {
+            when (val result = channelRepository.editMessage(channelId, messageId, content.trim())) {
+                is Result.Success -> {
+                    _chatState.update { state ->
+                        state.copy(
+                            messages = state.messages.map { msg ->
+                                if (msg.id == messageId) result.data else msg
+                            }
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _chatState.update { it.copy(error = "Erro ao editar mensagem") }
+                }
+            }
+        }
+    }
+
     fun loadChannelMembers(channel: Channel) {
         viewModelScope.launch {
             _membersState.update {

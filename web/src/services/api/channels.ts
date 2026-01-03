@@ -67,5 +67,17 @@ export const channelsApi = {
 
   async markAsRead(channelId: string): Promise<void> {
     await apiClient.post(`/channels/${channelId}/read`)
+  },
+
+  async deleteMessage(channelId: string, messageId: string): Promise<void> {
+    await apiClient.delete(`/channels/${channelId}/messages/${messageId}`)
+  },
+
+  async editMessage(channelId: string, messageId: string, content: string): Promise<ChannelMessage> {
+    const response = await apiClient.put<ChannelMessage>(
+      `/channels/${channelId}/messages/${messageId}`,
+      { content }
+    )
+    return response.data
   }
 }

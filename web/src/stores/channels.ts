@@ -163,6 +163,39 @@ export const useChannelsStore = defineStore('channels', () => {
     unreadCounts.value[channelId] = (unreadCounts.value[channelId] || 0) + 1
   }
 
+  async function deleteMessage(messageId: string): Promise<boolean> {
+    if (!currentChannel.value) return false
+
+    error.value = null
+
+    try {
+      await channelsApi.deleteMessage(currentChannel.value.id, messageId)
+      messages.value = messages.value.filter(m => m.id !== messageId)
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao excluir mensagem'
+      return false
+    }
+  }
+
+  async function editMessage(messageId: string, content: string): Promise<boolean> {
+    if (!currentChannel.value || !content.trim()) return false
+
+    error.value = null
+
+    try {
+      const updatedMessage = await channelsApi.editMessage(currentChannel.value.id, messageId, content)
+      const index = messages.value.findIndex(m => m.id === messageId)
+      if (index !== -1) {
+        messages.value[index] = updatedMessage
+      }
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao editar mensagem'
+      return false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -193,6 +226,8 @@ export const useChannelsStore = defineStore('channels', () => {
     fetchMembers,
     addMessage,
     incrementUnread,
+    deleteMessage,
+    editMessage,
     clearError
   }
 })

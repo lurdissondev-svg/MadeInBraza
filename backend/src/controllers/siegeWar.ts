@@ -79,6 +79,15 @@ export async function submitResponse(
       throw new AppError(400, 'Siege War is no longer active');
     }
 
+    // Check if user already submitted a response - only allow one response per SW
+    const existingResponse = await prisma.sWResponse.findUnique({
+      where: { siegeWarId_userId: { siegeWarId, userId } },
+    });
+
+    if (existingResponse) {
+      throw new AppError(400, 'Você já enviou sua resposta para este Siege War. Não é permitido enviar outra resposta.');
+    }
+
     // Validate response type
     if (!Object.values(SWResponseType).includes(responseType)) {
       throw new AppError(400, 'Invalid response type');
@@ -118,19 +127,9 @@ export async function submitResponse(
       }
     }
 
-    // Upsert response
-    const response = await prisma.sWResponse.upsert({
-      where: { siegeWarId_userId: { siegeWarId, userId } },
-      update: {
-        responseType,
-        tag: tag || null,
-        gameId: encryptedGameId,
-        encryptedPassword: encryptedPassword,
-        sharedClass: responseType === 'SHARED' ? sharedClass : null,
-        pilotingForId: responseType === 'PILOT' ? pilotingForId : null,
-        preferredClass: responseType === 'PILOT' ? preferredClass : null,
-      },
-      create: {
+    // Create new response (no more upsert - only one response allowed)
+    const response = await prisma.sWResponse.create({
+      data: {
         siegeWarId,
         userId,
         responseType,
@@ -261,6 +260,19 @@ export async function getAvailableShares(
 ): Promise<void> {
   try {
     const { siegeWarId } = req.params;
+    const userId = req.user!.userId;
+
+    // Check if user is a leader
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    // Non-leaders cannot see available shares (only leaders can assign pilots)
+    if (user?.role !== 'LEADER') {
+      res.json({ availableShares: [] });
+      return;
+    }
 
     const siegeWar = await prisma.siegeWar.findUnique({
       where: { id: siegeWarId },

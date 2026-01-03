@@ -213,6 +213,7 @@ export interface ChannelMessage {
   fileName: string | null
   fileSize: number | null
   createdAt: string
+  editedAt: string | null
   user: MessageUser
 }
 

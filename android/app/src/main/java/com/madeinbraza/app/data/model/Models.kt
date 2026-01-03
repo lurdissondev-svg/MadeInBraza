@@ -469,7 +469,12 @@ data class ChannelMessage(
     val fileName: String? = null,
     val fileSize: Int? = null,
     val createdAt: String,
+    val editedAt: String? = null,
     val user: MessageUser
+)
+
+data class EditMessageRequest(
+    val content: String
 )
 
 data class SendChannelMessageRequest(

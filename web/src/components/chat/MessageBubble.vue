@@ -8,7 +8,42 @@ const props = defineProps<{
   isCurrentUser: boolean
 }>()
 
+const emit = defineEmits<{
+  delete: [messageId: string]
+  edit: [messageId: string, content: string]
+}>()
+
 const isLeader = computed(() => props.message.user.role === Role.LEADER)
+
+// Edit mode state
+const isEditing = ref(false)
+const editContent = ref('')
+const showActions = ref(false)
+
+function startEdit() {
+  editContent.value = props.message.content || ''
+  isEditing.value = true
+  showActions.value = false
+}
+
+function cancelEdit() {
+  isEditing.value = false
+  editContent.value = ''
+}
+
+function saveEdit() {
+  if (editContent.value.trim()) {
+    emit('edit', props.message.id, editContent.value.trim())
+  }
+  isEditing.value = false
+}
+
+function confirmDelete() {
+  if (confirm('Tem certeza que deseja excluir esta mensagem?')) {
+    emit('delete', props.message.id)
+  }
+  showActions.value = false
+}
 
 // Track if avatar image failed to load
 const avatarError = ref(false)
@@ -125,7 +160,7 @@ function openFullImage() {
     </div>
 
     <div class="flex flex-col" :class="isCurrentUser ? 'items-end' : 'items-start'">
-      <!-- Header (nick, leader tag, time) -->
+      <!-- Header (nick, leader tag, time, actions) -->
       <div class="flex items-center gap-2 px-1 mb-1">
         <span
           v-if="!isCurrentUser"
@@ -143,6 +178,45 @@ function openFullImage() {
         <span class="text-xs text-gray-500">
           {{ formatTime(message.createdAt) }}
         </span>
+        <span v-if="message.editedAt" class="text-xs text-gray-500 italic">
+          (editado)
+        </span>
+        <!-- Actions menu for own messages -->
+        <div v-if="isCurrentUser && !isEditing" class="relative ml-auto">
+          <button
+            @click="showActions = !showActions"
+            class="p-1 hover:bg-dark-500 rounded transition-colors"
+          >
+            <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            </svg>
+          </button>
+          <!-- Dropdown menu -->
+          <div
+            v-if="showActions"
+            class="absolute right-0 mt-1 w-32 bg-dark-600 border border-dark-500 rounded-lg shadow-lg z-10"
+          >
+            <button
+              v-if="message.content"
+              @click="startEdit"
+              class="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-dark-500 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Editar
+            </button>
+            <button
+              @click="confirmDelete"
+              class="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-dark-500 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Excluir
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Message bubble -->
@@ -201,9 +275,34 @@ function openFullImage() {
         </p>
       </template>
 
-      <!-- Text content -->
+      <!-- Text content - Edit mode -->
+      <div v-if="isEditing" class="px-3 py-2">
+        <textarea
+          v-model="editContent"
+          class="w-full bg-dark-700 border border-dark-500 rounded-lg px-3 py-2 text-sm text-white resize-none focus:outline-none focus:border-primary-500"
+          rows="2"
+          @keydown.enter.exact.prevent="saveEdit"
+          @keydown.escape="cancelEdit"
+        ></textarea>
+        <div class="flex gap-2 mt-2">
+          <button
+            @click="saveEdit"
+            class="px-3 py-1 text-xs bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
+          >
+            Salvar
+          </button>
+          <button
+            @click="cancelEdit"
+            class="px-3 py-1 text-xs bg-dark-500 text-gray-300 rounded hover:bg-dark-400 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+
+      <!-- Text content - View mode -->
       <p
-        v-if="message.content"
+        v-else-if="message.content"
         class="whitespace-pre-wrap break-words"
         :class="message.mediaUrl ? 'px-3 py-2' : ''"
         :style="{ color: textColor }"

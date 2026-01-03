@@ -38,6 +38,7 @@ import com.madeinbraza.app.data.model.Channel
 import com.madeinbraza.app.data.model.ChannelMembersResponse
 import com.madeinbraza.app.data.model.ChannelMessage
 import com.madeinbraza.app.data.model.SendChannelMessageRequest
+import com.madeinbraza.app.data.model.EditMessageRequest
 import com.madeinbraza.app.data.model.AnnouncementsResponse
 import com.madeinbraza.app.data.model.CreateAnnouncementRequest
 import com.madeinbraza.app.data.model.CreateAnnouncementResponse
@@ -366,6 +367,21 @@ interface BrazaApi {
         @Header("Authorization") token: String,
         @Path("channelId") channelId: String
     ): Response<ChannelMembersResponse>
+
+    @DELETE("channels/{channelId}/messages/{messageId}")
+    suspend fun deleteChannelMessage(
+        @Header("Authorization") token: String,
+        @Path("channelId") channelId: String,
+        @Path("messageId") messageId: String
+    ): Response<SuccessResponse>
+
+    @PUT("channels/{channelId}/messages/{messageId}")
+    suspend fun editChannelMessage(
+        @Header("Authorization") token: String,
+        @Path("channelId") channelId: String,
+        @Path("messageId") messageId: String,
+        @Body request: EditMessageRequest
+    ): Response<ChannelMessage>
 
     // Announcement endpoints
     @GET("announcements")

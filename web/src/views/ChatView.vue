@@ -94,6 +94,14 @@ function handleShowMembers() {
 function goBack() {
   router.push('/channels')
 }
+
+async function handleDeleteMessage(messageId: string) {
+  await channelsStore.deleteMessage(messageId)
+}
+
+async function handleEditMessage(messageId: string, content: string) {
+  await channelsStore.editMessage(messageId, content)
+}
 </script>
 
 <template>
@@ -145,6 +153,8 @@ function goBack() {
           :key="message.id"
           :message="message"
           :is-current-user="message.user.id === currentUserId"
+          @delete="handleDeleteMessage"
+          @edit="handleEditMessage"
         />
       </template>
     </div>

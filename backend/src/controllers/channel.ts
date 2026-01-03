@@ -436,6 +436,111 @@ export async function getChannelMembers(req: Request, res: Response): Promise<vo
   }
 }
 
+// Delete own message
+export async function deleteMessage(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const { channelId, messageId } = req.params;
+
+    // Find the message
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      res.status(404).json({ error: 'Mensagem não encontrada' });
+      return;
+    }
+
+    // Verify message belongs to this channel
+    if (message.channelId !== channelId) {
+      res.status(400).json({ error: 'Mensagem não pertence a este canal' });
+      return;
+    }
+
+    // Only the message owner can delete
+    if (message.userId !== userId) {
+      res.status(403).json({ error: 'Você só pode excluir suas próprias mensagens' });
+      return;
+    }
+
+    // Delete the media file if exists
+    if (message.mediaUrl) {
+      try {
+        const filePath = `./uploads${message.mediaUrl.replace('/uploads', '')}`;
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('Error deleting media file:', err);
+      }
+    }
+
+    // Delete the message
+    await prisma.message.delete({
+      where: { id: messageId },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ error: 'Erro ao excluir mensagem' });
+  }
+}
+
+// Edit own message
+export async function editMessage(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const { channelId, messageId } = req.params;
+    const { content } = req.body;
+
+    if (!content || content.trim().length === 0) {
+      res.status(400).json({ error: 'Conteúdo da mensagem é obrigatório' });
+      return;
+    }
+
+    // Find the message
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      res.status(404).json({ error: 'Mensagem não encontrada' });
+      return;
+    }
+
+    // Verify message belongs to this channel
+    if (message.channelId !== channelId) {
+      res.status(400).json({ error: 'Mensagem não pertence a este canal' });
+      return;
+    }
+
+    // Only the message owner can edit
+    if (message.userId !== userId) {
+      res.status(403).json({ error: 'Você só pode editar suas próprias mensagens' });
+      return;
+    }
+
+    // Update the message
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        content: content.trim(),
+        editedAt: new Date(),
+      },
+      include: {
+        user: {
+          select: { id: true, nick: true, playerClass: true, role: true, avatarUrl: true },
+        },
+      },
+    });
+
+    res.json(updatedMessage);
+  } catch (error) {
+    console.error('Error editing message:', error);
+    res.status(500).json({ error: 'Erro ao editar mensagem' });
+  }
+}
+
 // Helper function to check channel access
 function checkChannelAccess(
   channel: {

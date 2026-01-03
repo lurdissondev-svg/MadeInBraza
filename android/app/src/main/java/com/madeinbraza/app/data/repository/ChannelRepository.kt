@@ -13,6 +13,7 @@ import com.madeinbraza.app.data.model.Channel
 import com.madeinbraza.app.data.model.ChannelMember
 import com.madeinbraza.app.data.model.ChannelMessage
 import com.madeinbraza.app.data.model.SendChannelMessageRequest
+import com.madeinbraza.app.data.model.EditMessageRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -118,6 +119,39 @@ class ChannelRepository @Inject constructor(
                 Result.Success(response.body()!!.members)
             } else {
                 Result.Error(response.errorBody()?.string() ?: "Failed to get members")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Network error")
+        }
+    }
+
+    suspend fun deleteMessage(channelId: String, messageId: String): Result<Boolean> {
+        val token = getToken() ?: return Result.Error("Not authenticated")
+        return try {
+            val response = api.deleteChannelMessage("Bearer $token", channelId, messageId)
+            if (response.isSuccessful) {
+                Result.Success(true)
+            } else {
+                Result.Error(response.errorBody()?.string() ?: "Failed to delete message")
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Network error")
+        }
+    }
+
+    suspend fun editMessage(channelId: String, messageId: String, content: String): Result<ChannelMessage> {
+        val token = getToken() ?: return Result.Error("Not authenticated")
+        return try {
+            val response = api.editChannelMessage(
+                "Bearer $token",
+                channelId,
+                messageId,
+                EditMessageRequest(content)
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                Result.Error(response.errorBody()?.string() ?: "Failed to edit message")
             }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Network error")

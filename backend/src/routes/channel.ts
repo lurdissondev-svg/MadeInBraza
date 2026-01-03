@@ -8,6 +8,8 @@ import {
   sendMediaMessage,
   createDefaultChannels,
   getChannelMembers,
+  deleteMessage,
+  editMessage,
 } from '../controllers/channel.js';
 
 const router = Router();
@@ -37,5 +39,11 @@ router.get('/:channelId/members', getChannelMembers);
 router.post('/:channelId/read', (_req, res) => {
   res.json({ success: true });
 });
+
+// DELETE /channels/:channelId/messages/:messageId - Delete own message
+router.delete('/:channelId/messages/:messageId', deleteMessage);
+
+// PUT /channels/:channelId/messages/:messageId - Edit own message
+router.put('/:channelId/messages/:messageId', editMessage);
 
 export default router;

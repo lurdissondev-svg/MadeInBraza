@@ -3,8 +3,10 @@ package com.madeinbraza.app.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -401,7 +403,9 @@ private fun ChannelChatContent(
                                 val isCurrentUser = message.user.id == uiState.currentUserId
                                 ChannelMessageBubble(
                                     message = message,
-                                    isCurrentUser = isCurrentUser
+                                    isCurrentUser = isCurrentUser,
+                                    onDelete = { viewModel.deleteMessage(message.id) },
+                                    onEdit = { newContent -> viewModel.editMessage(message.id, newContent) }
                                 )
                             }
                         }
@@ -428,14 +432,25 @@ private fun ChannelChatContent(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChannelMessageBubble(
     message: ChannelMessage,
-    isCurrentUser: Boolean = false
+    isCurrentUser: Boolean = false,
+    onDelete: () -> Unit = {},
+    onEdit: (String) -> Unit = {}
 ) {
     val isLeader = message.user.role == Role.LEADER
     val context = LocalContext.current
     val leaderTag = stringResource(R.string.leader_tag)
+
+    // State for dropdown menu and edit mode
+    var showActionsMenu by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+    var editText by remember(message.content) { mutableStateOf(message.content ?: "") }
+
+    // Can edit/delete only text messages (not media-only)
+    val canEditDelete = isCurrentUser && !message.content.isNullOrBlank()
 
     // Bubble colors based on message sender
     val bubbleColor = when {
@@ -455,12 +470,13 @@ private fun ChannelMessageBubble(
         "$baseUrl$url"
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
-    ) {
-        // Avatar (only for other users, on the left)
-        if (!isCurrentUser) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
+        ) {
+            // Avatar (only for other users, on the left)
+            if (!isCurrentUser) {
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -525,107 +541,217 @@ private fun ChannelMessageBubble(
             Spacer(modifier = Modifier.height(4.dp))
 
             Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = if (isCurrentUser) 16.dp else 4.dp,
-                        topEnd = if (isCurrentUser) 4.dp else 16.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    )
-                )
-                .background(bubbleColor)
-                .padding(if (message.mediaUrl != null) 4.dp else 12.dp)
-        ) {
-            Column {
-                // Media content
-                message.mediaUrl?.let { mediaUrl ->
-                    val fullUrl = getFullMediaUrl(mediaUrl)
-
-                    if (message.mediaType == "image") {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(fullUrl)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = stringResource(R.string.image),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 300.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Fit
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = if (isCurrentUser) 16.dp else 4.dp,
+                            topEnd = if (isCurrentUser) 4.dp else 16.dp,
+                            bottomStart = 16.dp,
+                            bottomEnd = 16.dp
                         )
-                    } else if (message.mediaType == "video") {
-                        // Video thumbnail with play icon
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
+                    )
+                    .background(bubbleColor)
+                    .then(
+                        if (canEditDelete) {
+                            Modifier.combinedClickable(
+                                onClick = {},
+                                onLongClick = { showActionsMenu = true }
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .padding(if (message.mediaUrl != null) 4.dp else 12.dp)
+            ) {
+                Column {
+                    // Media content
+                    message.mediaUrl?.let { mediaUrl ->
+                        val fullUrl = getFullMediaUrl(mediaUrl)
+
+                        if (message.mediaType == "image") {
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(fullUrl)
                                     .crossfade(true)
                                     .build(),
-                                contentDescription = stringResource(R.string.video),
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentDescription = stringResource(R.string.image),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 300.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Fit
                             )
-                            // Play icon overlay
-                            Surface(
-                                modifier = Modifier.size(48.dp),
-                                shape = RoundedCornerShape(24.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                        } else if (message.mediaType == "video") {
+                            // Video thumbnail with play icon
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Filled.PlayArrow,
-                                    contentDescription = stringResource(R.string.play_video),
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(8.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(fullUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = stringResource(R.string.video),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
                                 )
+                                // Play icon overlay
+                                Surface(
+                                    modifier = Modifier.size(48.dp),
+                                    shape = RoundedCornerShape(24.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.PlayArrow,
+                                        contentDescription = stringResource(R.string.play_video),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(8.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+
+                        // Show file name for media
+                        message.fileName?.let { fileName ->
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = fileName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = textColor.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+
+                    // Text content (if any) - with edit mode
+                    message.content?.let { content ->
+                        if (content.isNotBlank()) {
+                            if (message.mediaUrl != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            if (isEditing) {
+                                // Edit mode
+                                Column {
+                                    OutlinedTextField(
+                                        value = editText,
+                                        onValueChange = { editText = it },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textStyle = MaterialTheme.typography.bodyMedium,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
+                                            focusedTextColor = textColor,
+                                            unfocusedTextColor = textColor
+                                        ),
+                                        maxLines = 5
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                if (editText.isNotBlank()) {
+                                                    onEdit(editText)
+                                                    isEditing = false
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.surface,
+                                                contentColor = MaterialTheme.colorScheme.primary
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("Salvar", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                        TextButton(
+                                            onClick = {
+                                                editText = message.content ?: ""
+                                                isEditing = false
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                "Cancelar",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = textColor.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Normal display mode
+                                Column {
+                                    Text(
+                                        text = content,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = textColor,
+                                        modifier = if (message.mediaUrl != null)
+                                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        else
+                                            Modifier
+                                    )
+                                    // Show edited indicator
+                                    if (message.editedAt != null) {
+                                        Text(
+                                            text = "(editado)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = textColor.copy(alpha = 0.5f),
+                                            modifier = if (message.mediaUrl != null)
+                                                Modifier.padding(horizontal = 8.dp)
+                                            else
+                                                Modifier
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
+                }  // Close inner Column
 
-                    // Show file name for media
-                    message.fileName?.let { fileName ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = fileName,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = textColor.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
-                    }
-                }
-
-                // Text content (if any)
-                message.content?.let { content ->
-                    if (content.isNotBlank()) {
-                        if (message.mediaUrl != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
+                // Dropdown menu for edit/delete
+                DropdownMenu(
+                    expanded = showActionsMenu,
+                    onDismissRequest = { showActionsMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Editar") },
+                        onClick = {
+                            showActionsMenu = false
+                            isEditing = true
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null)
                         }
-                        Text(
-                            text = content,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor,
-                            modifier = if (message.mediaUrl != null)
-                                Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            else
-                                Modifier
-                        )
-                    }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Excluir", color = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            showActionsMenu = false
+                            onDelete()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    )
                 }
-            }  // Close inner Column
-        }  // Close Box
-    }  // Close outer Column
-    }  // Close Row
+            }  // Close Box
+        }  // Close outer Column
+        }  // Close Row
+    }  // Close outer Box
 }
 
 private fun getFullMediaUrl(mediaUrl: String): String {
