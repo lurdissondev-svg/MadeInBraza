@@ -44,6 +44,14 @@ import com.madeinbraza.app.data.model.CreateAnnouncementResponse
 import com.madeinbraza.app.data.model.ChangePasswordRequest
 import com.madeinbraza.app.data.model.ForgotPasswordRequest
 import com.madeinbraza.app.data.model.ForgotPasswordResponse
+import com.madeinbraza.app.data.model.RequestPasswordResetRequest
+import com.madeinbraza.app.data.model.RequestPasswordResetResponse
+import com.madeinbraza.app.data.model.VerifyResetTokenRequest
+import com.madeinbraza.app.data.model.VerifyResetTokenResponse
+import com.madeinbraza.app.data.model.ResetPasswordRequest
+import com.madeinbraza.app.data.model.ResetPasswordResponse
+import com.madeinbraza.app.data.model.UpdateEmailRequest
+import com.madeinbraza.app.data.model.UpdateEmailResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -85,6 +93,27 @@ interface BrazaApi {
     suspend fun forgotPassword(
         @Body request: ForgotPasswordRequest
     ): Response<ForgotPasswordResponse>
+
+    @POST("auth/request-reset")
+    suspend fun requestPasswordReset(
+        @Body request: RequestPasswordResetRequest
+    ): Response<RequestPasswordResetResponse>
+
+    @POST("auth/verify-reset-token")
+    suspend fun verifyResetToken(
+        @Body request: VerifyResetTokenRequest
+    ): Response<VerifyResetTokenResponse>
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(
+        @Body request: ResetPasswordRequest
+    ): Response<ResetPasswordResponse>
+
+    @PUT("auth/update-email")
+    suspend fun updateEmail(
+        @Header("Authorization") token: String,
+        @Body request: UpdateEmailRequest
+    ): Response<UpdateEmailResponse>
 
     @GET("users/members")
     suspend fun getMembers(@Header("Authorization") token: String): Response<MembersResponse>

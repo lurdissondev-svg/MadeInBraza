@@ -164,6 +164,8 @@ fun LoginScreen(
             error = uiState.forgotPasswordError,
             successMessage = uiState.forgotPasswordSuccess,
             newPassword = uiState.newPassword,
+            useEmailRecovery = uiState.useEmailRecovery,
+            onToggleRecoveryMethod = { viewModel.toggleRecoveryMethod() },
             onDismiss = { viewModel.hideForgotPasswordDialog() },
             onConfirm = { viewModel.requestPasswordReset() }
         )
@@ -178,6 +180,8 @@ private fun ForgotPasswordDialog(
     error: String?,
     successMessage: String?,
     newPassword: String?,
+    useEmailRecovery: Boolean,
+    onToggleRecoveryMethod: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -228,12 +232,42 @@ private fun ForgotPasswordDialog(
                         )
                     }
                 } else {
-                    // Input state
+                    // Recovery method toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.email_recovery_toggle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Switch(
+                            checked = useEmailRecovery,
+                            onCheckedChange = { onToggleRecoveryMethod() },
+                            enabled = !isLoading,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Description based on method
                     Text(
-                        text = stringResource(R.string.forgot_password_description),
-                        style = MaterialTheme.typography.bodyMedium
+                        text = if (useEmailRecovery) {
+                            stringResource(R.string.email_recovery_description)
+                        } else {
+                            stringResource(R.string.forgot_password_description)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
                     Spacer(modifier = Modifier.height(16.dp))
+
                     OutlinedTextField(
                         value = nick,
                         onValueChange = onNickChange,

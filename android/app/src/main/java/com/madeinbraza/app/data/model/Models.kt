@@ -16,6 +16,7 @@ enum class Role {
 data class User(
     val id: String,
     val nick: String,
+    val email: String? = null,
     val playerClass: PlayerClass,
     val status: UserStatus,
     val role: Role,
@@ -30,7 +31,8 @@ data class AuthResponse(
 data class RegisterRequest(
     val nick: String,
     val password: String,
-    val playerClass: PlayerClass
+    val playerClass: PlayerClass,
+    val email: String? = null
 )
 
 data class LoginRequest(
@@ -544,4 +546,40 @@ data class ForgotPasswordRequest(
 data class ForgotPasswordResponse(
     val message: String,
     val newPassword: String? = null
+)
+
+// Password reset via email models
+data class RequestPasswordResetRequest(
+    val nick: String
+)
+
+data class RequestPasswordResetResponse(
+    val message: String
+)
+
+data class VerifyResetTokenRequest(
+    val token: String
+)
+
+data class VerifyResetTokenResponse(
+    val valid: Boolean,
+    val nick: String
+)
+
+data class ResetPasswordRequest(
+    val token: String,
+    val newPassword: String
+)
+
+data class ResetPasswordResponse(
+    val message: String
+)
+
+data class UpdateEmailRequest(
+    val email: String
+)
+
+data class UpdateEmailResponse(
+    val success: Boolean,
+    val email: String
 )

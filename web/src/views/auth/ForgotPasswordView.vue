@@ -8,8 +8,9 @@ const router = useRouter()
 const nick = ref('')
 const loading = ref(false)
 const error = ref<string | null>(null)
-const success = ref(false)
+const successMessage = ref<string | null>(null)
 const newPassword = ref<string | null>(null)
+const useEmailRecovery = ref(true)
 
 const isFormValid = computed(() => {
   return nick.value.trim().length >= 3
@@ -20,16 +21,38 @@ async function handleForgotPassword() {
 
   loading.value = true
   error.value = null
+  successMessage.value = null
+  newPassword.value = null
 
   try {
-    const response = await authApi.forgotPassword({ nick: nick.value.trim() })
-    success.value = true
-    newPassword.value = response.newPassword || null
+    if (useEmailRecovery.value) {
+      // New email-based recovery
+      const response = await authApi.requestPasswordReset({ nick: nick.value.trim() })
+      successMessage.value = response.message
+    } else {
+      // Legacy recovery (generates random password)
+      const response = await authApi.forgotPassword({ nick: nick.value.trim() })
+      successMessage.value = response.message
+      newPassword.value = response.newPassword || null
+    }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Erro ao recuperar senha'
+    const errorMsg = err instanceof Error ? err.message : 'Erro ao recuperar senha'
+    // If email recovery fails because user has no email, suggest legacy method
+    if (errorMsg.includes('email') && useEmailRecovery.value) {
+      error.value = errorMsg
+    } else {
+      error.value = errorMsg
+    }
   } finally {
     loading.value = false
   }
+}
+
+function toggleRecoveryMethod() {
+  useEmailRecovery.value = !useEmailRecovery.value
+  error.value = null
+  successMessage.value = null
+  newPassword.value = null
 }
 
 function goToLogin() {
@@ -52,8 +75,31 @@ function goToLogin() {
     <!-- Form Card -->
     <div class="w-full max-w-md mx-auto">
       <div class="card">
-        <!-- Success State -->
-        <div v-if="success" class="text-center space-y-4">
+        <!-- Success State - Email Sent -->
+        <div v-if="successMessage && !newPassword" class="text-center space-y-4">
+          <div class="w-16 h-16 mx-auto bg-blue-500/20 rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 class="text-xl font-semibold text-gray-100">Verifique seu Email!</h2>
+          <p class="text-gray-400">
+            {{ successMessage }}
+          </p>
+          <p class="text-sm text-gray-500">
+            O link expira em 1 hora
+          </p>
+
+          <button
+            @click="goToLogin"
+            class="btn-primary w-full py-3"
+          >
+            Ir para Login
+          </button>
+        </div>
+
+        <!-- Success State - New Password Generated -->
+        <div v-else-if="successMessage && newPassword" class="text-center space-y-4">
           <div class="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
             <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -61,16 +107,13 @@ function goToLogin() {
           </div>
           <h2 class="text-xl font-semibold text-gray-100">Senha Redefinida!</h2>
 
-          <div v-if="newPassword" class="bg-dark-800 rounded-lg p-4">
-            <p class="text-sm text-gray-400 mb-2">Sua nova senha é:</p>
+          <div class="bg-dark-800 rounded-lg p-4">
+            <p class="text-sm text-gray-400 mb-2">Sua nova senha e:</p>
             <p class="text-lg font-mono text-primary-400 select-all">{{ newPassword }}</p>
             <p class="text-xs text-gray-500 mt-2">
-              Anote esta senha e altere-a após fazer login
+              Anote esta senha e altere-a apos fazer login
             </p>
           </div>
-          <p v-else class="text-gray-400">
-            Sua senha foi redefinida. Verifique com um líder da guilda.
-          </p>
 
           <button
             @click="goToLogin"
@@ -82,6 +125,32 @@ function goToLogin() {
 
         <!-- Form State -->
         <form v-else @submit.prevent="handleForgotPassword" class="space-y-6">
+          <!-- Recovery Method Toggle -->
+          <div class="flex items-center justify-center gap-2 text-sm">
+            <button
+              type="button"
+              @click="toggleRecoveryMethod"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
+              :class="useEmailRecovery ? 'bg-primary-500/20 text-primary-400' : 'bg-dark-700 text-gray-400 hover:text-gray-300'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Por Email
+            </button>
+            <button
+              type="button"
+              @click="toggleRecoveryMethod"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
+              :class="!useEmailRecovery ? 'bg-primary-500/20 text-primary-400' : 'bg-dark-700 text-gray-400 hover:text-gray-300'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              Gerar Nova
+            </button>
+          </div>
+
           <div>
             <label for="nick" class="label">Nick</label>
             <input
@@ -94,7 +163,12 @@ function goToLogin() {
               :class="{ 'input-error': error }"
             />
             <p class="mt-1 text-xs text-gray-500">
-              Informe seu nick para recuperar a senha
+              <template v-if="useEmailRecovery">
+                Um link de recuperacao sera enviado para seu email cadastrado
+              </template>
+              <template v-else>
+                Uma nova senha sera gerada automaticamente
+              </template>
             </p>
           </div>
 
@@ -116,7 +190,9 @@ function goToLogin() {
               </svg>
               Recuperando...
             </span>
-            <span v-else>Recuperar Senha</span>
+            <span v-else>
+              {{ useEmailRecovery ? 'Enviar Email' : 'Gerar Nova Senha' }}
+            </span>
           </button>
 
           <!-- Back to Login -->

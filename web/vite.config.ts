@@ -20,7 +20,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://braza.lurdisson.com.br',
+        target: 'https://braza.app.br',
         changeOrigin: true
       }
     }

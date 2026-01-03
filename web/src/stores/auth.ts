@@ -40,7 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(nick: string, password: string, playerClass: string): Promise<boolean> {
+  async function register(nick: string, password: string, playerClass: string, email?: string): Promise<boolean> {
     loading.value = true
     error.value = null
 
@@ -48,7 +48,8 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authApi.register({
         nick,
         password,
-        playerClass: playerClass as any
+        playerClass: playerClass as any,
+        email
       })
       setToken(response.token)
       token.value = response.token // Update reactive token state

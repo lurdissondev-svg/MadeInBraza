@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 const UAZAPI_URL = process.env.UAZAPI_URL || '';
 const UAZAPI_TOKEN = process.env.UAZAPI_TOKEN || '';
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'media');
-const BASE_URL = process.env.BASE_URL || 'https://braza.lurdisson.com.br';
+const BASE_URL = process.env.BASE_URL || 'https://braza.app.br';
 
 // Ensure uploads/media directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {

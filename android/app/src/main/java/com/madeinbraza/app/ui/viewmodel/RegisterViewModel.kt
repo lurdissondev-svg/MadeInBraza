@@ -15,6 +15,7 @@ import javax.inject.Inject
 
 data class RegisterUiState(
     val nick: String = "",
+    val email: String = "",
     val password: String = "",
     val selectedClass: PlayerClass? = null,
     val isLoading: Boolean = false,
@@ -32,6 +33,10 @@ class RegisterViewModel @Inject constructor(
 
     fun updateNick(nick: String) {
         _uiState.update { it.copy(nick = nick, error = null) }
+    }
+
+    fun updateEmail(email: String) {
+        _uiState.update { it.copy(email = email, error = null) }
     }
 
     fun updatePassword(password: String) {
@@ -63,7 +68,8 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            when (val result = authRepository.register(state.nick, state.password, state.selectedClass)) {
+            val email = state.email.trim().takeIf { it.isNotEmpty() }
+            when (val result = authRepository.register(state.nick, state.password, state.selectedClass, email)) {
                 is Result.Success -> {
                     // Register FCM token for push notifications
                     authRepository.registerFcmToken()

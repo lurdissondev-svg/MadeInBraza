@@ -77,6 +77,7 @@ export const PlayerClassAbbreviations: Record<PlayerClass, string> = {
 export interface User {
   id: string
   nick: string
+  email: string | null
   playerClass: PlayerClass
   status: UserStatus
   role: Role
@@ -92,6 +93,7 @@ export interface RegisterRequest {
   nick: string
   password: string
   playerClass: PlayerClass
+  email?: string
 }
 
 export interface LoginRequest {
@@ -497,6 +499,41 @@ export interface ForgotPasswordRequest {
 export interface ForgotPasswordResponse {
   message: string
   newPassword?: string
+}
+
+export interface RequestResetRequest {
+  nick: string
+}
+
+export interface RequestResetResponse {
+  message: string
+}
+
+export interface VerifyResetTokenRequest {
+  token: string
+}
+
+export interface VerifyResetTokenResponse {
+  valid: boolean
+  nick: string
+}
+
+export interface ResetPasswordRequest {
+  token: string
+  newPassword: string
+}
+
+export interface ResetPasswordResponse {
+  message: string
+}
+
+export interface UpdateEmailRequest {
+  email: string
+}
+
+export interface UpdateEmailResponse {
+  success: boolean
+  email: string
 }
 
 // Generic responses

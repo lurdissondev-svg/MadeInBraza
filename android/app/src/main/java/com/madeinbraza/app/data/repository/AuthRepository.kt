@@ -15,6 +15,14 @@ import com.madeinbraza.app.data.model.User
 import com.madeinbraza.app.data.model.ChangePasswordRequest
 import com.madeinbraza.app.data.model.ForgotPasswordRequest
 import com.madeinbraza.app.data.model.ForgotPasswordResponse
+import com.madeinbraza.app.data.model.RequestPasswordResetRequest
+import com.madeinbraza.app.data.model.RequestPasswordResetResponse
+import com.madeinbraza.app.data.model.VerifyResetTokenRequest
+import com.madeinbraza.app.data.model.VerifyResetTokenResponse
+import com.madeinbraza.app.data.model.ResetPasswordRequest
+import com.madeinbraza.app.data.model.ResetPasswordResponse
+import com.madeinbraza.app.data.model.UpdateEmailRequest
+import com.madeinbraza.app.data.model.UpdateEmailResponse
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.first
@@ -68,9 +76,9 @@ class AuthRepository @Inject constructor(
         dataStore.edit { it[stayLoggedInKey] = if (value) "true" else "false" }
     }
 
-    suspend fun register(nick: String, password: String, playerClass: PlayerClass): Result<AuthResponse> {
+    suspend fun register(nick: String, password: String, playerClass: PlayerClass, email: String? = null): Result<AuthResponse> {
         return try {
-            val response = api.register(RegisterRequest(nick, password, playerClass))
+            val response = api.register(RegisterRequest(nick, password, playerClass, email))
             if (response.isSuccessful && response.body() != null) {
                 val auth = response.body()!!
                 saveToken(auth.token)
@@ -220,6 +228,68 @@ class AuthRepository @Inject constructor(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = parseErrorMessage(errorBody) ?: "Falha ao recuperar senha"
+                Result.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Result.Error("Erro de conexão. Verifique sua internet.")
+        }
+    }
+
+    suspend fun requestPasswordReset(nick: String): Result<RequestPasswordResetResponse> {
+        return try {
+            val response = api.requestPasswordReset(RequestPasswordResetRequest(nick))
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBody) ?: "Falha ao solicitar recuperacao"
+                Result.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Result.Error("Erro de conexão. Verifique sua internet.")
+        }
+    }
+
+    suspend fun verifyResetToken(token: String): Result<VerifyResetTokenResponse> {
+        return try {
+            val response = api.verifyResetToken(VerifyResetTokenRequest(token))
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBody) ?: "Token invalido ou expirado"
+                Result.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Result.Error("Erro de conexão. Verifique sua internet.")
+        }
+    }
+
+    suspend fun resetPassword(token: String, newPassword: String): Result<ResetPasswordResponse> {
+        return try {
+            val response = api.resetPassword(ResetPasswordRequest(token, newPassword))
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBody) ?: "Falha ao resetar senha"
+                Result.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Result.Error("Erro de conexão. Verifique sua internet.")
+        }
+    }
+
+    suspend fun updateEmail(email: String): Result<UpdateEmailResponse> {
+        val token = getToken() ?: return Result.Error("Nao autenticado")
+        return try {
+            val response = api.updateEmail("Bearer $token", UpdateEmailRequest(email))
+            if (response.isSuccessful && response.body() != null) {
+                invalidateCache() // Refresh user data
+                Result.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = parseErrorMessage(errorBody) ?: "Falha ao atualizar email"
                 Result.Error(errorMessage)
             }
         } catch (e: Exception) {

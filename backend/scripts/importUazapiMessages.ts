@@ -231,7 +231,7 @@ async function main() {
     console.log(`   Ignoradas (duplicadas ou vazias): ${skipped}`);
 
     console.log('\n📌 Próximo passo: Configure o webhook na UAZAPI');
-    console.log(`   URL do webhook: https://braza.lurdisson.com.br/api/webhook/uazapi`);
+    console.log(`   URL do webhook: https://braza.app.br/api/webhook/uazapi`);
 
   } catch (error) {
     console.error('\n❌ Erro:', error);

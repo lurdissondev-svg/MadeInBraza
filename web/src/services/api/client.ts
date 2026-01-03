@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://braza.lurdisson.com.br/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://braza.app.br/api'
 const TOKEN_KEY = 'braza_auth_token'
 
 // Create axios instance

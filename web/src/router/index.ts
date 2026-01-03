@@ -13,6 +13,7 @@ import ChannelsView from '@/views/ChannelsView.vue'
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
 const ForgotPasswordView = () => import('@/views/auth/ForgotPasswordView.vue')
+const ResetPasswordView = () => import('@/views/auth/ResetPasswordView.vue')
 const EventsView = () => import('@/views/EventsView.vue')
 const ChatView = () => import('@/views/ChatView.vue')
 const MemberProfileView = () => import('@/views/MemberProfileView.vue')
@@ -49,6 +50,12 @@ const routes: RouteRecordRaw[] = [
     name: 'forgot-password',
     component: ForgotPasswordView,
     meta: { requiresAuth: false, guestOnly: true }
+  },
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: ResetPasswordView,
+    meta: { requiresAuth: false }
   },
 
   // Pending approval (requires auth but pending status)

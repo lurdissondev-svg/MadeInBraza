@@ -79,6 +79,22 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        OutlinedTextField(
+            value = uiState.email,
+            onValueChange = { viewModel.updateEmail(it) },
+            label = { Text(stringResource(R.string.email_optional)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            modifier = Modifier.fillMaxWidth(),
+            supportingText = { Text(stringResource(R.string.email_recovery_hint)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.secondary
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Text(
             text = stringResource(R.string.select_class),
             style = MaterialTheme.typography.titleMedium,

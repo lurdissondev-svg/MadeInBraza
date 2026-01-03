@@ -2,8 +2,8 @@
 <network-security-config>
     <!-- Production domain (HTTPS) -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">braza.lurdisson.com.br</domain>
-        <domain includeSubdomains="true">lurdisson.com.br</domain>
+        <domain includeSubdomains="true">braza.app.br</domain>
+        <domain includeSubdomains="true">app.br</domain>
     </domain-config>
 
     <!-- Development/local (HTTP allowed) -->

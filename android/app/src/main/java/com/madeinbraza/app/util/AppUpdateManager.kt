@@ -9,8 +9,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import androidx.core.content.FileProvider
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.madeinbraza.app.BuildConfig
+import com.madeinbraza.app.di.dataStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.File
@@ -35,6 +39,29 @@ class AppUpdateManager @Inject constructor() {
         private const val GITHUB_USER = "lurdissondev-svg"
         private const val GITHUB_REPO = "MadeInBraza"
         private const val GITHUB_API_URL = "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/releases/latest"
+
+        // DataStore key for tracking downloaded version
+        private val DOWNLOADED_VERSION_KEY = stringPreferencesKey("downloaded_version")
+    }
+
+    // Track the version that was started for download
+    suspend fun markVersionAsDownloaded(context: Context, versionName: String) {
+        context.dataStore.edit { preferences ->
+            preferences[DOWNLOADED_VERSION_KEY] = versionName
+        }
+    }
+
+    // Check if a version was already downloaded
+    suspend fun wasVersionDownloaded(context: Context, versionName: String): Boolean {
+        val downloadedVersion = context.dataStore.data.first()[DOWNLOADED_VERSION_KEY]
+        return downloadedVersion == versionName
+    }
+
+    // Clear downloaded version tracking (call when update is installed or dismissed permanently)
+    suspend fun clearDownloadedVersion(context: Context) {
+        context.dataStore.edit { preferences ->
+            preferences.remove(DOWNLOADED_VERSION_KEY)
+        }
     }
 
     suspend fun checkForUpdate(): AppUpdate? = withContext(Dispatchers.IO) {
@@ -110,9 +137,25 @@ class AppUpdateManager @Inject constructor() {
     }
 
     fun isUpdateAvailable(update: AppUpdate): Boolean {
-        // Compare using same calculation method for consistency
-        val currentVersionCode = parseVersionCode(BuildConfig.VERSION_NAME)
+        val currentVersionName = BuildConfig.VERSION_NAME
+        val currentVersionCode = parseVersionCode(currentVersionName)
+
+        // First check: if version names are exactly equal, no update needed
+        if (update.versionName == currentVersionName) {
+            return false
+        }
+
+        // Second check: compare version codes
+        // Only show update if remote version is strictly greater
         return update.versionCode > currentVersionCode
+    }
+
+    fun getCurrentVersionName(): String {
+        return BuildConfig.VERSION_NAME
+    }
+
+    fun getCurrentVersionCode(): Int {
+        return parseVersionCode(BuildConfig.VERSION_NAME)
     }
 
     fun downloadAndInstall(context: Context, update: AppUpdate) {

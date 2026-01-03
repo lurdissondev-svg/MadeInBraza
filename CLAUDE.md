@@ -41,7 +41,7 @@ When making ANY change to one platform, you MUST also apply the equivalent chang
 ### Shared Backend
 
 Both platforms use the SAME backend API:
-- Production: `https://braza.lurdisson.com.br/api`
+- Production: `https://braza.app.br/api`
 - Same database, same endpoints, same data
 
 ### Before Completing Any Task

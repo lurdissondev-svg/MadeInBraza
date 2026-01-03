@@ -23,7 +23,10 @@ import com.madeinbraza.app.util.AppUpdate
 import com.madeinbraza.app.util.AppUpdateManager
 import com.madeinbraza.app.util.LanguageManager
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
@@ -62,8 +65,15 @@ class MainActivity : ComponentActivity() {
                 if (triggerUpdateCheck || availableUpdate == null) {
                     val update = appUpdateManager.checkForUpdate()
                     if (update != null && appUpdateManager.isUpdateAvailable(update)) {
-                        availableUpdate = update
-                        showUpdateDialog = true
+                        // Check if this version was already downloaded
+                        val alreadyDownloaded = appUpdateManager.wasVersionDownloaded(
+                            this@MainActivity,
+                            update.versionName
+                        )
+                        if (!alreadyDownloaded) {
+                            availableUpdate = update
+                            showUpdateDialog = true
+                        }
                     }
                     triggerUpdateCheck = false
                 }
@@ -88,6 +98,13 @@ class MainActivity : ComponentActivity() {
                         UpdateDialog(
                             update = availableUpdate!!,
                             onUpdate = {
+                                // Mark version as downloaded to prevent re-showing dialog
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    appUpdateManager.markVersionAsDownloaded(
+                                        this@MainActivity,
+                                        availableUpdate!!.versionName
+                                    )
+                                }
                                 appUpdateManager.downloadAndInstall(this@MainActivity, availableUpdate!!)
                                 showUpdateDialog = false
                                 pendingUpdate = null

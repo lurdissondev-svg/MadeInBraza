@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 const UAZAPI_URL = process.env.UAZAPI_URL || '';
 const UAZAPI_TOKEN = process.env.UAZAPI_TOKEN || '';
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'media');
-const BASE_URL = process.env.BASE_URL || 'https://braza.lurdisson.com.br';
+const BASE_URL = process.env.BASE_URL || 'https://braza.app.br';
 const AVISOS_GROUP_ID = process.env.UAZAPI_AVISOS_GROUP_ID || '';
 
 // Ensure uploads/media directory exists

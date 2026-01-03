@@ -40,14 +40,18 @@
 
     <!-- Forgot Password Dialog -->
     <string name="forgot_password_title">Recuperar Senha</string>
-    <string name="forgot_password_description">Digite seu nick para receber uma nova senha.</string>
+    <string name="forgot_password_description">Digite seu nick para gerar uma nova senha automaticamente.</string>
     <string name="new_password_generated">Sua nova senha é:</string>
     <string name="copy_password_hint">Toque e segure para copiar</string>
+    <string name="email_recovery_toggle">Recuperar por email</string>
+    <string name="email_recovery_description">Enviaremos um link de recuperacao para o email cadastrado na sua conta.</string>
 
     <!-- Register Screen -->
     <string name="register">CADASTRO</string>
     <string name="select_class">Selecione sua Classe</string>
     <string name="class_label">Classe</string>
+    <string name="email_optional">Email (opcional)</string>
+    <string name="email_recovery_hint">Para recuperar senha por email</string>
 
     <!-- Waiting Screen -->
     <string name="waiting_approval">Aguardando Aprovação</string>

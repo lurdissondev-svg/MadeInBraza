@@ -7,7 +7,15 @@ import type {
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   ChangePasswordRequest,
-  SuccessResponse
+  SuccessResponse,
+  RequestResetRequest,
+  RequestResetResponse,
+  VerifyResetTokenRequest,
+  VerifyResetTokenResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+  UpdateEmailRequest,
+  UpdateEmailResponse
 } from '@/types'
 
 export const authApi = {
@@ -36,10 +44,34 @@ export const authApi = {
   },
 
   /**
-   * Reset password (forgot password)
+   * Reset password (forgot password) - Legacy, generates random password
    */
   forgotPassword: async (data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> => {
     const response = await apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', data)
+    return response.data
+  },
+
+  /**
+   * Request password reset via email
+   */
+  requestPasswordReset: async (data: RequestResetRequest): Promise<RequestResetResponse> => {
+    const response = await apiClient.post<RequestResetResponse>('/auth/request-reset', data)
+    return response.data
+  },
+
+  /**
+   * Verify reset token is valid
+   */
+  verifyResetToken: async (data: VerifyResetTokenRequest): Promise<VerifyResetTokenResponse> => {
+    const response = await apiClient.post<VerifyResetTokenResponse>('/auth/verify-reset-token', data)
+    return response.data
+  },
+
+  /**
+   * Reset password with token
+   */
+  resetPassword: async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
+    const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', data)
     return response.data
   },
 
@@ -48,6 +80,14 @@ export const authApi = {
    */
   changePassword: async (data: ChangePasswordRequest): Promise<SuccessResponse> => {
     const response = await apiClient.put<SuccessResponse>('/auth/change-password', data)
+    return response.data
+  },
+
+  /**
+   * Update email (requires auth)
+   */
+  updateEmail: async (data: UpdateEmailRequest): Promise<UpdateEmailResponse> => {
+    const response = await apiClient.put<UpdateEmailResponse>('/auth/update-email', data)
     return response.data
   }
 }
