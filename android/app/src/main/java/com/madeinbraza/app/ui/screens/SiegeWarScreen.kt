@@ -104,12 +104,9 @@ fun SiegeWarScreen(
         }
     }
 
-    // Determine history tab index based on leader status
-    val historyTabIndex = if (uiState.isLeader) 2 else 1
-
-    // Load history when Histórico tab is selected
-    LaunchedEffect(selectedTabIndex, historyTabIndex) {
-        if (selectedTabIndex == historyTabIndex) {
+    // Load history when Histórico tab is selected (leaders only, index 2)
+    LaunchedEffect(selectedTabIndex, uiState.isLeader) {
+        if (uiState.isLeader && selectedTabIndex == 2) {
             viewModel.loadHistory()
         }
     }
@@ -188,12 +185,12 @@ fun SiegeWarScreen(
                                     onClick = { selectedTabIndex = 1 },
                                     text = { Text("Respostas (${uiState.responses.size})") }
                                 )
+                                Tab(
+                                    selected = selectedTabIndex == 2,
+                                    onClick = { selectedTabIndex = 2 },
+                                    text = { Text("Histórico") }
+                                )
                             }
-                            Tab(
-                                selected = selectedTabIndex == historyTabIndex,
-                                onClick = { selectedTabIndex = historyTabIndex },
-                                text = { Text("Histórico") }
-                            )
                         }
 
                         // Content based on selected tab
@@ -383,8 +380,8 @@ fun SiegeWarScreen(
                                     )
                                 }
                             }
-                            selectedTabIndex == historyTabIndex -> {
-                                // History Tab
+                            uiState.isLeader && selectedTabIndex == 2 -> {
+                                // History Tab (leaders only)
                                 HistoryTab(
                                     history = uiState.history,
                                     isLoading = uiState.isLoadingHistory
