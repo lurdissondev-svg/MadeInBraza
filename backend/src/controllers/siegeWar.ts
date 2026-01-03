@@ -111,19 +111,22 @@ export async function submitResponse(
 
     // Validate PILOT response data
     if (responseType === 'PILOT') {
-      if (!pilotingForId) {
-        throw new AppError(400, 'PILOT response requires pilotingForId');
+      if (!preferredClass) {
+        throw new AppError(400, 'PILOT response requires preferredClass');
       }
-      // Verify the user being piloted has a SHARED response
-      const sharedResponse = await prisma.sWResponse.findFirst({
-        where: {
-          siegeWarId,
-          userId: pilotingForId,
-          responseType: 'SHARED',
-        },
-      });
-      if (!sharedResponse) {
-        throw new AppError(400, 'The specified user has not shared their account');
+      // pilotingForId is now optional - leaders will assign accounts later
+      if (pilotingForId) {
+        // If pilotingForId is provided, verify the user being piloted has a SHARED response
+        const sharedResponse = await prisma.sWResponse.findFirst({
+          where: {
+            siegeWarId,
+            userId: pilotingForId,
+            responseType: 'SHARED',
+          },
+        });
+        if (!sharedResponse) {
+          throw new AppError(400, 'The specified user has not shared their account');
+        }
       }
     }
 
