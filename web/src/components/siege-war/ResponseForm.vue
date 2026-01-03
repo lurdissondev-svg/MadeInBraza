@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { SWResponseType, SWTag, PlayerClass, PlayerClassNames, PlayerClassAbbreviations } from '@/types'
-import type { SWUserResponse, AvailableShare, SubmitSWResponseRequest } from '@/types'
+import { SWResponseType, SWTag, PlayerClass, PlayerClassAbbreviations } from '@/types'
+import type { SWUserResponse, SubmitSWResponseRequest } from '@/types'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const props = defineProps<{
   userResponse: SWUserResponse | null
-  availableShares: AvailableShare[]
   isActive: boolean
   submitting: boolean
 }>()
 
 const emit = defineEmits<{
   submit: [data: SubmitSWResponseRequest]
-  loadShares: []
 }>()
 
 // Form state
@@ -22,7 +20,6 @@ const selectedResponseType = ref<SWResponseType | null>(null)
 const gameId = ref('')
 const password = ref('')
 const selectedSharedClass = ref<PlayerClass | null>(null)
-const selectedPilotFor = ref<AvailableShare | null>(null)
 const selectedPreferredClass = ref<PlayerClass | null>(null)
 
 // Initialize form with existing response
@@ -39,13 +36,6 @@ watch(() => props.userResponse, (response) => {
     }
   }
 }, { immediate: true })
-
-// Load shares when PILOT is selected
-watch(() => selectedResponseType.value, (type) => {
-  if (type === SWResponseType.PILOT) {
-    emit('loadShares')
-  }
-})
 
 const tagOptions = [
   { value: SWTag.ATTACK, label: 'ATAQUE' },
@@ -79,7 +69,9 @@ const canSubmit = computed(() => {
   }
 
   if (selectedResponseType.value === SWResponseType.PILOT) {
-    return selectedPilotFor.value && selectedPreferredClass.value
+    // Piloto só precisa escolher a classe preferida
+    // A liderança distribui as contas shared depois
+    return selectedPreferredClass.value
   }
 
   return true
@@ -100,7 +92,7 @@ function handleSubmit() {
   }
 
   if (selectedResponseType.value === SWResponseType.PILOT) {
-    data.pilotingForId = selectedPilotFor.value?.userId
+    // Não envia mais pilotingForId - liderança distribui depois
     data.preferredClass = selectedPreferredClass.value
   }
 
@@ -207,37 +199,8 @@ function handleSubmit() {
 
     <!-- PILOT Fields -->
     <div v-if="selectedResponseType === SWResponseType.PILOT" class="card">
-      <h3 class="font-medium text-gray-100 mb-2">Selecionar Conta para Pilotar</h3>
-      <p class="text-sm text-gray-400 mb-4">Escolha uma conta disponível</p>
-
-      <div v-if="availableShares.length === 0" class="text-gray-400 text-sm">
-        Nenhuma conta disponível para pilotagem no momento
-      </div>
-      <div v-else class="space-y-2 mb-6">
-        <label
-          v-for="share in availableShares"
-          :key="share.userId"
-          class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-          :class="selectedPilotFor?.userId === share.userId ? 'bg-primary-500/20 border border-primary-500' : 'bg-dark-600 border border-transparent hover:bg-dark-500'"
-        >
-          <input
-            type="radio"
-            :value="share"
-            v-model="selectedPilotFor"
-            class="w-4 h-4 text-primary-500 border-gray-600 focus:ring-primary-500 focus:ring-offset-dark-700"
-            :disabled="!isActive"
-          />
-          <div>
-            <span class="text-gray-200">{{ share.nick }}</span>
-            <span v-if="share.sharedClass" class="text-sm text-gray-400 ml-2">
-              ({{ PlayerClassNames[share.sharedClass] }})
-            </span>
-          </div>
-        </label>
-      </div>
-
-      <h4 class="font-medium text-gray-100 mb-2">Classe Preferida *</h4>
-      <p class="text-sm text-gray-400 mb-4">Qual classe você prefere pilotar?</p>
+      <h3 class="font-medium text-gray-100 mb-2">Classe Preferida *</h3>
+      <p class="text-sm text-gray-400 mb-4">Qual classe você prefere pilotar? A liderança vai distribuir as contas depois.</p>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="pc in Object.values(PlayerClass)"

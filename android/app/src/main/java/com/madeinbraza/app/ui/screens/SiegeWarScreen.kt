@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.madeinbraza.app.data.model.AvailableShare
 import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.SWResponseItem
 import com.madeinbraza.app.data.model.SWResponseType
@@ -94,15 +93,7 @@ fun SiegeWarScreen(
     var gameId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var selectedSharedClass by remember { mutableStateOf<PlayerClass?>(null) }
-    var selectedPilotFor by remember { mutableStateOf<AvailableShare?>(null) }
     var selectedPreferredClass by remember { mutableStateOf<PlayerClass?>(null) }
-
-    // Load available shares when PILOT is selected
-    LaunchedEffect(selectedResponseType) {
-        if (selectedResponseType == SWResponseType.PILOT) {
-            viewModel.loadAvailableShares()
-        }
-    }
 
     // Load history when Histórico tab is selected (leaders only, index 2)
     LaunchedEffect(selectedTabIndex, uiState.isLeader) {
@@ -288,32 +279,8 @@ fun SiegeWarScreen(
                                         // PILOT Fields (conditional)
                                         if (selectedResponseType == SWResponseType.PILOT) {
                                             FormSection(
-                                                title = "Selecionar Conta para Pilotar",
-                                                description = "Escolha uma conta disponivel"
-                                            ) {
-                                                if (uiState.availableShares.isEmpty()) {
-                                                    Text(
-                                                        text = "Nenhuma conta disponivel para pilotagem no momento",
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                } else {
-                                                    Column(modifier = Modifier.selectableGroup()) {
-                                                        uiState.availableShares.forEach { share ->
-                                                            RadioOption(
-                                                                text = share.nick,
-                                                                description = share.sharedClass?.let { CLASS_FULL_NAMES[it] },
-                                                                selected = selectedPilotFor == share,
-                                                                onClick = { selectedPilotFor = share }
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                            FormSection(
                                                 title = "Classe Preferida *",
-                                                description = "Qual classe voce prefere pilotar?"
+                                                description = "Qual classe voce prefere pilotar? A lideranca vai distribuir as contas depois."
                                             ) {
                                                 ClassSelectionGrid(
                                                     selectedClass = selectedPreferredClass,
@@ -331,7 +298,7 @@ fun SiegeWarScreen(
                                         val canSubmit = selectedTag != null && selectedResponseType != null &&
                                                 when (selectedResponseType) {
                                                     SWResponseType.SHARED -> gameId.isNotBlank() && password.isNotBlank() && selectedSharedClass != null
-                                                    SWResponseType.PILOT -> selectedPilotFor != null && selectedPreferredClass != null
+                                                    SWResponseType.PILOT -> selectedPreferredClass != null
                                                     else -> true
                                                 }
 
@@ -343,7 +310,7 @@ fun SiegeWarScreen(
                                                     gameId = if (selectedResponseType == SWResponseType.SHARED) gameId else null,
                                                     password = if (selectedResponseType == SWResponseType.SHARED) password else null,
                                                     sharedClass = if (selectedResponseType == SWResponseType.SHARED) selectedSharedClass else null,
-                                                    pilotingForId = if (selectedResponseType == SWResponseType.PILOT) selectedPilotFor?.userId else null,
+                                                    pilotingForId = null, // Liderança distribui depois
                                                     preferredClass = if (selectedResponseType == SWResponseType.PILOT) selectedPreferredClass else null
                                                 )
                                             },

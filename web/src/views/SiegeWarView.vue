@@ -56,10 +56,6 @@ async function handleSubmitResponse(data: SubmitSWResponseRequest) {
   }
 }
 
-async function handleLoadShares() {
-  await siegeWarStore.fetchAvailableShares()
-}
-
 async function handleCloseSiegeWar() {
   await siegeWarStore.closeSiegeWar()
 }
@@ -142,11 +138,9 @@ async function handleCloseSiegeWar() {
           <div v-if="activeTab === 'response'">
             <ResponseForm
               :user-response="siegeWarStore.userResponse"
-              :available-shares="siegeWarStore.availableShares"
               :is-active="siegeWarStore.siegeWar.isActive"
               :submitting="siegeWarStore.submitting"
               @submit="handleSubmitResponse"
-              @load-shares="handleLoadShares"
             />
           </div>
 
