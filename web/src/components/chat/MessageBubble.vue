@@ -19,6 +19,7 @@ const isLeader = computed(() => props.message.user.role === Role.LEADER)
 const isEditing = ref(false)
 const editContent = ref('')
 const showActions = ref(false)
+const showDeleteModal = ref(false)
 
 function startEdit() {
   editContent.value = props.message.content || ''
@@ -38,11 +39,18 @@ function saveEdit() {
   isEditing.value = false
 }
 
-function confirmDelete() {
-  if (confirm('Tem certeza que deseja excluir esta mensagem?')) {
-    emit('delete', props.message.id)
-  }
+function openDeleteModal() {
   showActions.value = false
+  showDeleteModal.value = true
+}
+
+function confirmDelete() {
+  emit('delete', props.message.id)
+  showDeleteModal.value = false
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
 }
 
 // Track if avatar image failed to load
@@ -207,7 +215,7 @@ function openFullImage() {
               Editar
             </button>
             <button
-              @click="confirmDelete"
+              @click="openDeleteModal"
               class="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-dark-500 flex items-center gap-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,6 +226,58 @@ function openFullImage() {
           </div>
         </div>
       </div>
+
+    <!-- Delete Confirmation Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showDeleteModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <!-- Backdrop -->
+        <div
+          class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          @click="cancelDelete"
+        ></div>
+
+        <!-- Modal -->
+        <div class="relative bg-dark-700 border border-dark-500 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+          <!-- Icon -->
+          <div class="flex justify-center mb-4">
+            <div class="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <h3 class="text-lg font-semibold text-gray-100 text-center mb-2">
+            Excluir mensagem
+          </h3>
+
+          <!-- Message -->
+          <p class="text-gray-400 text-center text-sm mb-6">
+            Tem certeza que deseja excluir esta mensagem? Esta acao nao pode ser desfeita.
+          </p>
+
+          <!-- Buttons -->
+          <div class="flex gap-3">
+            <button
+              @click="cancelDelete"
+              class="flex-1 px-4 py-2.5 bg-dark-600 hover:bg-dark-500 text-gray-300 rounded-xl font-medium transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="confirmDelete"
+              class="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
+            >
+              Excluir
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
       <!-- Message bubble -->
     <div
