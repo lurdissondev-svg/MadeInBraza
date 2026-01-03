@@ -418,24 +418,12 @@ fun SiegeWarScreen(
 private fun FormHeader(siegeWar: SiegeWar) {
     val eventDate = try {
         val zonedDateTime = ZonedDateTime.parse(siegeWar.weekEnd)
-        // Convert to local timezone first
+        // Convert to local timezone - weekEnd is already Sunday 23:59:59
         val localDateTime = zonedDateTime.withZoneSameInstant(java.time.ZoneId.systemDefault())
-        // Find the Sunday of this week (weekEnd is Monday early morning, so go back to previous Sunday)
-        val dayOfWeek = localDateTime.dayOfWeek
-        val daysToSubtract = when (dayOfWeek) {
-            java.time.DayOfWeek.MONDAY -> 1L
-            java.time.DayOfWeek.TUESDAY -> 2L
-            java.time.DayOfWeek.WEDNESDAY -> 3L
-            java.time.DayOfWeek.THURSDAY -> 4L
-            java.time.DayOfWeek.FRIDAY -> 5L
-            java.time.DayOfWeek.SATURDAY -> 6L
-            java.time.DayOfWeek.SUNDAY -> 0L
-        }
-        val sundayDateTime = localDateTime.minusDays(daysToSubtract)
         val dayOfWeekFormatter = DateTimeFormatter.ofPattern("EEEE", Locale("pt", "BR"))
         val dateFormatter = DateTimeFormatter.ofPattern("dd/MM", Locale("pt", "BR"))
-        val dayName = sundayDateTime.format(dayOfWeekFormatter).replaceFirstChar { it.uppercase() }
-        "$dayName, ${sundayDateTime.format(dateFormatter)}"
+        val dayName = localDateTime.format(dayOfWeekFormatter).replaceFirstChar { it.uppercase() }
+        "$dayName, ${localDateTime.format(dateFormatter)}"
     } catch (e: Exception) {
         siegeWar.weekEnd
     }
@@ -1146,20 +1134,10 @@ private fun HistoryTab(
 private fun HistoryItemCard(siegeWar: SiegeWarHistoryItem) {
     val eventDate = try {
         val zonedDateTime = ZonedDateTime.parse(siegeWar.weekEnd)
+        // weekEnd is already Sunday 23:59:59
         val localDateTime = zonedDateTime.withZoneSameInstant(java.time.ZoneId.systemDefault())
-        val dayOfWeek = localDateTime.dayOfWeek
-        val daysToSubtract = when (dayOfWeek) {
-            java.time.DayOfWeek.MONDAY -> 1L
-            java.time.DayOfWeek.TUESDAY -> 2L
-            java.time.DayOfWeek.WEDNESDAY -> 3L
-            java.time.DayOfWeek.THURSDAY -> 4L
-            java.time.DayOfWeek.FRIDAY -> 5L
-            java.time.DayOfWeek.SATURDAY -> 6L
-            java.time.DayOfWeek.SUNDAY -> 0L
-        }
-        val sundayDateTime = localDateTime.minusDays(daysToSubtract)
         val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("pt", "BR"))
-        "Domingo, ${sundayDateTime.format(dateFormatter)}"
+        "Domingo, ${localDateTime.format(dateFormatter)}"
     } catch (e: Exception) {
         siegeWar.weekEnd
     }

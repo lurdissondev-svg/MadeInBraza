@@ -21,10 +21,8 @@ function toggleExpand(id: string) {
 
 function formatDate(weekEnd: string): string {
   try {
+    // weekEnd is already Sunday 23:59:59
     const date = new Date(weekEnd)
-    const day = date.getDay()
-    const daysToSubtract = day === 0 ? 0 : day
-    date.setDate(date.getDate() - daysToSubtract)
     return `Domingo, ${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
   } catch {
     return weekEnd

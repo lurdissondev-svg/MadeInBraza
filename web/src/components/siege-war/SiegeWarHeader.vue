@@ -7,12 +7,8 @@ defineProps<{
 
 function formatDate(weekEnd: string): string {
   try {
+    // weekEnd is already Sunday 23:59:59
     const date = new Date(weekEnd)
-    // Go back to Sunday (weekEnd is Monday early morning)
-    const day = date.getDay()
-    const daysToSubtract = day === 0 ? 0 : day
-    date.setDate(date.getDate() - daysToSubtract)
-
     const dayName = date.toLocaleDateString('pt-BR', { weekday: 'long' })
     const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${dateStr}`
