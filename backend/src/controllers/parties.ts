@@ -3,6 +3,7 @@ import { prisma } from '../utils/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { notifyPartyMembers } from '../services/notification.js';
 import { createPartyChannel } from './channel.js';
+import { PlayerClass } from '@prisma/client';
 
 // Helper to transform party with slots for response
 function transformPartyResponse(party: any) {
@@ -117,7 +118,7 @@ export async function createGlobalParty(
       throw new AppError(400, 'Creator must choose a valid class slot to occupy');
     }
 
-    const slotEntries: { playerClass: string | null; count: number }[] = [];
+    const slotEntries: { playerClass: PlayerClass | null; count: number }[] = [];
     let totalSlots = 0;
     let creatorClassExists = false;
 
@@ -130,7 +131,7 @@ export async function createGlobalParty(
         throw new AppError(400, 'Slot count must be between 1 and 10');
       }
       // Convert "FREE" to null for database storage
-      const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass;
+      const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass as PlayerClass;
       slotEntries.push({ playerClass: dbPlayerClass, count });
       totalSlots += count;
       if (slot.playerClass === creatorSlotClass) {
@@ -272,7 +273,7 @@ export async function createParty(
       throw new AppError(400, 'Creator must choose a valid class slot to occupy');
     }
 
-    const slotEntries: { playerClass: string | null; count: number }[] = [];
+    const slotEntries: { playerClass: PlayerClass | null; count: number }[] = [];
     let totalSlots = 0;
     let creatorClassExists = false;
 
@@ -285,7 +286,7 @@ export async function createParty(
         throw new AppError(400, 'Slot count must be between 1 and 10');
       }
       // Convert "FREE" to null for database storage
-      const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass;
+      const dbPlayerClass = slot.playerClass === 'FREE' ? null : slot.playerClass as PlayerClass;
       slotEntries.push({ playerClass: dbPlayerClass, count });
       totalSlots += count;
       if (slot.playerClass === creatorSlotClass) {
@@ -502,13 +503,13 @@ export async function joinParty(
       'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
     ];
 
-    let filledAsClass: string | null = null;
+    let filledAsClass: PlayerClass | null = null;
     if (slot.playerClass === null) {
       // FREE slot - must select a class
       if (!selectedClass || !validClasses.includes(selectedClass)) {
         throw new AppError(400, 'Must select a valid class for FREE slots');
       }
-      filledAsClass = selectedClass;
+      filledAsClass = selectedClass as PlayerClass;
     }
 
     // Fill the slot

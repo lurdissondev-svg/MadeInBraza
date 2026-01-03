@@ -215,15 +215,6 @@ export async function changePassword(
   }
 }
 
-function generateRandomPassword(length: number = 8): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let password = '';
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
 // Request password reset - sends email with reset link
 export async function requestPasswordReset(
   req: Request,
@@ -379,7 +370,8 @@ export async function resetPasswordWithToken(
   }
 }
 
-// Legacy forgotPassword - generates random password (fallback when email not configured)
+// Legacy forgotPassword - now redirects to secure email flow
+// SECURITY FIX: Removed insecure password generation that returned password in response
 export async function forgotPassword(
   req: Request,
   res: Response,
@@ -393,31 +385,51 @@ export async function forgotPassword(
     });
 
     if (!user) {
-      throw new AppError(404, 'Usuario nao encontrado');
+      // Don't reveal if user exists
+      res.json({
+        message: 'Se o usuario existir e tiver email cadastrado, um link sera enviado.',
+        requiresEmail: true,
+      });
+      return;
     }
 
     if (user.status === 'BANNED') {
       throw new AppError(403, 'Esta conta foi banida');
     }
 
-    // If user has email and email is configured, redirect to email flow
-    if (user.email && isEmailConfigured()) {
-      throw new AppError(400, 'Use a opcao "Recuperar por email" para este usuario.');
+    // SECURITY: Always require email for password recovery
+    if (!user.email) {
+      throw new AppError(400, 'Este usuario nao possui email cadastrado. Entre em contato com um lider para cadastrar seu email.');
     }
 
-    // Generate a new random password
-    const newPassword = generateRandomPassword(8);
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    // Generate secure token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    // Update the password in the database
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash: newPasswordHash },
+    // Delete any existing tokens for this user
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
     });
 
+    // Create new reset token
+    await prisma.passwordResetToken.create({
+      data: {
+        token: resetToken,
+        userId: user.id,
+        expiresAt,
+      },
+    });
+
+    // Send email
+    const emailSent = await sendPasswordResetEmail(user.email, user.nick, resetToken);
+
+    if (!emailSent) {
+      throw new AppError(500, 'Erro ao enviar email. Tente novamente mais tarde.');
+    }
+
     res.json({
-      message: 'Senha resetada com sucesso!',
-      newPassword,
+      message: 'Email de recuperacao enviado! Verifique sua caixa de entrada.',
+      requiresEmail: true,
     });
   } catch (err) {
     next(err);
