@@ -33,18 +33,23 @@ onMounted(() => {
   document.addEventListener('touchstart', handleUserInteraction)
 })
 
-// Initialize notifications when user is loaded
+// Watch for user changes - start/stop polling
 watch(
   () => authStore.user,
   (user) => {
     if (user) {
-      notificationsStore.init()
+      // Start polling when user is loaded (every 30 seconds)
+      notificationsStore.startPolling(30000)
+    } else {
+      // Stop polling when user logs out
+      notificationsStore.stopPolling()
     }
   },
   { immediate: true }
 )
 
 onUnmounted(() => {
+  notificationsStore.cleanup()
   document.removeEventListener('click', handleUserInteraction)
   document.removeEventListener('keydown', handleUserInteraction)
   document.removeEventListener('touchstart', handleUserInteraction)
