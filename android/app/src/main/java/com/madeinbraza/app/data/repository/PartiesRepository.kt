@@ -99,7 +99,7 @@ class PartiesRepository @Inject constructor(
         }
     }
 
-    suspend fun joinParty(partyId: String, slotId: String, selectedClass: String? = null): Result<Party> {
+    suspend fun joinParty(partyId: String, slotId: String? = null, selectedClass: String? = null): Result<Party> {
         val token = getToken() ?: return Result.Error("Not authenticated")
         return try {
             val response = api.joinParty("Bearer $token", partyId, JoinPartyRequest(slotId = slotId, selectedClass = selectedClass))

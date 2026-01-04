@@ -133,11 +133,12 @@ export const usePartiesStore = defineStore('parties', () => {
     }
   }
 
-  async function joinParty(id: string, slotId: string, selectedClass?: string, eventId?: string): Promise<boolean> {
+  async function joinParty(id: string, eventId?: string): Promise<boolean> {
     error.value = null
 
     try {
-      const updatedParty = await partiesApi.joinParty(id, { slotId, selectedClass })
+      // Backend will automatically find the right slot based on user's class
+      const updatedParty = await partiesApi.joinParty(id, {})
 
       // Update in global parties
       const globalIndex = globalParties.value.findIndex(p => p.id === id)

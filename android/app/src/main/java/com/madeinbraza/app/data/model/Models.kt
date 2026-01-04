@@ -306,8 +306,8 @@ data class CreatePartyResponse(
 )
 
 data class JoinPartyRequest(
-    val slotId: String,
-    val selectedClass: String? = null // Required for FREE slots
+    val slotId: String? = null, // Optional - backend will auto-find slot for user's class
+    val selectedClass: String? = null // No longer used - backend uses user's registered class
 )
 
 data class JoinPartyResponse(

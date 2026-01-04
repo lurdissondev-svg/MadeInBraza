@@ -3,6 +3,7 @@ package com.madeinbraza.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.madeinbraza.app.data.model.Party
+import com.madeinbraza.app.data.model.PlayerClass
 import com.madeinbraza.app.data.model.SlotRequest
 import com.madeinbraza.app.data.repository.AuthRepository
 import com.madeinbraza.app.data.repository.PartiesRepository
@@ -23,6 +24,7 @@ data class GlobalPartiesUiState(
     val error: String? = null,
     val actionInProgress: String? = null,
     val currentUserId: String? = null,
+    val userClass: PlayerClass? = null,
     val isLeader: Boolean = false,
     val isCounselor: Boolean = false,
     val canSkipJoining: Boolean = false, // LEADER or COUNSELOR can create party without joining
@@ -56,6 +58,7 @@ class GlobalPartiesViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     currentUserId = user.id,
+                    userClass = user.playerClass,
                     isLeader = isLeader,
                     isCounselor = isCounselor,
                     canSkipJoining = isLeader || isCounselor
@@ -73,6 +76,7 @@ class GlobalPartiesViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             currentUserId = result.data.id,
+                            userClass = result.data.playerClass,
                             isLeader = isLeader,
                             isCounselor = isCounselor,
                             canSkipJoining = isLeader || isCounselor
@@ -159,11 +163,12 @@ class GlobalPartiesViewModel @Inject constructor(
         _uiState.update { it.copy(partyToJoin = null) }
     }
 
-    fun joinParty(partyId: String, slotId: String, selectedClass: String? = null) {
+    fun joinParty(partyId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isJoining = true, actionInProgress = partyId) }
 
-            when (val result = partiesRepository.joinParty(partyId, slotId, selectedClass)) {
+            // Backend will automatically find the right slot based on user's class
+            when (val result = partiesRepository.joinParty(partyId, null, null)) {
                 is Result.Success -> {
                     // Update party with the returned data from API
                     _uiState.update { state ->
@@ -182,6 +187,7 @@ class GlobalPartiesViewModel @Inject constructor(
                         it.copy(
                             isJoining = false,
                             actionInProgress = null,
+                            partyToJoin = null,
                             error = result.message
                         )
                     }

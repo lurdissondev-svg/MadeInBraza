@@ -308,8 +308,8 @@ export interface CreatePartyRequest {
 }
 
 export interface JoinPartyRequest {
-  slotId: string
-  selectedClass?: string // Required for FREE slots
+  slotId?: string // Optional - backend will auto-find slot for user's class
+  selectedClass?: string // No longer used - backend uses user's registered class
 }
 
 export interface UpdatePartyRequest {

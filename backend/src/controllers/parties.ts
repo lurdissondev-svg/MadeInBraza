@@ -482,11 +482,17 @@ export async function joinParty(
 ): Promise<void> {
   try {
     const { partyId } = req.params;
-    const { slotId, selectedClass } = req.body;
+    const { slotId } = req.body;
     const userId = req.user!.userId;
 
-    if (!slotId) {
-      throw new AppError(400, 'Slot ID is required');
+    // Get user's player class
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { playerClass: true, nick: true },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'User not found');
     }
 
     const party = await prisma.party.findUnique({
@@ -511,34 +517,46 @@ export async function joinParty(
       throw new AppError(400, 'Already a member of this party');
     }
 
-    // Find the requested slot
-    const slot = party.slots.find(s => s.id === slotId);
-    if (!slot) {
-      throw new AppError(404, 'Slot not found');
+    // If slotId is provided, validate that specific slot
+    // Otherwise, find an available slot that matches user's class
+    let slot;
+    if (slotId) {
+      slot = party.slots.find(s => s.id === slotId);
+      if (!slot) {
+        throw new AppError(404, 'Slot not found');
+      }
+      if (slot.filledById) {
+        throw new AppError(400, 'Slot is already filled');
+      }
+      // Validate that the slot matches user's class or is FREE
+      if (slot.playerClass !== null && slot.playerClass !== user.playerClass) {
+        throw new AppError(400, `Você só pode entrar em slots da sua classe (${user.playerClass}) ou slots livres`);
+      }
+    } else {
+      // Find first available slot that matches user's class
+      slot = party.slots.find(s =>
+        !s.filledById && s.playerClass === user.playerClass
+      );
+
+      // If no class-specific slot, try FREE slot
+      if (!slot) {
+        slot = party.slots.find(s => !s.filledById && s.playerClass === null);
+      }
+
+      if (!slot) {
+        throw new AppError(400, `Não há vaga disponível para sua classe (${user.playerClass})`);
+      }
     }
 
-    if (slot.filledById) {
-      throw new AppError(400, 'Slot is already filled');
-    }
-
-    // For FREE slots (playerClass is null), selectedClass is required
-    const validClasses = [
-      'ASSASSIN', 'BRAWLER', 'ATALANTA', 'PIKEMAN', 'FIGHTER',
-      'MECHANIC', 'KNIGHT', 'PRIESTESS', 'SHAMAN', 'MAGE', 'ARCHER'
-    ];
-
+    // For FREE slots (playerClass is null), store the user's actual class
     let filledAsClass: PlayerClass | null = null;
     if (slot.playerClass === null) {
-      // FREE slot - must select a class
-      if (!selectedClass || !validClasses.includes(selectedClass)) {
-        throw new AppError(400, 'Must select a valid class for FREE slots');
-      }
-      filledAsClass = selectedClass as PlayerClass;
+      filledAsClass = user.playerClass;
     }
 
     // Fill the slot
     await prisma.partySlot.update({
-      where: { id: slotId },
+      where: { id: slot.id },
       data: {
         filledById: userId,
         filledAsClass: filledAsClass,

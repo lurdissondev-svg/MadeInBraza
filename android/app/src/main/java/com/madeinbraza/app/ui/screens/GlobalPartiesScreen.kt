@@ -81,9 +81,10 @@ fun GlobalPartiesScreen(
     uiState.partyToJoin?.let { party ->
         JoinPartyDialog(
             party = party,
+            userClass = uiState.userClass,
             isJoining = uiState.actionInProgress == party.id,
             onDismiss = { viewModel.hideJoinDialog() },
-            onJoin = { slotId, selectedClass -> viewModel.joinParty(party.id, slotId, selectedClass) }
+            onJoin = { viewModel.joinParty(party.id) }
         )
     }
 
@@ -462,13 +463,11 @@ private fun rememberScrollState() = androidx.compose.foundation.rememberScrollSt
 @Composable
 fun JoinPartyDialog(
     party: Party,
+    userClass: PlayerClass?,
     isJoining: Boolean,
     onDismiss: () -> Unit,
-    onJoin: (String, String?) -> Unit
+    onJoin: () -> Unit
 ) {
-    var selectedSlotId by remember { mutableStateOf<String?>(null) }
-    var selectedClass by remember { mutableStateOf<PlayerClass?>(null) }
-
     // Group available slots by class (null = FREE slot)
     val availableSlotsByClass = remember(party.slots) {
         party.slots
@@ -476,19 +475,12 @@ fun JoinPartyDialog(
             .groupBy { it.playerClass }
     }
 
-    // Check if selected slot is FREE
-    val selectedSlotIsFree = remember(selectedSlotId, party.slots) {
-        selectedSlotId?.let { slotId ->
-            party.slots.find { it.id == slotId }?.playerClass == null
-        } ?: false
-    }
+    // Check if user can join (has slot for their class or FREE slot)
+    val hasSlotForUserClass = userClass != null && availableSlotsByClass.containsKey(userClass)
+    val hasFreeSlot = availableSlotsByClass.containsKey(null)
+    val canJoin = hasSlotForUserClass || hasFreeSlot
 
-    // Reset selected class when slot changes
-    LaunchedEffect(selectedSlotId) {
-        selectedClass = null
-    }
-
-    val canJoin = selectedSlotId != null && (!selectedSlotIsFree || selectedClass != null)
+    val userClassName = userClass?.let { CLASS_DISPLAY_NAMES[it] ?: it.name } ?: "Desconhecida"
 
     AlertDialog(
         onDismissRequest = { if (!isJoining) onDismiss() },
@@ -504,118 +496,117 @@ fun JoinPartyDialog(
         },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                // Show user's class
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Sua classe:",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = userClassName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
                 Text(
-                    text = "Selecione a vaga que deseja ocupar:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    text = "Vagas disponíveis:",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
 
                 availableSlotsByClass.forEach { (playerClass, slots) ->
                     val isFreeSlot = playerClass == null
-                    val displayName = if (isFreeSlot) "Livre (escolha sua classe)" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass!!.name
+                    val displayName = if (isFreeSlot) "Livre" else CLASS_DISPLAY_NAMES[playerClass] ?: playerClass!!.name
+                    val isUserClass = playerClass == userClass
+                    val availableCount = slots.size
 
-                    slots.forEachIndexed { index, slot ->
-                        val isSelected = selectedSlotId == slot.id
-                        Card(
-                            onClick = { selectedSlotId = slot.id },
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when {
+                                isUserClass -> MaterialTheme.colorScheme.primaryContainer
+                                isFreeSlot -> MaterialTheme.colorScheme.tertiaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        )
+                    ) {
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected)
-                                    MaterialTheme.colorScheme.primaryContainer
-                                else if (isFreeSlot)
-                                    MaterialTheme.colorScheme.tertiaryContainer
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant
-                            )
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = displayName,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = if (isFreeSlot) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = if (isFreeSlot) FontWeight.Medium else FontWeight.Normal
+                                    fontWeight = if (isUserClass || isFreeSlot) FontWeight.Medium else FontWeight.Normal
                                 )
-                                if (slots.size > 1) {
-                                    Text(
-                                        text = "(${index + 1}/${slots.size})",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                if (isSelected) {
+                                if (isUserClass) {
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Icon(
                                         Icons.Filled.Person,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
+                            Text(
+                                text = "$availableCount vaga${if (availableCount > 1) "s" else ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
 
-                // Class selector for FREE slots
-                if (selectedSlotIsFree) {
+                if (!canJoin) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            containerColor = MaterialTheme.colorScheme.errorContainer
                         )
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "Escolha qual classe você vai jogar:",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(3),
-                                modifier = Modifier.height(200.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                items(PlayerClass.entries.toList()) { pc ->
-                                    val isClassSelected = selectedClass == pc
-                                    Card(
-                                        onClick = { selectedClass = pc },
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = if (isClassSelected)
-                                                MaterialTheme.colorScheme.primary
-                                            else
-                                                MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(8.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = CLASS_ABBREVIATIONS[pc] ?: pc.name,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = if (isClassSelected)
-                                                    MaterialTheme.colorScheme.onPrimary
-                                                else
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        Text(
+                            text = "Não há vaga disponível para sua classe ($userClassName).",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(12.dp)
+                        )
                     }
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = if (hasSlotForUserClass)
+                            "Você entrará na vaga de $userClassName."
+                        else
+                            "Você entrará na vaga Livre como $userClassName.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 if (availableSlotsByClass.isEmpty()) {
@@ -630,7 +621,7 @@ fun JoinPartyDialog(
         },
         confirmButton = {
             Button(
-                onClick = { selectedSlotId?.let { onJoin(it, selectedClass?.name) } },
+                onClick = onJoin,
                 enabled = canJoin && !isJoining
             ) {
                 if (isJoining) {
