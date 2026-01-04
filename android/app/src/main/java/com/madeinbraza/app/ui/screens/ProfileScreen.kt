@@ -672,6 +672,18 @@ fun ProfileScreen(
                                 Text(stringResource(R.string.banned_users))
                             }
                         }
+
+                        // App version info (at the very bottom)
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Text(
+                            text = "Versão ${BuildConfig.VERSION_NAME}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }

@@ -1,11 +1,15 @@
 package com.madeinbraza.app
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
@@ -17,11 +21,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.madeinbraza.app.ui.BrazaNavHost
 import com.madeinbraza.app.ui.NotificationNavigation
+import com.madeinbraza.app.ui.components.DownloadProgressDialog
 import com.madeinbraza.app.ui.components.UpdateDialog
 import com.madeinbraza.app.ui.theme.BrazaTheme
 import com.madeinbraza.app.util.AppUpdate
 import com.madeinbraza.app.util.AppUpdateManager
 import com.madeinbraza.app.util.LanguageManager
+import com.madeinbraza.app.util.UpdateDownloadState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +65,30 @@ class MainActivity : ComponentActivity() {
             val languageCode by LanguageManager.getLanguageFlow(this).collectAsState(initial = "pt")
             var availableUpdate by remember { mutableStateOf<AppUpdate?>(null) }
             var showUpdateDialog by remember { mutableStateOf(false) }
+            val downloadState by appUpdateManager.downloadState.collectAsState()
+
+            // Notification permission launcher
+            val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                // Permission result handled - mark version as seen
+                CoroutineScope(Dispatchers.IO).launch {
+                    appUpdateManager.markCurrentVersionAsSeen(this@MainActivity)
+                }
+            }
+
+            // Check for first run after install/update and request notification permission
+            LaunchedEffect(Unit) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val isFirstRun = appUpdateManager.isFirstRunAfterInstallOrUpdate(this@MainActivity)
+                    if (isFirstRun) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                } else {
+                    // For older Android versions, just mark as seen
+                    appUpdateManager.markCurrentVersionAsSeen(this@MainActivity)
+                }
+            }
 
             // Check for updates on app start or when triggered by notification
             LaunchedEffect(Unit, triggerUpdateCheck) {
@@ -113,6 +143,16 @@ class MainActivity : ComponentActivity() {
                                 showUpdateDialog = false
                                 // Keep the update available for the banner
                                 pendingUpdate = availableUpdate
+                            }
+                        )
+                    }
+
+                    // Download progress dialog
+                    if (downloadState !is UpdateDownloadState.Idle) {
+                        DownloadProgressDialog(
+                            downloadState = downloadState,
+                            onDismiss = {
+                                appUpdateManager.resetDownloadState()
                             }
                         )
                     }

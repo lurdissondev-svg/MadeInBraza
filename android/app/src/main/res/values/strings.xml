@@ -278,4 +278,11 @@
     <string name="update_whats_new">O que há de novo:</string>
     <string name="update_now">Atualizar Agora</string>
     <string name="update_later">Depois</string>
+    <string name="downloading_update">Baixando atualização...</string>
+    <string name="download_progress">Baixando: %1$d%%</string>
+    <string name="download_complete">Download concluído!</string>
+    <string name="installing_update">Instalando atualização...</string>
+    <string name="update_success">App atualizado com sucesso!</string>
+    <string name="update_failed">Falha ao baixar atualização</string>
+    <string name="version_label">Versão %1$s</string>
 </resources>

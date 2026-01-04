@@ -292,6 +292,11 @@ async function handleDeleteAvatar() {
             </svg>
             Sair da Conta
           </button>
+
+          <!-- App version info -->
+          <p class="text-center text-xs text-gray-500 mt-6">
+            Versão Web
+          </p>
         </div>
       </template>
     </div>
