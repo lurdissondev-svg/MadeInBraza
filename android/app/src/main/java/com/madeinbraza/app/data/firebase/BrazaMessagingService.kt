@@ -23,6 +23,7 @@ class BrazaMessagingService : FirebaseMessagingService() {
         const val CHANNEL_EVENTS = "braza_events"
         const val CHANNEL_GENERAL = "braza_general"
         const val CHANNEL_UPDATES = "braza_updates"
+        const val CHANNEL_PARTIES = "braza_parties"
 
         // Notification types from backend
         const val TYPE_CHANNEL_MESSAGE = "channel_message"
@@ -32,6 +33,11 @@ class BrazaMessagingService : FirebaseMessagingService() {
         const val TYPE_SIEGE_WAR = "siege_war"
         const val TYPE_APP_UPDATE = "app_update"
         const val TYPE_PENDING_APPROVAL = "pending_approval"
+
+        // Stable notification IDs to prevent duplicates
+        private const val NOTIFICATION_ID_PARTY = 100
+        private const val NOTIFICATION_ID_ANNOUNCEMENT = 200
+        private const val NOTIFICATION_ID_PENDING = 300
     }
 
     override fun onNewToken(token: String) {
@@ -167,6 +173,7 @@ class BrazaMessagingService : FirebaseMessagingService() {
     private fun handlePartyNotification(data: Map<String, String>) {
         val partyName = data["partyName"] ?: "Party"
         val action = data["action"] ?: "update"
+        val partyId = data["partyId"]
 
         val title = when (action) {
             "new" -> "Nova party criada"
@@ -175,12 +182,33 @@ class BrazaMessagingService : FirebaseMessagingService() {
             else -> "Atualização de party"
         }
 
-        showSimpleNotification(
-            title = title,
-            body = partyName,
-            navigateTo = "parties",
-            channelId = CHANNEL_GENERAL
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("navigateTo", "parties")
+            partyId?.let { putExtra("partyId", it) }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            NOTIFICATION_ID_PARTY,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+
+        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_PARTIES)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(partyName)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(partyName))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_SOCIAL)
+            .setColor(Color.parseColor("#4CAF50")) // Green for parties
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        // Use stable ID to replace existing party notifications
+        notificationManager.notify(NOTIFICATION_ID_PARTY, notificationBuilder.build())
     }
 
     private fun handleSiegeWarNotification(data: Map<String, String>) {
@@ -357,8 +385,20 @@ class BrazaMessagingService : FirebaseMessagingService() {
                 enableVibration(true)
             }
 
+            // Parties channel - high importance for party notifications
+            val partiesChannel = NotificationChannel(
+                CHANNEL_PARTIES,
+                "Parties",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notificações de parties (PTs)"
+                enableLights(true)
+                lightColor = Color.parseColor("#4CAF50")
+                enableVibration(true)
+            }
+
             notificationManager.createNotificationChannels(
-                listOf(messagesChannel, eventsChannel, generalChannel, updatesChannel)
+                listOf(messagesChannel, eventsChannel, generalChannel, updatesChannel, partiesChannel)
             )
         }
     }

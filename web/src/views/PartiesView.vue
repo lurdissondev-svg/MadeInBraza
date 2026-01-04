@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePartiesStore } from '@/stores/parties'
+import { useNotificationsStore } from '@/stores/notifications'
 import type { Party } from '@/types'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import PartyCard from '@/components/parties/PartyCard.vue'
@@ -13,6 +14,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const authStore = useAuthStore()
 const partiesStore = usePartiesStore()
+const notificationsStore = useNotificationsStore()
 
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
@@ -23,6 +25,8 @@ const partyToDelete = ref<string | null>(null)
 
 onMounted(() => {
   partiesStore.fetchGlobalParties()
+  // Clear new parties notification when viewing the parties page
+  notificationsStore.clearNewPartiesCount()
 })
 
 function handleRefresh() {

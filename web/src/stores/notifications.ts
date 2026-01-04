@@ -252,6 +252,22 @@ export const useNotificationsStore = defineStore('notifications', () => {
   // Clear new parties count (called when user views parties page)
   function clearNewPartiesCount() {
     newPartiesCount.value = 0
+
+    // Update known party IDs with current parties to prevent re-notification
+    const currentParties = partiesStore.globalParties
+    if (currentParties.length > 0) {
+      const currentPartyIds = new Set(currentParties.map(p => p.id))
+      lastKnownPartyIds.value = currentPartyIds
+
+      // Save to localStorage for persistence
+      if (authStore.user?.id) {
+        localStorage.setItem(
+          `${LAST_PARTY_CHECK_KEY}_${authStore.user.id}`,
+          JSON.stringify([...currentPartyIds])
+        )
+      }
+    }
+
     updateDocumentTitle()
   }
 

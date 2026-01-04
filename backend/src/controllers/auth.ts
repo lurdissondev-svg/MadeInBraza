@@ -197,9 +197,21 @@ export async function registerFcmToken(
 ): Promise<void> {
   try {
     const { fcmToken } = fcmTokenSchema.parse(req.body);
+    const currentUserId = req.user!.userId;
 
+    // First, clear this token from any other user to prevent duplicate notifications
+    // This handles the case where logout failed on the previous account
+    await prisma.user.updateMany({
+      where: {
+        fcmToken: fcmToken,
+        id: { not: currentUserId },
+      },
+      data: { fcmToken: null },
+    });
+
+    // Now register the token to the current user
     await prisma.user.update({
-      where: { id: req.user!.userId },
+      where: { id: currentUserId },
       data: { fcmToken },
     });
 
