@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.madeinbraza.app.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -609,11 +610,16 @@ fun AnnouncementCard(
             if (announcement.mediaUrl != null) {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                when (announcement.mediaType) {
-                    "image" -> {
+                // Verifica o tipo de mídia (suporta formatos como "image" ou "image/jpeg")
+                val isImage = announcement.mediaType?.contains("image", ignoreCase = true) == true
+                val isVideo = announcement.mediaType?.contains("video", ignoreCase = true) == true
+                val isAudio = announcement.mediaType?.contains("audio", ignoreCase = true) == true
+
+                when {
+                    isImage -> {
                         // Exibe a imagem diretamente
                         AsyncImage(
-                            model = announcement.mediaUrl,
+                            model = announcement.fullMediaUrl,
                             contentDescription = "Imagem do anúncio",
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -632,10 +638,9 @@ fun AnnouncementCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                val mediaLabel = when (announcement.mediaType) {
-                                    "video" -> "🎥 Vídeo"
-                                    "audio" -> "🎵 Áudio"
-                                    "document" -> "📄 Documento"
+                                val mediaLabel = when {
+                                    isVideo -> "🎥 Vídeo"
+                                    isAudio -> "🎵 Áudio"
                                     else -> "📎 Anexo"
                                 }
                                 Text(
@@ -784,3 +789,14 @@ fun UpdateBanner(
         }
     }
 }
+
+// Extension property to get full media URL for announcements
+private val Announcement.fullMediaUrl: String?
+    get() {
+        val url = mediaUrl ?: return null
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return url
+        }
+        val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/api/").removeSuffix("/api")
+        return "$baseUrl$url"
+    }

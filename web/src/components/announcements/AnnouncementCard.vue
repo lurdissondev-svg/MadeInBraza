@@ -64,9 +64,18 @@ function handleDelete() {
   emit('delete', props.announcement.id)
 }
 
+// Build full URL for relative media paths
+function getMediaUrl(mediaUrl: string): string {
+  if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://')) {
+    return mediaUrl
+  }
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+  return `${baseUrl}${mediaUrl}`
+}
+
 function openMedia() {
   if (props.announcement.mediaUrl) {
-    window.open(props.announcement.mediaUrl, '_blank')
+    window.open(getMediaUrl(props.announcement.mediaUrl), '_blank')
   }
 }
 </script>
@@ -104,7 +113,7 @@ function openMedia() {
           <!-- Image Preview (including GIF) -->
           <img
             v-if="isImage"
-            :src="announcement.mediaUrl"
+            :src="getMediaUrl(announcement.mediaUrl)"
             :alt="announcement.title"
             class="rounded-lg max-w-full max-h-64 object-contain cursor-pointer hover:opacity-90 transition-opacity"
             @click="openMedia"
@@ -112,14 +121,14 @@ function openMedia() {
           <!-- Video Preview -->
           <video
             v-else-if="isVideo"
-            :src="announcement.mediaUrl"
+            :src="getMediaUrl(announcement.mediaUrl)"
             controls
             class="rounded-lg max-h-64 w-full"
           />
           <!-- Other files (documents, etc.) -->
           <a
             v-else
-            :href="announcement.mediaUrl"
+            :href="getMediaUrl(announcement.mediaUrl)"
             target="_blank"
             rel="noopener noreferrer"
             class="inline-flex items-center text-primary-400 hover:text-primary-300 text-sm"

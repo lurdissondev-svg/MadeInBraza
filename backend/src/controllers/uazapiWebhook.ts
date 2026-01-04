@@ -100,10 +100,15 @@ export async function handleUazapiWebhook(
     // Prioriza nome visível (pushName/senderName/name) ao invés do número
     // Filtra valores que são apenas números (telefone) - só aceita se tiver letras
     const isValidName = (name?: string) => name && /[a-zA-ZÀ-ÿ]/.test(name);
+
+    // Verifica se é o dono da instância (Vanderson)
+    const INSTANCE_OWNER = '556581062401';
+    const isInstanceOwner = msg.sender?.includes(INSTANCE_OWNER) || payload.owner === INSTANCE_OWNER;
+
     const authorName = (isValidName(msg.pushName) ? msg.pushName : null)
       || (isValidName(msg.senderName) ? msg.senderName : null)
       || (isValidName(msg.name) ? msg.name : null)
-      || 'WhatsApp';
+      || (isInstanceOwner ? 'Vanderson' : 'WhatsApp');
     console.log('[UAZAPI Webhook] Author fields - pushName:', msg.pushName, '| senderName:', msg.senderName, '| name:', msg.name, '| sender:', msg.sender);
     console.log('[UAZAPI Webhook] Using author name:', authorName);
 
@@ -214,9 +219,14 @@ export async function importMessagesFromGroup(
       const messageId = msg.messageid || msg.key?.id;
       // Filtra valores que são apenas números (telefone) - só aceita se tiver letras
       const isValidName = (name?: string) => name && /[a-zA-ZÀ-ÿ]/.test(name);
+
+      // Verifica se é o dono da instância (Vanderson)
+      const INSTANCE_OWNER = '556581062401';
+      const isInstanceOwner = msg.sender?.includes(INSTANCE_OWNER);
+
       const authorName = (isValidName(msg.pushName) ? msg.pushName : null)
         || (isValidName(msg.senderName) ? msg.senderName : null)
-        || 'WhatsApp';
+        || (isInstanceOwner ? 'Vanderson' : 'WhatsApp');
       const text = msg.text || msg.message?.conversation || '';
 
       if (!text) {
