@@ -4,8 +4,10 @@ import { useChannelsStore } from './channels'
 import { useAnnouncementsStore } from './announcements'
 import { useMembersStore } from './members'
 import { useAuthStore } from './auth'
+import { usePartiesStore } from './parties'
 
 const STORAGE_KEY = 'braza_notifications_enabled'
+const LAST_PARTY_CHECK_KEY = 'braza_last_party_check'
 
 export const useNotificationsStore = defineStore('notifications', () => {
   // State
@@ -15,11 +17,17 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const notificationSound = ref<HTMLAudioElement | null>(null)
   const userInteracted = ref(false)
 
+  // Track new parties count
+  const newPartiesCount = ref(0)
+  const lastKnownPartyIds = ref<Set<string>>(new Set())
+  const currentUserId = ref<string | null>(null) // Track current user to detect account switches
+
   // Other stores
   const channelsStore = useChannelsStore()
   const announcementsStore = useAnnouncementsStore()
   const membersStore = useMembersStore()
   const authStore = useAuthStore()
+  const partiesStore = usePartiesStore()
 
   // Computed: Total unread count across all features
   const totalUnreadCount = computed(() => {
@@ -35,6 +43,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
     if (authStore.isLeader) {
       total += membersStore.pendingCount
     }
+
+    // New parties count
+    total += newPartiesCount.value
 
     return total
   })
@@ -100,6 +111,62 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
+  // Check for new parties
+  async function checkForNewParties(): Promise<number> {
+    try {
+      await partiesStore.fetchGlobalParties()
+      const currentParties = partiesStore.globalParties
+      const currentPartyIds = new Set(currentParties.map(p => p.id))
+
+      // First check - just initialize the known parties
+      if (lastKnownPartyIds.value.size === 0) {
+        lastKnownPartyIds.value = currentPartyIds
+        // Load saved party IDs from localStorage for this user
+        const savedIds = localStorage.getItem(`${LAST_PARTY_CHECK_KEY}_${authStore.user?.id}`)
+        if (savedIds) {
+          try {
+            const parsed = JSON.parse(savedIds)
+            lastKnownPartyIds.value = new Set(parsed)
+          } catch {
+            // Ignore parse errors
+          }
+        }
+        return 0
+      }
+
+      // Find new parties (parties that exist now but weren't known before)
+      let newCount = 0
+      for (const partyId of currentPartyIds) {
+        if (!lastKnownPartyIds.value.has(partyId)) {
+          newCount++
+        }
+      }
+
+      // Update known parties
+      lastKnownPartyIds.value = currentPartyIds
+
+      // Save to localStorage for this user
+      localStorage.setItem(
+        `${LAST_PARTY_CHECK_KEY}_${authStore.user?.id}`,
+        JSON.stringify([...currentPartyIds])
+      )
+
+      return newCount
+    } catch (e) {
+      console.warn('[Notifications] Error checking parties:', e)
+      return 0
+    }
+  }
+
+  // Reset notification state (used when switching accounts)
+  function resetState() {
+    console.log('[Notifications] Resetting notification state')
+    lastTotalUnread.value = -1
+    newPartiesCount.value = 0
+    lastKnownPartyIds.value = new Set()
+    document.title = 'Made in Braza'
+  }
+
   // Check for new content and trigger notifications
   async function checkForNewContent() {
     if (!authStore.user) {
@@ -107,8 +174,22 @@ export const useNotificationsStore = defineStore('notifications', () => {
       return
     }
 
+    // Detect account switch - reset state if user changed
+    if (currentUserId.value !== null && currentUserId.value !== authStore.user.id) {
+      console.log('[Notifications] Account switched, resetting state')
+      resetState()
+    }
+    currentUserId.value = authStore.user.id
+
     const previousTotal = lastTotalUnread.value
     console.log('[Notifications] Checking for new content, previousTotal:', previousTotal)
+
+    // Check for new parties first
+    const newParties = await checkForNewParties()
+    if (newParties > 0) {
+      console.log('[Notifications] Found', newParties, 'new parties!')
+      newPartiesCount.value += newParties
+    }
 
     // Refresh data from all stores (force recalculate unread counts)
     await Promise.all([
@@ -121,7 +202,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
     console.log('[Notifications] After fetch - currentTotal:', currentTotal, {
       channels: channelsStore.totalUnreadCount,
       announcements: announcementsStore.unreadCount,
-      pending: authStore.isLeader ? membersStore.pendingCount : 0
+      pending: authStore.isLeader ? membersStore.pendingCount : 0,
+      newParties: newPartiesCount.value
     })
 
     // Play sound if count increased (skip first check to avoid sound on page load)
@@ -163,6 +245,14 @@ export const useNotificationsStore = defineStore('notifications', () => {
       clearInterval(pollingInterval.value)
       pollingInterval.value = null
     }
+    // Reset state when stopping (e.g., on logout)
+    resetState()
+  }
+
+  // Clear new parties count (called when user views parties page)
+  function clearNewPartiesCount() {
+    newPartiesCount.value = 0
+    updateDocumentTitle()
   }
 
   // Toggle sound
@@ -202,6 +292,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
       channels: channelsStore.totalUnreadCount,
       announcements: announcementsStore.unreadCount,
       pending: authStore.isLeader ? membersStore.pendingCount : 0,
+      newParties: newPartiesCount.value,
+      knownPartyIds: [...lastKnownPartyIds.value],
+      currentUserId: currentUserId.value,
       pollingActive: !!pollingInterval.value
     }
   }
@@ -240,6 +333,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     // State
     soundEnabled,
     userInteracted,
+    newPartiesCount,
     // Computed
     totalUnreadCount,
     // Actions
@@ -250,6 +344,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
     stopPolling,
     toggleSound,
     markUserInteracted,
+    clearNewPartiesCount,
+    resetState,
     cleanup
   }
 })

@@ -4,12 +4,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChannelsStore } from '@/stores/channels'
 import { useAnnouncementsStore } from '@/stores/announcements'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const channelsStore = useChannelsStore()
 const announcementsStore = useAnnouncementsStore()
+const notificationsStore = useNotificationsStore()
 
 // Load channels to get unread counts
 onMounted(() => {
@@ -48,6 +50,10 @@ function isActive(routeName: string): boolean {
 }
 
 function navigateTo(path: string) {
+  // Clear new parties notification when navigating to parties
+  if (path === '/parties') {
+    notificationsStore.clearNewPartiesCount()
+  }
   router.push(path)
 }
 </script>
@@ -108,6 +114,14 @@ function navigateTo(path: string) {
             class="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
           >
             {{ channelsStore.totalUnreadCount > 99 ? '99+' : channelsStore.totalUnreadCount }}
+          </div>
+
+          <!-- New parties badge -->
+          <div
+            v-if="item.icon === 'party' && notificationsStore.newPartiesCount > 0"
+            class="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-green-500 text-white text-xs font-bold flex items-center justify-center"
+          >
+            {{ notificationsStore.newPartiesCount > 99 ? '99+' : notificationsStore.newPartiesCount }}
           </div>
         </div>
 
