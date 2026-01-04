@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { notifyPartyMembers } from '../services/notification.js';
+import { notifyPartyMembers, notifyAllMembers } from '../services/notification.js';
 import { createPartyChannel } from './channel.js';
 import { PlayerClass } from '@prisma/client';
 
@@ -206,6 +206,19 @@ export async function createGlobalParty(
         createPartyChannel(party.id, party.name)
           .catch(err => console.error('Failed to create party channel:', err));
 
+        // Send push notification to all members about new party
+        notifyAllMembers(
+          'Nova Party criada!',
+          `${creator.nick} criou a party "${party.name}"`,
+          {
+            type: 'party',
+            action: 'new',
+            partyId: party.id,
+            partyName: party.name,
+          },
+          userId // Exclude creator from notification
+        ).catch(err => console.error('Failed to send party notification:', err));
+
         res.status(201).json({ party: transformPartyResponse(updatedParty) });
         return;
       }
@@ -214,6 +227,19 @@ export async function createGlobalParty(
     // Create party channel for chat (even if creator didn't join)
     createPartyChannel(party.id, party.name)
       .catch(err => console.error('Failed to create party channel:', err));
+
+    // Send push notification to all members about new party
+    notifyAllMembers(
+      'Nova Party criada!',
+      `${creator.nick} criou a party "${party.name}"`,
+      {
+        type: 'party',
+        action: 'new',
+        partyId: party.id,
+        partyName: party.name,
+      },
+      userId // Exclude creator from notification
+    ).catch(err => console.error('Failed to send party notification:', err));
 
     res.status(201).json({ party: transformPartyResponse(party) });
   } catch (err) {
@@ -373,6 +399,19 @@ export async function createParty(
         createPartyChannel(party.id, party.name)
           .catch(err => console.error('Failed to create party channel:', err));
 
+        // Send push notification to all members about new party
+        notifyAllMembers(
+          'Nova Party criada!',
+          `${creator.nick} criou a party "${party.name}"`,
+          {
+            type: 'party',
+            action: 'new',
+            partyId: party.id,
+            partyName: party.name,
+          },
+          userId // Exclude creator from notification
+        ).catch(err => console.error('Failed to send party notification:', err));
+
         res.status(201).json({ party: transformPartyResponse(updatedParty) });
         return;
       }
@@ -381,6 +420,19 @@ export async function createParty(
     // Create party channel for chat (even if creator didn't join)
     createPartyChannel(party.id, party.name)
       .catch(err => console.error('Failed to create party channel:', err));
+
+    // Send push notification to all members about new party
+    notifyAllMembers(
+      'Nova Party criada!',
+      `${creator.nick} criou a party "${party.name}"`,
+      {
+        type: 'party',
+        action: 'new',
+        partyId: party.id,
+        partyName: party.name,
+      },
+      userId // Exclude creator from notification
+    ).catch(err => console.error('Failed to send party notification:', err));
 
     res.status(201).json({ party: transformPartyResponse(party) });
   } catch (err) {
