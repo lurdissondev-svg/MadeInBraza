@@ -10,7 +10,7 @@ const STORAGE_KEY = 'braza_notifications_enabled'
 export const useNotificationsStore = defineStore('notifications', () => {
   // State
   const soundEnabled = ref(localStorage.getItem(STORAGE_KEY) !== 'false')
-  const lastTotalUnread = ref(0)
+  const lastTotalUnread = ref(-1) // -1 means first check hasn't happened yet
   const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
   const notificationSound = ref<HTMLAudioElement | null>(null)
   const userInteracted = ref(false)
@@ -56,7 +56,21 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   // Play notification sound
   async function playSound() {
-    if (!soundEnabled.value || !userInteracted.value) return
+    console.log('[Notifications] playSound called', {
+      soundEnabled: soundEnabled.value,
+      userInteracted: userInteracted.value,
+      hasAudio: !!notificationSound.value
+    })
+
+    if (!soundEnabled.value) {
+      console.log('[Notifications] Sound disabled by user')
+      return
+    }
+
+    if (!userInteracted.value) {
+      console.log('[Notifications] User has not interacted yet - sound blocked by browser')
+      return
+    }
 
     try {
       if (!notificationSound.value) {
@@ -65,10 +79,12 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
       if (notificationSound.value) {
         notificationSound.value.currentTime = 0
+        console.log('[Notifications] Playing sound...')
         await notificationSound.value.play()
+        console.log('[Notifications] Sound played successfully')
       }
     } catch (e) {
-      console.warn('Could not play notification sound:', e)
+      console.warn('[Notifications] Could not play notification sound:', e)
     }
   }
 
@@ -86,9 +102,13 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   // Check for new content and trigger notifications
   async function checkForNewContent() {
-    if (!authStore.user) return
+    if (!authStore.user) {
+      console.log('[Notifications] No user, skipping check')
+      return
+    }
 
     const previousTotal = lastTotalUnread.value
+    console.log('[Notifications] Checking for new content, previousTotal:', previousTotal)
 
     // Refresh data from all stores (force recalculate unread counts)
     await Promise.all([
@@ -98,10 +118,20 @@ export const useNotificationsStore = defineStore('notifications', () => {
     ])
 
     const currentTotal = totalUnreadCount.value
+    console.log('[Notifications] After fetch - currentTotal:', currentTotal, {
+      channels: channelsStore.totalUnreadCount,
+      announcements: announcementsStore.unreadCount,
+      pending: authStore.isLeader ? membersStore.pendingCount : 0
+    })
 
-    // Play sound if count increased
-    if (currentTotal > previousTotal && previousTotal >= 0) {
+    // Play sound if count increased (skip first check to avoid sound on page load)
+    // -1 means first check, don't play sound
+    // >= 0 means subsequent checks, play sound if increased
+    if (previousTotal >= 0 && currentTotal > previousTotal) {
+      console.log('[Notifications] New content detected! Playing sound...')
       playSound()
+    } else if (previousTotal === -1) {
+      console.log('[Notifications] First check - initializing count, not playing sound')
     }
 
     lastTotalUnread.value = currentTotal
@@ -110,13 +140,19 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   // Start polling for new content
   function startPolling(intervalMs = 30000) {
-    if (pollingInterval.value) return
+    if (pollingInterval.value) {
+      console.log('[Notifications] Polling already running')
+      return
+    }
+
+    console.log('[Notifications] Starting polling every', intervalMs, 'ms')
 
     // Initial check
     checkForNewContent()
 
     // Set up interval
     pollingInterval.value = setInterval(() => {
+      console.log('[Notifications] Polling tick...')
       checkForNewContent()
     }, intervalMs)
   }
@@ -137,6 +173,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   // Mark user as having interacted (enables sound)
   function markUserInteracted() {
+    console.log('[Notifications] User interacted - enabling sound')
     userInteracted.value = true
     initAudio()
   }
