@@ -90,9 +90,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
     const previousTotal = lastTotalUnread.value
 
-    // Refresh data from all stores (channels won't recalculate unread on every call)
+    // Refresh data from all stores (force recalculate unread counts)
     await Promise.all([
-      channelsStore.fetchChannels(),
+      channelsStore.fetchChannels(true), // Force recalculate unread counts
       announcementsStore.fetchAnnouncements(),
       authStore.isLeader ? membersStore.fetchPendingUsers() : Promise.resolve()
     ])
