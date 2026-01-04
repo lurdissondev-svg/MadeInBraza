@@ -296,7 +296,20 @@ class AppUpdateManager @Inject constructor() {
                     when (status) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             downloading = false
-                            _downloadState.value = UpdateDownloadState.Downloading(100)
+                            // Unregister receiver since we're handling it here
+                            downloadReceiver?.let {
+                                try {
+                                    context.unregisterReceiver(it)
+                                } catch (e: Exception) {
+                                    // Already unregistered
+                                }
+                                downloadReceiver = null
+                            }
+                            // Update state and install immediately
+                            _downloadState.value = UpdateDownloadState.Installing
+                            withContext(Dispatchers.Main) {
+                                installApk(context, file)
+                            }
                         }
                         DownloadManager.STATUS_FAILED -> {
                             downloading = false
