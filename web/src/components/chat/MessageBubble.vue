@@ -30,6 +30,7 @@ const isEditing = ref(false)
 const editContent = ref('')
 const showActions = ref(false)
 const showDeleteModal = ref(false)
+const showAvatarPreview = ref(false)
 
 function startEdit() {
   editContent.value = props.message.content || ''
@@ -76,6 +77,16 @@ const avatarUrl = computed(() => {
 
 function handleAvatarError() {
   avatarError.value = true
+}
+
+function openAvatarPreview() {
+  if (avatarUrl.value) {
+    showAvatarPreview.value = true
+  }
+}
+
+function closeAvatarPreview() {
+  showAvatarPreview.value = false
 }
 
 const bubbleBackground = computed(() => {
@@ -159,8 +170,11 @@ function openFullImage() {
     <!-- Avatar (only for other users) -->
     <div v-if="!isCurrentUser" class="flex-shrink-0">
       <div
-        class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
-        :class="avatarUrl ? '' : 'bg-dark-500'"
+        class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden transition-transform"
+        :class="[
+          avatarUrl ? 'cursor-pointer hover:scale-110 hover:ring-2 hover:ring-primary-400' : 'bg-dark-500'
+        ]"
+        @click="openAvatarPreview"
       >
         <img
           v-if="avatarUrl"
@@ -285,6 +299,50 @@ function openFullImage() {
             >
               Excluir
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Avatar Preview Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showAvatarPreview"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click="closeAvatarPreview"
+      >
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+        <!-- Avatar Container -->
+        <div class="relative" @click.stop>
+          <!-- Close button -->
+          <button
+            @click="closeAvatarPreview"
+            class="absolute -top-3 -right-3 z-10 w-8 h-8 bg-dark-700 border border-dark-500 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-dark-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <!-- Avatar Image -->
+          <div class="relative bg-dark-700 rounded-2xl p-2 shadow-2xl">
+            <img
+              :src="avatarUrl!"
+              :alt="`Avatar de ${message.user.nick}`"
+              class="w-64 h-64 sm:w-80 sm:h-80 object-cover rounded-xl"
+            />
+            <!-- User info -->
+            <div class="mt-3 text-center">
+              <p
+                class="text-lg font-semibold"
+                :class="isLeader ? 'text-primary-400' : 'text-gray-100'"
+              >
+                {{ message.user.nick }}
+                <span v-if="isLeader" class="text-sm">[LIDER]</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
