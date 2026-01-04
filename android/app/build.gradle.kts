@@ -34,8 +34,8 @@ android {
         applicationId = "com.madeinbraza.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 31
-        versionName = "1.1.11"
+        versionCode = 32
+        versionName = "1.1.12"
 
         buildConfigField("String", "API_BASE_URL", "\"https://braza.app.br/api/\"")
     }
