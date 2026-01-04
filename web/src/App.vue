@@ -31,13 +31,13 @@ onMounted(() => {
   document.addEventListener('keydown', handleUserInteraction)
 })
 
-// Watch for authentication changes
+// Watch for user changes (more reliable than isAuthenticated)
 watch(
-  () => authStore.isAuthenticated,
-  (isAuthenticated) => {
-    if (isAuthenticated) {
-      // Start polling when user is authenticated
-      notificationsStore.startPolling(30000) // 30 seconds
+  () => authStore.user,
+  (user) => {
+    if (user) {
+      // Start polling when user is loaded - every 10 seconds for more responsive updates
+      notificationsStore.startPolling(10000)
     } else {
       // Stop polling when user logs out
       notificationsStore.stopPolling()

@@ -44,7 +44,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
     if (notificationSound.value) return
 
     try {
-      notificationSound.value = new Audio('/sounds/notification.mp3')
+      // Use base URL for the sound file (handles /web/ prefix)
+      const baseUrl = import.meta.env.BASE_URL || '/'
+      notificationSound.value = new Audio(`${baseUrl}sounds/notification.mp3`)
       notificationSound.value.volume = 0.5
       notificationSound.value.preload = 'auto'
     } catch (e) {
@@ -84,7 +86,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   // Check for new content and trigger notifications
   async function checkForNewContent() {
-    if (!authStore.isAuthenticated) return
+    if (!authStore.user) return
 
     const previousTotal = lastTotalUnread.value
 
