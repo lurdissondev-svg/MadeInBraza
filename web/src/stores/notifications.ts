@@ -191,6 +191,51 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
+  // Debug helper - exposed to window for troubleshooting
+  function getDebugState() {
+    return {
+      soundEnabled: soundEnabled.value,
+      userInteracted: userInteracted.value,
+      hasAudio: !!notificationSound.value,
+      lastTotalUnread: lastTotalUnread.value,
+      currentTotal: totalUnreadCount.value,
+      channels: channelsStore.totalUnreadCount,
+      announcements: announcementsStore.unreadCount,
+      pending: authStore.isLeader ? membersStore.pendingCount : 0,
+      pollingActive: !!pollingInterval.value
+    }
+  }
+
+  // Test sound manually
+  async function testSound() {
+    console.log('[Notifications] Manual test - forcing sound play')
+    // Temporarily bypass checks
+    if (!notificationSound.value) {
+      initAudio()
+    }
+    if (notificationSound.value) {
+      try {
+        notificationSound.value.currentTime = 0
+        await notificationSound.value.play()
+        console.log('[Notifications] Test sound played!')
+        return true
+      } catch (e) {
+        console.error('[Notifications] Test sound failed:', e)
+        return false
+      }
+    }
+    return false
+  }
+
+  // Expose debug helpers to window
+  if (typeof window !== 'undefined') {
+    (window as any).brazaNotifications = {
+      getState: getDebugState,
+      testSound,
+      forceCheck: checkForNewContent
+    }
+  }
+
   return {
     // State
     soundEnabled,
