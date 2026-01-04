@@ -45,15 +45,21 @@ export const useChannelsStore = defineStore('channels', () => {
     })
   })
 
+  // Track if we've done initial unread calculation
+  const unreadCountsCalculated = ref(false)
+
   // Actions
-  async function fetchChannels(): Promise<boolean> {
+  async function fetchChannels(forceRecalculate = false): Promise<boolean> {
     loading.value = true
     error.value = null
 
     try {
       channels.value = await channelsApi.getChannels()
-      // Calculate unread counts for all channels
-      await calculateAllUnreadCounts()
+      // Only calculate unread counts on first load or when forced
+      if (!unreadCountsCalculated.value || forceRecalculate) {
+        await calculateAllUnreadCounts()
+        unreadCountsCalculated.value = true
+      }
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao carregar canais'

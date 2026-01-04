@@ -10,10 +10,9 @@ const STORAGE_KEY = 'braza_notifications_enabled'
 export const useNotificationsStore = defineStore('notifications', () => {
   // State
   const soundEnabled = ref(localStorage.getItem(STORAGE_KEY) !== 'false')
-  const lastTotalUnread = ref(0)
-  const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
   const notificationSound = ref<HTMLAudioElement | null>(null)
   const userInteracted = ref(false)
+  const previousUnreadCount = ref(0)
 
   // Other stores
   const channelsStore = useChannelsStore()
@@ -47,8 +46,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
       // Use base URL for the sound file (handles /web/ prefix)
       const baseUrl = import.meta.env.BASE_URL || '/'
       notificationSound.value = new Audio(`${baseUrl}sounds/notification.mp3`)
-      notificationSound.value.volume = 0.5
+      notificationSound.value.volume = 0.7
       notificationSound.value.preload = 'auto'
+      // Pre-load the audio
+      notificationSound.value.load()
     } catch (e) {
       console.warn('Could not initialize notification sound:', e)
     }
@@ -56,7 +57,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   // Play notification sound
   async function playSound() {
-    if (!soundEnabled.value || !userInteracted.value) return
+    if (!soundEnabled.value || !userInteracted.value) {
+      console.log('Sound blocked:', { soundEnabled: soundEnabled.value, userInteracted: userInteracted.value })
+      return
+    }
 
     try {
       if (!notificationSound.value) {
@@ -66,6 +70,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       if (notificationSound.value) {
         notificationSound.value.currentTime = 0
         await notificationSound.value.play()
+        console.log('Sound played!')
       }
     } catch (e) {
       console.warn('Could not play notification sound:', e)
@@ -84,51 +89,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
-  // Check for new content and trigger notifications
-  async function checkForNewContent() {
-    if (!authStore.user) return
-
-    const previousTotal = lastTotalUnread.value
-
-    // Refresh data from all stores
-    await Promise.all([
-      channelsStore.fetchChannels(),
-      announcementsStore.fetchAnnouncements(),
-      authStore.isLeader ? membersStore.fetchPendingUsers() : Promise.resolve()
-    ])
-
-    const currentTotal = totalUnreadCount.value
-
-    // Play sound if count increased
-    if (currentTotal > previousTotal && previousTotal >= 0) {
-      playSound()
-    }
-
-    lastTotalUnread.value = currentTotal
-    updateDocumentTitle()
-  }
-
-  // Start polling for new content
-  function startPolling(intervalMs = 30000) {
-    if (pollingInterval.value) return
-
-    // Initial check
-    checkForNewContent()
-
-    // Set up interval
-    pollingInterval.value = setInterval(() => {
-      checkForNewContent()
-    }, intervalMs)
-  }
-
-  // Stop polling
-  function stopPolling() {
-    if (pollingInterval.value) {
-      clearInterval(pollingInterval.value)
-      pollingInterval.value = null
-    }
-  }
-
   // Toggle sound
   function toggleSound() {
     soundEnabled.value = !soundEnabled.value
@@ -137,21 +97,32 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   // Mark user as having interacted (enables sound)
   function markUserInteracted() {
+    if (userInteracted.value) return
     userInteracted.value = true
     initAudio()
+    console.log('User interaction registered, sound enabled')
   }
 
-  // Watch for changes in unread count and update title
-  watch(totalUnreadCount, () => {
-    updateDocumentTitle()
-  })
+  // Watch for changes in unread count
+  watch(totalUnreadCount, (newCount, oldCount) => {
+    console.log('Unread count changed:', oldCount, '->', newCount)
 
-  // Cleanup on unmount
-  function cleanup() {
-    stopPolling()
-    if (notificationSound.value) {
-      notificationSound.value = null
+    // Update title
+    updateDocumentTitle()
+
+    // Play sound if count increased (and not initial load)
+    const prevCount = oldCount ?? 0
+    if (newCount > prevCount && previousUnreadCount.value > 0) {
+      playSound()
     }
+
+    previousUnreadCount.value = newCount
+  }, { immediate: true })
+
+  // Initialize on first run
+  function init() {
+    previousUnreadCount.value = totalUnreadCount.value
+    updateDocumentTitle()
   }
 
   return {
@@ -163,11 +134,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
     // Actions
     playSound,
     updateDocumentTitle,
-    checkForNewContent,
-    startPolling,
-    stopPolling,
     toggleSound,
     markUserInteracted,
-    cleanup
+    init
   }
 })

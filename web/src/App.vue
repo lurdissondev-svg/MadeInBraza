@@ -15,6 +15,7 @@ function handleUserInteraction() {
   // Remove listeners after first interaction
   document.removeEventListener('click', handleUserInteraction)
   document.removeEventListener('keydown', handleUserInteraction)
+  document.removeEventListener('touchstart', handleUserInteraction)
 }
 
 onMounted(() => {
@@ -29,27 +30,24 @@ onMounted(() => {
   // Listen for user interaction to enable sound
   document.addEventListener('click', handleUserInteraction)
   document.addEventListener('keydown', handleUserInteraction)
+  document.addEventListener('touchstart', handleUserInteraction)
 })
 
-// Watch for user changes (more reliable than isAuthenticated)
+// Initialize notifications when user is loaded
 watch(
   () => authStore.user,
   (user) => {
     if (user) {
-      // Start polling when user is loaded - every 10 seconds for more responsive updates
-      notificationsStore.startPolling(10000)
-    } else {
-      // Stop polling when user logs out
-      notificationsStore.stopPolling()
+      notificationsStore.init()
     }
   },
   { immediate: true }
 )
 
 onUnmounted(() => {
-  notificationsStore.cleanup()
   document.removeEventListener('click', handleUserInteraction)
   document.removeEventListener('keydown', handleUserInteraction)
+  document.removeEventListener('touchstart', handleUserInteraction)
 })
 </script>
 
