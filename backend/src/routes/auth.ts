@@ -4,6 +4,7 @@ import {
   login,
   checkStatus,
   registerFcmToken,
+  unregisterFcmToken,
   changePassword,
   forgotPassword,
   requestPasswordReset,
@@ -19,6 +20,7 @@ authRouter.post('/register', register);
 authRouter.post('/login', login);
 authRouter.get('/status', authenticate, checkStatus);
 authRouter.post('/fcm-token', authenticate, registerFcmToken);
+authRouter.delete('/fcm-token', authenticate, unregisterFcmToken);
 authRouter.put('/change-password', authenticate, changePassword);
 authRouter.put('/update-email', authenticate, updateEmail);
 

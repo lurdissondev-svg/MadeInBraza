@@ -61,6 +61,16 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun logout() {
+        // Unregister FCM token before clearing local data
+        val token = getToken()
+        if (token != null) {
+            try {
+                api.unregisterFcmToken("Bearer $token")
+            } catch (e: Exception) {
+                // Ignore errors - we're logging out anyway
+            }
+        }
+
         invalidateCache()
         dataStore.edit {
             it.remove(tokenKey)

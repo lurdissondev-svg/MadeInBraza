@@ -209,6 +209,23 @@ export async function registerFcmToken(
   }
 }
 
+export async function unregisterFcmToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: { fcmToken: null },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function changePassword(
   req: Request,
   res: Response,

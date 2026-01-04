@@ -86,6 +86,11 @@ interface BrazaApi {
         @Body request: FcmTokenRequest
     ): Response<SuccessResponse>
 
+    @DELETE("auth/fcm-token")
+    suspend fun unregisterFcmToken(
+        @Header("Authorization") token: String
+    ): Response<SuccessResponse>
+
     @PUT("auth/change-password")
     suspend fun changePassword(
         @Header("Authorization") token: String,
