@@ -36,6 +36,8 @@ const upcomingEvents = computed(() => {
 onMounted(() => {
   announcementsStore.fetchAnnouncements()
   eventsStore.fetchEvents()
+  // Mark announcements as read when viewing the home page
+  announcementsStore.markAsRead()
 })
 
 function handleRefresh() {

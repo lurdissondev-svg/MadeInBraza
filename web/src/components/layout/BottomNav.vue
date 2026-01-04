@@ -3,11 +3,13 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChannelsStore } from '@/stores/channels'
+import { useAnnouncementsStore } from '@/stores/announcements'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const channelsStore = useChannelsStore()
+const announcementsStore = useAnnouncementsStore()
 
 // Load channels to get unread counts
 onMounted(() => {
@@ -91,6 +93,14 @@ function navigateTo(path: string) {
           <svg v-else-if="item.icon === 'download'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
+
+          <!-- Unread badge for Home (Announcements) -->
+          <div
+            v-if="item.icon === 'home' && announcementsStore.unreadCount > 0"
+            class="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
+          >
+            {{ announcementsStore.unreadCount > 99 ? '99+' : announcementsStore.unreadCount }}
+          </div>
 
           <!-- Unread badge for Chat -->
           <div

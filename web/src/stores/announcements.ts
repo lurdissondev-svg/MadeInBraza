@@ -1,13 +1,31 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { Announcement, CreateAnnouncementRequest } from '@/types'
 import { announcementsApi } from '@/services/api/announcements'
+
+const LAST_READ_KEY = 'braza_announcements_last_read'
 
 export const useAnnouncementsStore = defineStore('announcements', () => {
   // State
   const announcements = ref<Announcement[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const lastReadAt = ref<string | null>(localStorage.getItem(LAST_READ_KEY))
+
+  // Computed: Count of unread announcements
+  const unreadCount = computed(() => {
+    if (!lastReadAt.value) {
+      // First time user - all announcements are "new"
+      return announcements.value.length
+    }
+
+    const lastReadTime = new Date(lastReadAt.value).getTime()
+
+    return announcements.value.filter(a => {
+      const announcementTime = new Date(a.createdAt).getTime()
+      return announcementTime > lastReadTime
+    }).length
+  })
 
   // Actions
   async function fetchAnnouncements(): Promise<boolean> {
@@ -57,6 +75,12 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     }
   }
 
+  // Mark all announcements as read
+  function markAsRead() {
+    lastReadAt.value = new Date().toISOString()
+    localStorage.setItem(LAST_READ_KEY, lastReadAt.value)
+  }
+
   function clearError() {
     error.value = null
   }
@@ -66,10 +90,14 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     announcements,
     loading,
     error,
+    lastReadAt,
+    // Computed
+    unreadCount,
     // Actions
     fetchAnnouncements,
     createAnnouncement,
     deleteAnnouncement,
+    markAsRead,
     clearError
   }
 })

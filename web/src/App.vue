@@ -1,9 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const notificationsStore = useNotificationsStore()
 const isNavigating = ref(false)
+
+// Enable sound on first user interaction
+function handleUserInteraction() {
+  notificationsStore.markUserInteracted()
+  // Remove listeners after first interaction
+  document.removeEventListener('click', handleUserInteraction)
+  document.removeEventListener('keydown', handleUserInteraction)
+}
 
 onMounted(() => {
   router.beforeEach(() => {
@@ -13,6 +25,31 @@ onMounted(() => {
   router.afterEach(() => {
     isNavigating.value = false
   })
+
+  // Listen for user interaction to enable sound
+  document.addEventListener('click', handleUserInteraction)
+  document.addEventListener('keydown', handleUserInteraction)
+})
+
+// Watch for authentication changes
+watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => {
+    if (isAuthenticated) {
+      // Start polling when user is authenticated
+      notificationsStore.startPolling(30000) // 30 seconds
+    } else {
+      // Stop polling when user logs out
+      notificationsStore.stopPolling()
+    }
+  },
+  { immediate: true }
+)
+
+onUnmounted(() => {
+  notificationsStore.cleanup()
+  document.removeEventListener('click', handleUserInteraction)
+  document.removeEventListener('keydown', handleUserInteraction)
 })
 </script>
 
