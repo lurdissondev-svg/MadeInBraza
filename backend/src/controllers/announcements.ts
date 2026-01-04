@@ -44,7 +44,10 @@ export async function sendAnnouncementNotification(
       body: bodyText,
       data: {
         type: 'announcement',
-        click_action: 'OPEN_ANNOUNCEMENTS'
+        click_action: 'OPEN_ANNOUNCEMENTS',
+        title: notificationTitle,
+        content: bodyText,
+        ...(authorName && { authorName })
       }
     });
 
