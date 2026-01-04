@@ -15,12 +15,14 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.madeinbraza.app.BuildConfig
 import com.madeinbraza.app.di.dataStore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.File
@@ -276,7 +278,7 @@ class AppUpdateManager @Inject constructor() {
         downloadId: Long,
         file: File
     ) {
-        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+        CoroutineScope(Dispatchers.IO).launch {
             var downloading = true
             while (downloading) {
                 val query = DownloadManager.Query().setFilterById(downloadId)
