@@ -118,14 +118,17 @@ function goBack() {
                   {{ membersStore.selectedMember.nick }}
                 </h3>
                 <span v-if="membersStore.selectedMember.role === Role.LEADER" class="text-xl">👑</span>
+                <span v-else-if="membersStore.selectedMember.role === Role.COUNSELOR" class="text-xl">⭐</span>
               </div>
               <span
                 class="inline-block mt-1 px-3 py-1 text-sm rounded-full"
                 :class="membersStore.selectedMember.role === Role.LEADER
                   ? 'bg-primary-500/20 text-primary-400'
-                  : 'bg-dark-500 text-gray-400'"
+                  : membersStore.selectedMember.role === Role.COUNSELOR
+                    ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-dark-500 text-gray-400'"
               >
-                {{ membersStore.selectedMember.role === Role.LEADER ? 'Líder' : 'Membro' }}
+                {{ membersStore.selectedMember.role === Role.LEADER ? 'Líder' : membersStore.selectedMember.role === Role.COUNSELOR ? 'Conselheiro' : 'Membro' }}
               </span>
             </div>
           </div>

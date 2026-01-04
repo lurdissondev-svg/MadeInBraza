@@ -69,8 +69,16 @@ fun MemberProfileScreen(
                 uiState.profile != null -> {
                     val profile = uiState.profile!!
                     val isLeader = profile.role == Role.LEADER
+                    val isCounselor = profile.role == Role.COUNSELOR
                     val leaderText = stringResource(R.string.leader)
+                    val counselorText = stringResource(R.string.counselor)
                     val memberText = stringResource(R.string.member)
+
+                    val roleText = when (profile.role) {
+                        Role.LEADER -> leaderText
+                        Role.COUNSELOR -> counselorText
+                        else -> memberText
+                    }
 
                     Column(
                         modifier = Modifier
@@ -105,6 +113,14 @@ fun MemberProfileScreen(
                                             modifier = Modifier.size(24.dp),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
+                                    } else if (isCounselor) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            Icons.Outlined.Star,
+                                            contentDescription = counselorText,
+                                            modifier = Modifier.size(24.dp),
+                                            tint = androidx.compose.ui.graphics.Color(0xFFFFA000)
+                                        )
                                     }
                                 }
 
@@ -114,7 +130,7 @@ fun MemberProfileScreen(
                                     onClick = {},
                                     label = {
                                         Text(
-                                            text = if (isLeader) leaderText else memberText,
+                                            text = roleText,
                                             style = MaterialTheme.typography.labelLarge
                                         )
                                     }
