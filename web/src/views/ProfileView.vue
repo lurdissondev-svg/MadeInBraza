@@ -226,7 +226,7 @@ async function handleDeleteAvatar() {
             <div class="flex justify-between items-center py-2 border-b border-dark-600">
               <span class="text-gray-400">Cargo</span>
               <span class="text-gray-100">
-                {{ authStore.user?.role === Role.LEADER ? 'Líder' : 'Membro' }}
+                {{ authStore.user?.role === Role.LEADER ? 'Líder' : authStore.user?.role === Role.COUNSELOR ? 'Conselheiro' : 'Membro' }}
               </span>
             </div>
             <div v-if="profileStore.profile?.createdAt" class="flex justify-between items-center py-2">

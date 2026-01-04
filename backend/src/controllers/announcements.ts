@@ -1,6 +1,60 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { sendNotificationToMultiple } from '../services/firebase.js';
+
+// Helper function to send announcement notification to all users
+export async function sendAnnouncementNotification(
+  title: string,
+  content: string,
+  authorName?: string
+): Promise<{ success: number; failure: number }> {
+  try {
+    // Get all users with FCM tokens
+    const usersWithTokens = await prisma.user.findMany({
+      where: {
+        fcmToken: { not: null },
+        status: 'APPROVED'
+      },
+      select: {
+        fcmToken: true
+      }
+    });
+
+    const fcmTokens = usersWithTokens
+      .map(u => u.fcmToken)
+      .filter((token): token is string => token !== null);
+
+    if (fcmTokens.length === 0) {
+      console.log('[Announcement] No users with FCM tokens to notify');
+      return { success: 0, failure: 0 };
+    }
+
+    // Truncate content for notification body
+    const bodyText = content.length > 100
+      ? content.substring(0, 100) + '...'
+      : content;
+
+    const notificationTitle = authorName
+      ? `📢 ${authorName}: ${title}`
+      : `📢 ${title}`;
+
+    const result = await sendNotificationToMultiple(fcmTokens, {
+      title: notificationTitle,
+      body: bodyText,
+      data: {
+        type: 'announcement',
+        click_action: 'OPEN_ANNOUNCEMENTS'
+      }
+    });
+
+    console.log(`[Announcement] Notification sent: ${result.success} success, ${result.failure} failed`);
+    return result;
+  } catch (error) {
+    console.error('[Announcement] Error sending notification:', error);
+    return { success: 0, failure: 0 };
+  }
+}
 
 export async function getAnnouncements(
   _req: Request,
@@ -83,6 +137,13 @@ export async function createAnnouncement(
         mediaType: true,
       },
     });
+
+    // Send notification to all users
+    await sendAnnouncementNotification(
+      title.trim(),
+      content.trim(),
+      announcement.createdBy?.nick
+    );
 
     res.status(201).json({ announcement });
   } catch (err) {

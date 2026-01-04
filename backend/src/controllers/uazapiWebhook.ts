@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma.js';
 import { downloadAndSaveMedia } from '../services/uazapiMedia.js';
+import { sendAnnouncementNotification } from './announcements.js';
 
 const AVISOS_GROUP_ID = process.env.UAZAPI_AVISOS_GROUP_ID || '';
 
@@ -173,6 +174,13 @@ export async function handleUazapiWebhook(
     });
 
     console.log('[UAZAPI Webhook] ✅ Created announcement from:', authorName, '- ID:', messageId);
+
+    // Send notification to all users
+    await sendAnnouncementNotification(
+      title,
+      text || `[${mediaType}]`,
+      authorName
+    );
 
     res.status(200).json({
       received: true,

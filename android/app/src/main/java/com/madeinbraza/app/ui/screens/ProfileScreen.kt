@@ -335,6 +335,7 @@ fun ProfileScreen(
                                 } else {
                                     // View mode
                                     val leaderText = stringResource(R.string.leader)
+                                    val counselorText = stringResource(R.string.counselor)
                                     val memberText = stringResource(R.string.member)
 
                                     // Avatar section
@@ -445,7 +446,11 @@ fun ProfileScreen(
                                     )
 
                                     Text(
-                                        text = stringResource(R.string.role_info, if (profile.role == Role.LEADER) leaderText else memberText),
+                                        text = stringResource(R.string.role_info, when (profile.role) {
+                                            Role.LEADER -> leaderText
+                                            Role.COUNSELOR -> counselorText
+                                            else -> memberText
+                                        }),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
